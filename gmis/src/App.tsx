@@ -1,5 +1,6 @@
 // ============================================================
-// GMIS — Main App Router (Clean — no broken imports)
+// GMIS — Main App Router (Complete — all real imports)
+// Updated: Session 8
 // ============================================================
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
@@ -9,36 +10,37 @@ import { ThemeProvider }             from './context/ThemeContext'
 import { TenantProvider, useTenant } from './context/TenantContext'
 import { AuthProvider, useAuth }     from './context/AuthContext'
 
-// Platform pages
-import Landing         from './pages/platform/Landing'
-import FindInstitution from './pages/platform/FindInstitution'
-
-// Tenant auth pages
-import SchoolLogin   from './pages/tenant/SchoolLogin'
-import StudentSignup from './pages/tenant/StudentSignup'
-
-// Helper pages
+// ── Helper pages ──────────────────────────────────────────
 import TenantError   from './pages/tenant/TenantError'
 import TenantLoading from './pages/tenant/TenantLoading'
 
-// ── STEP: Uncomment each import ONLY after you place the file ──
-import StudentDashboard   from './pages/tenant/student/Dashboard'
-// import StudentResults     from './pages/tenant/student/Results'
-// import StudentTimetable   from './pages/tenant/student/Timetable'
-// import StudentPayments    from './pages/tenant/student/Payments'
-import AdminDashboard     from './pages/tenant/admin/Dashboard'
-// import AdminAcademicSetup from './pages/tenant/admin/AcademicSetup'
-// import LecturerDashboard  from './pages/tenant/lecturer/Dashboard'
+// ── Platform pages (gmis.com) — ALL REAL ──────────────────
+import Landing          from './pages/platform/Landing'
+import FindInstitution  from './pages/platform/FindInstitution'
+import OrgRegistration  from './pages/platform/OrgRegistration'
+import PlatformAdmin    from './pages/platform/PlatformAdmin'
 
-// Placeholders for everything not yet built
-import {
-  OrgRegistration,
-  PlatformAdmin,
-  StudentResults,
-  StudentTimetable,
-  StudentPayments,
-  LecturerDashboard,
-} from './pages/Placeholders'
+// ── Tenant auth pages ─────────────────────────────────────
+import SchoolLogin   from './pages/tenant/SchoolLogin'
+import StudentSignup from './pages/tenant/StudentSignup'
+import ParentPortal  from './pages/tenant/ParentPortal'
+
+// ── Student pages — ALL REAL ──────────────────────────────
+import StudentDashboard  from './pages/tenant/student/Dashboard'
+import StudentResults    from './pages/tenant/student/Results'
+import StudentTimetable  from './pages/tenant/student/Timetable'
+import StudentPayments   from './pages/tenant/student/Payments'
+import StudentVoting     from './pages/tenant/student/Voting'
+import StudentGPA        from './pages/tenant/student/GPACalculator'
+import StudentClearance  from './pages/tenant/student/Clearance'
+import StudentChat       from './pages/tenant/student/Chat'
+
+// ── Admin pages — ALL REAL ────────────────────────────────
+import AdminDashboard     from './pages/tenant/admin/Dashboard'
+import AdminAcademicSetup from './pages/tenant/admin/AcademicSetup'
+
+// ── Lecturer pages — ALL REAL ─────────────────────────────
+import LecturerDashboard from './pages/tenant/lecturer/Dashboard'
 
 // ── PROTECTED ROUTE ───────────────────────────────────────
 const ProtectedRoute = ({
@@ -84,7 +86,7 @@ const AppRouter = () => {
   if (loading) return <TenantLoading />
   if (error)   return <TenantError message={error} />
 
-  // Platform routes (gmis.com)
+  // ── Platform routes (gmis.com) ──────────────────────────
   if (isMainPlatform) {
     return (
       <Routes>
@@ -97,49 +99,38 @@ const AppRouter = () => {
     )
   }
 
-  // Tenant routes (estam.gmis.com)
+  // ── Tenant routes (estam.gmis.com) ──────────────────────
   return (
     <Routes>
-      {/* Public */}
+      {/* Public tenant routes */}
       <Route path="/"       element={<SchoolLogin />} />
       <Route path="/login"  element={<SchoolLogin />} />
       <Route path="/signup" element={<StudentSignup />} />
+      <Route path="/parent" element={<ParentPortal />} />
 
-      {/* Student routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute allowedRoles={['student']}>
-          <StudentDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/results" element={
-        <ProtectedRoute allowedRoles={['student']}>
-          <StudentResults />
-        </ProtectedRoute>
-      } />
-      <Route path="/timetable" element={
-        <ProtectedRoute allowedRoles={['student']}>
-          <StudentTimetable />
-        </ProtectedRoute>
-      } />
-      <Route path="/payments" element={
-        <ProtectedRoute allowedRoles={['student']}>
-          <StudentPayments />
-        </ProtectedRoute>
-      } />
+      {/* ── STUDENT ROUTES ── */}
+      <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentDashboard /></ProtectedRoute>} />
+      <Route path="/results"   element={<ProtectedRoute allowedRoles={['student']}><StudentResults /></ProtectedRoute>} />
+      <Route path="/timetable" element={<ProtectedRoute allowedRoles={['student']}><StudentTimetable /></ProtectedRoute>} />
+      <Route path="/payments"  element={<ProtectedRoute allowedRoles={['student']}><StudentPayments /></ProtectedRoute>} />
+      <Route path="/voting"    element={<ProtectedRoute allowedRoles={['student']}><StudentVoting /></ProtectedRoute>} />
+      <Route path="/gpa"       element={<ProtectedRoute allowedRoles={['student']}><StudentGPA /></ProtectedRoute>} />
+      <Route path="/clearance" element={<ProtectedRoute allowedRoles={['student']}><StudentClearance /></ProtectedRoute>} />
+      <Route path="/chat"      element={<ProtectedRoute allowedRoles={['student']}><StudentChat /></ProtectedRoute>} />
 
-      {/* Admin routes */}
-      <Route path="/admin"           element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/approvals" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/students"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/courses"   element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/results"   element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/fees"      element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/news"      element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/paystack"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/settings"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/academic"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      {/* ── ADMIN ROUTES ── */}
+      <Route path="/admin"            element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/approvals"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/students"   element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/courses"    element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/results"    element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/fees"       element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/news"       element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/paystack"   element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/settings"   element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/academic"   element={<ProtectedRoute allowedRoles={['admin']}><AdminAcademicSetup /></ProtectedRoute>} />
 
-      {/* Lecturer routes */}
+      {/* ── LECTURER ROUTES ── */}
       <Route path="/lecturer"            element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />
       <Route path="/lecturer/students"   element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />
       <Route path="/lecturer/results"    element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />

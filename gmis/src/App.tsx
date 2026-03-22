@@ -1,48 +1,79 @@
 // ============================================================
-// GMIS — Main App Router
+// GMIS — Main App Router (Clean — no broken imports)
 // ============================================================
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
-import { ThemeProvider } from './context/ThemeContext'
+import { ThemeProvider }             from './context/ThemeContext'
 import { TenantProvider, useTenant } from './context/TenantContext'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider, useAuth }     from './context/AuthContext'
 
-// ── REAL pages (built) ────────────────────────────────────
-import Landing from './pages/platform/Landing'
+// Platform pages
+import Landing         from './pages/platform/Landing'
 import FindInstitution from './pages/platform/FindInstitution'
 
-import OrgRegistration from './pages/platform/OrgRegistration.tsx'
-import PlatformAdmin from './pages/platform/PlatformAdmin.tsx'
-// ── PLACEHOLDER pages (will be replaced one by one) ───────
+// Tenant auth pages
+import SchoolLogin   from './pages/tenant/SchoolLogin'
+import StudentSignup from './pages/tenant/StudentSignup'
+
+// Helper pages
+import TenantError   from './pages/tenant/TenantError'
+import TenantLoading from './pages/tenant/TenantLoading'
+
+// ── STEP: Uncomment each import ONLY after you place the file ──
+import StudentDashboard   from './pages/tenant/student/Dashboard'
+// import StudentResults     from './pages/tenant/student/Results'
+// import StudentTimetable   from './pages/tenant/student/Timetable'
+// import StudentPayments    from './pages/tenant/student/Payments'
+import AdminDashboard     from './pages/tenant/admin/Dashboard'
+// import AdminAcademicSetup from './pages/tenant/admin/AcademicSetup'
+// import LecturerDashboard  from './pages/tenant/lecturer/Dashboard'
+
+// Placeholders for everything not yet built
 import {
-  SchoolLogin,
-  StudentSignup,
-  StudentDashboard,
+  OrgRegistration,
+  PlatformAdmin,
   StudentResults,
   StudentTimetable,
   StudentPayments,
-  AdminDashboard,
   LecturerDashboard,
 } from './pages/Placeholders'
 
-// ── Helper pages ──────────────────────────────────────────
-import TenantError from './pages/tenant/TenantError'
-import TenantLoading from './pages/tenant/TenantLoading'
-import { Spinner } from './components/ui'
-
 // ── PROTECTED ROUTE ───────────────────────────────────────
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({
+  children,
+  allowedRoles,
+}: {
+  children: React.ReactNode
+  allowedRoles?: string[]
+}) => {
   const { user, loading } = useAuth()
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Spinner size="lg" />
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', background: '#03071a',
+    }}>
+      <div style={{
+        width: 40, height: 40,
+        border: '3px solid rgba(45,108,255,0.2)',
+        borderTopColor: '#2d6cff',
+        borderRadius: '50%',
+        animation: 'spin .8s linear infinite',
+      }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 
   if (!user) return <Navigate to="/login" replace />
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    if (user.role === 'admin')    return <Navigate to="/admin" replace />
+    if (user.role === 'lecturer') return <Navigate to="/lecturer" replace />
+    return <Navigate to="/dashboard" replace />
+  }
+
   return <>{children}</>
 }
 
@@ -51,9 +82,9 @@ const AppRouter = () => {
   const { isMainPlatform, loading, error } = useTenant()
 
   if (loading) return <TenantLoading />
-  if (error) return <TenantError message={error} />
+  if (error)   return <TenantError message={error} />
 
-  // ── Platform routes (gmis.com) ──
+  // Platform routes (gmis.com)
   if (isMainPlatform) {
     return (
       <Routes>
@@ -66,19 +97,56 @@ const AppRouter = () => {
     )
   }
 
-  // ── Tenant routes (estam.gmis.com) ──
+  // Tenant routes (estam.gmis.com)
   return (
     <Routes>
-      <Route path="/"          element={<SchoolLogin />} />
-      <Route path="/login"     element={<SchoolLogin />} />
-      <Route path="/signup"    element={<StudentSignup />} />
-      <Route path="/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
-      <Route path="/results"   element={<ProtectedRoute><StudentResults /></ProtectedRoute>} />
-      <Route path="/timetable" element={<ProtectedRoute><StudentTimetable /></ProtectedRoute>} />
-      <Route path="/payments"  element={<ProtectedRoute><StudentPayments /></ProtectedRoute>} />
-      <Route path="/admin"     element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/lecturer"  element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
-      <Route path="*"          element={<Navigate to="/login" replace />} />
+      {/* Public */}
+      <Route path="/"       element={<SchoolLogin />} />
+      <Route path="/login"  element={<SchoolLogin />} />
+      <Route path="/signup" element={<StudentSignup />} />
+
+      {/* Student routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <StudentDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/results" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <StudentResults />
+        </ProtectedRoute>
+      } />
+      <Route path="/timetable" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <StudentTimetable />
+        </ProtectedRoute>
+      } />
+      <Route path="/payments" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <StudentPayments />
+        </ProtectedRoute>
+      } />
+
+      {/* Admin routes */}
+      <Route path="/admin"           element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/approvals" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/students"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/courses"   element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/results"   element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/fees"      element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/news"      element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/paystack"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/settings"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/academic"  element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+
+      {/* Lecturer routes */}
+      <Route path="/lecturer"            element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />
+      <Route path="/lecturer/students"   element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />
+      <Route path="/lecturer/results"    element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />
+      <Route path="/lecturer/attendance" element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />
+      <Route path="/lecturer/handouts"   element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerDashboard /></ProtectedRoute>} />
+
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }
@@ -90,14 +158,18 @@ export default function App() {
       <TenantProvider>
         <AuthProvider>
           <BrowserRouter>
-            <div className="min-h-screen bg-slate-50 dark:bg-[#03071a] text-slate-800 dark:text-slate-200 transition-colors duration-300">
+            <div style={{ minHeight: '100vh', background: '#03071a', color: '#e8eeff' }}>
               <AppRouter />
             </div>
             <Toaster
               position="top-right"
               toastOptions={{
                 duration: 4000,
-                style: { borderRadius: '12px', fontSize: '13px' },
+                style: {
+                  borderRadius: '12px',
+                  fontSize: '13px',
+                  fontFamily: "'DM Sans', system-ui",
+                },
               }}
             />
           </BrowserRouter>

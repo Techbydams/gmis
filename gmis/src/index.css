@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(45, 108, 255, 0.35);
+    border-radius: 8px;
+  }
+}
+
+@layer components {
+  /* Glass card */
+  .glass-card {
+    @apply bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-black/8 dark:border-white/10 rounded-2xl;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-blue via-brand-indigo to-purple-500 bg-clip-text text-transparent;
+  }
+
+  /* Gradient button */
+  .btn-primary {
+    @apply bg-gradient-to-r from-brand-blue to-brand-indigo text-white font-semibold rounded-xl px-5 py-2.5 
+           shadow-lg shadow-brand-blue/30 hover:shadow-brand-indigo/40 hover:-translate-y-0.5 
+           active:scale-[0.97] transition-all duration-150 cursor-pointer border-none;
+  }
+
+  .btn-secondary {
+    @apply bg-white/80 dark:bg-white/5 text-slate-600 dark:text-slate-300 font-medium rounded-xl px-5 py-2.5
+           border border-black/10 dark:border-white/15 backdrop-blur-sm
+           hover:bg-white dark:hover:bg-white/10 active:scale-[0.97] transition-all duration-150 cursor-pointer;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-slate-500 dark:text-slate-400 font-medium rounded-xl px-5 py-2.5
+           border border-black/12 dark:border-white/14
+           hover:bg-black/5 dark:hover:bg-white/8 active:scale-[0.97] transition-all duration-150 cursor-pointer;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-white/80 dark:bg-white/5 border border-black/12 dark:border-white/14 
+           rounded-xl text-sm text-slate-800 dark:text-slate-200 
+           placeholder-slate-400 dark:placeholder-slate-500
+           focus:outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15
+           transition-all duration-200 backdrop-blur-sm;
+  }
+
+  /* Badge */
+  .badge-green  { @apply bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400 text-xs font-bold px-2.5 py-0.5 rounded-full; }
+  .badge-blue   { @apply bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 text-xs font-bold px-2.5 py-0.5 rounded-full; }
+  .badge-amber  { @apply bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 text-xs font-bold px-2.5 py-0.5 rounded-full; }
+  .badge-red    { @apply bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-xs font-bold px-2.5 py-0.5 rounded-full; }
+  .badge-gray   { @apply bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold px-2.5 py-0.5 rounded-full; }
+  .badge-indigo { @apply bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 text-xs font-bold px-2.5 py-0.5 rounded-full; }
+  .badge-gold   { @apply bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-xs font-bold px-2.5 py-0.5 rounded-full; }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-500 dark:text-slate-400
+           hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:text-blue-600 dark:hover:text-blue-400
+           cursor-pointer transition-all duration-150 border-r-2 border-transparent;
+  }
+  .nav-item.active {
+    @apply bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-semibold border-r-brand-blue;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply glass-card p-4 hover:-translate-y-1 transition-transform duration-200;
+  }
+
+  /* Orb background effects */
+  .orb {
+    @apply absolute rounded-full pointer-events-none;
+    filter: blur(80px);
+  }
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-12px) rotate(1deg); }
+}
+@keyframes gridShimmer {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+.animate-fade-up    { animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }

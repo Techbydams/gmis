@@ -90,11 +90,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Check all three role tables in parallel for speed
-      const [adminRes, lecturerRes, studentRes] = await Promise.all([
+      // Check all four role tables in parallel
+      const [adminRes, lecturerRes, studentRes, parentRes] = await Promise.all([
         client.from('admin_users').select('id, role').eq('supabase_uid', uid).maybeSingle(),
         client.from('lecturers').select('id').eq('supabase_uid', uid).maybeSingle(),
         client.from('students').select('id, status').eq('supabase_uid', uid).maybeSingle(),
+        client.from('students').select('id').eq('parent_supabase_uid', uid).limit(1),
       ])
 
       // Bail out if a newer resolveRole() call has started
@@ -111,8 +112,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser({ id: uid, email, role: 'lecturer', org_slug: slug || undefined })
       } else if (studentRes.data) {
         setUser({ id: uid, email, role: 'student', org_slug: slug || undefined })
+      } else if (parentRes.data && parentRes.data.length > 0) {
+        setUser({ id: uid, email, role: 'parent', org_slug: slug || undefined })
       } else {
-        // Not in any table yet (new account) — fall back to metadata
+        // Not in any table yet — fall back to metadata
         const metaRole = (metadata?.role as string) || 'student'
         setUser({
           id: uid, email,

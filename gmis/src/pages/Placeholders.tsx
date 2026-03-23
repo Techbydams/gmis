@@ -73,9 +73,7 @@ export function PlatformAdminPlaceholder() {
 }
 
 // ── STUDENT PAGES ──────────────────────────────────────────
-export function StudentCourses() {
-  return <PlaceholderPage title="Course Registration" description="Register for your semester courses." emoji="📝" />
-}
+
 export function StudentVoting() {
   return <PlaceholderPage title="Voting & Elections" description="Participate in SUG and departmental elections." emoji="🗳️" />
 }

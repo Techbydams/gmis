@@ -32,16 +32,17 @@ import StudentResults           from './pages/tenant/student/Results'
 import StudentTimetable         from './pages/tenant/student/Timetable'
 import StudentPayments          from './pages/tenant/student/Payments'
 import CourseRegistration       from './pages/tenant/student/CourseRegistration'
+import ParentPortal             from './pages/tenant/parent/Portal'
 import AdminDashboard   from './pages/tenant/admin/Dashboard'
 import LecturerPortal   from './pages/tenant/lecturer/Dashboard'
+import StudentVoting   from './pages/tenant/student/Voting'
+import StudentClearance from './pages/tenant/student/Clearance'
+import StudentChat from './pages/tenant/student/Chat'
+import StudentGPA from './pages/tenant/student/GPACalculator'
 
 // Placeholders for pages not yet built
 import {
-  StudentVoting,
-  StudentChat,
   StudentSocial,
-  StudentGPA,
-  StudentClearance,
   StudentCalendar,
   StudentAI,
   StudentSettings,
@@ -81,6 +82,7 @@ const ProtectedRoute = ({
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     if (user.role === 'admin')    return <Navigate to="/admin" replace />
     if (user.role === 'lecturer') return <Navigate to="/lecturer" replace />
+    if (user.role === 'parent')   return <Navigate to="/parent" replace />
     return <Navigate to="/dashboard" replace />
   }
 
@@ -99,6 +101,7 @@ const RoleRedirect = () => {
     if (window.location.pathname === '/login' || window.location.pathname === '/') {
       if (user.role === 'admin')    navigate('/admin', { replace: true })
       else if (user.role === 'lecturer') navigate('/lecturer', { replace: true })
+      else if (user.role === 'parent')   navigate('/parent', { replace: true })
       else navigate('/dashboard', { replace: true })
     }
   }, [user, loading, navigate])
@@ -227,6 +230,9 @@ const AppRouter = () => {
         <Route path="/lecturer/results"    element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerPortal initialTab="results" /></ProtectedRoute>} />
         <Route path="/lecturer/attendance" element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerPortal initialTab="attendance" /></ProtectedRoute>} />
         <Route path="/lecturer/handouts"   element={<ProtectedRoute allowedRoles={['lecturer']}><LecturerPortal initialTab="handouts" /></ProtectedRoute>} />
+
+        {/* Parent routes */}
+        <Route path="/parent" element={<ProtectedRoute allowedRoles={['parent']}><ParentPortal /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

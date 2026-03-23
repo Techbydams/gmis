@@ -16,7 +16,7 @@ import { getTenantClient } from '../../lib/supabase'
 import { isValidPassword } from '../../lib/helpers'
 import toast from 'react-hot-toast'
 
-type SetupRole = 'admin' | 'lecturer' | null
+type SetupRole = 'admin' | 'lecturer' | 'parent' | null
 
 export default function SetupAccount() {
   const navigate       = useNavigate()
@@ -151,6 +151,49 @@ export default function SetupAccount() {
 
         toast.success('Admin account activated!')
         navigate('/admin')
+
+      } else if (role === 'parent') {
+        // Step 1: Check parent_email exists in at least one student record
+        const { data: children, error: lookupErr } = await db
+          .from('students')
+          .select('id, first_name, last_name')
+          .eq('parent_email', cleanEmail)
+          .eq('status', 'active')
+
+        if (lookupErr || !children || children.length === 0) {
+          toast.error('No active students found with this parent email. Contact your child\'s school admin.')
+          setLoading(false)
+          return
+        }
+
+        // Step 2: Create Supabase auth account
+        const { data: authData, error: signUpError } = await db.auth.signUp({
+          email:    cleanEmail,
+          password,
+          options: { data: { full_name: fullName.trim(), role: 'parent' } },
+        })
+
+        if (signUpError) {
+          if (signUpError.message.toLowerCase().includes('already registered')) {
+            toast.error('An account with this email already exists. Please use the login page.')
+          } else {
+            toast.error(signUpError.message)
+          }
+          setLoading(false)
+          return
+        }
+
+        // Step 3: Link parent_supabase_uid to all matching student records
+        if (authData?.user?.id) {
+          await db
+            .from('students')
+            .update({ parent_supabase_uid: authData.user.id } as any)
+            .eq('parent_email', cleanEmail)
+        }
+
+        toast.success(`Account activated! You can monitor ${children.length > 1 ? `${children.length} children` : children[0].first_name}.`)
+        navigate('/parent')
+
       } else {
         toast.error('Invalid setup link. Please contact your administrator.')
       }
@@ -173,7 +216,7 @@ export default function SetupAccount() {
     )
   }
 
-  if (!role || (role !== 'admin' && role !== 'lecturer')) {
+  if (!role || !['admin', 'lecturer', 'parent'].includes(role)) {
     return (
       <div style={S.page}>
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
@@ -187,6 +230,7 @@ export default function SetupAccount() {
   }
 
   const isLecturer = role === 'lecturer'
+  const isParent   = role === 'parent'
 
   return (
     <div style={S.page}>
@@ -212,13 +256,15 @@ export default function SetupAccount() {
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>{isLecturer ? '👨‍🏫' : '⚙️'}</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>{isLecturer ? '👨‍🏫' : isParent ? '👨‍👩‍👧' : '⚙️'}</div>
           <h1 style={{ fontFamily: "'Syne',system-ui", fontWeight: 800, fontSize: 22, color: '#e8eeff', marginBottom: 6 }}>
-            {isLecturer ? 'Activate your lecturer account' : 'Set up your admin account'}
+            {isLecturer ? 'Activate your lecturer account' : isParent ? 'Set up your parent account' : 'Set up your admin account'}
           </h1>
           <p style={{ fontSize: 13, color: '#7a8bbf', lineHeight: 1.6 }}>
             {isLecturer
               ? 'Enter the email your admin registered for you, then set your password.'
+              : isParent
+              ? 'Enter the email you used during your child\'s registration, then set your password.'
               : 'Set your password to activate your GMIS admin account.'
             }
           </p>
@@ -282,6 +328,8 @@ export default function SetupAccount() {
           <div style={{ padding: '10px 14px', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 10, marginBottom: 18, fontSize: 12, color: '#60a5fa', lineHeight: 1.6 }}>
             {isLecturer
               ? 'ℹ Enter the exact email your admin used when adding you. You can correct your display name above.'
+              : isParent
+              ? 'ℹ Enter the exact email you provided during your child\'s school registration. Once set up, sign in at the login page.'
               : 'ℹ Once set up, sign in at the login page. Choose "Admin" on the role selector.'
             }
           </div>
@@ -295,7 +343,7 @@ export default function SetupAccount() {
               ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
                   <span style={S.spinnerInline} /> Activating...
                 </span>
-              : `Activate ${isLecturer ? 'lecturer' : 'admin'} account`
+              : `Activate ${isLecturer ? 'lecturer' : isParent ? 'parent' : 'admin'} account`
             }
           </button>
         </div>

@@ -34,21 +34,22 @@ import StudentPayments          from './pages/tenant/student/Payments'
 import CourseRegistration       from './pages/tenant/student/CourseRegistration'
 import ParentPortal             from './pages/tenant/parent/Portal'
 import AdminDashboard   from './pages/tenant/admin/Dashboard'
+import AdminTimetable from './pages/tenant/admin/Timetable'
 import LecturerPortal   from './pages/tenant/lecturer/Dashboard'
 import StudentVoting   from './pages/tenant/student/Voting'
 import StudentClearance from './pages/tenant/student/Clearance'
 import StudentChat from './pages/tenant/student/Chat'
 import StudentGPA from './pages/tenant/student/GPACalculator'
+import AdminLogin from './pages/tenant/AdminLogin'
+import StudentSocial      from './pages/tenant/student/Social'
+import StudentCalendar    from './pages/tenant/student/Calender'
+import StudentSettings    from './pages/tenant/student/Settings'
+import AdminElections from './pages/tenant/admin/Elections'
 
 // Placeholders for pages not yet built
 import {
-  StudentSocial,
-  StudentCalendar,
   StudentAI,
-  StudentSettings,
-  AdminTimetable,
   AdminIDCards,
-  AdminElections,
 } from './pages/Placeholders'
 
 // ── PROTECTED ROUTE ───────────────────────────────────────
@@ -77,7 +78,13 @@ const ProtectedRoute = ({
     </div>
   )
 
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) {
+  // Admin routes get their own login page, not the student portal
+  if (allowedRoles?.length === 1 && allowedRoles[0] === 'admin') {
+    return <Navigate to="/admin/login" replace />
+  }
+  return <Navigate to="/login" replace />
+}
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     if (user.role === 'admin')    return <Navigate to="/admin" replace />
@@ -138,6 +145,7 @@ const AppRouter = () => {
         <Route path="/"       element={<SchoolLogin />} />
         <Route path="/login"  element={<SchoolLogin />} />
         <Route path="/signup" element={<StudentSignup />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
 
         {/* Account setup — admin first-time + lecturer invite activation */}
         <Route path="/setup"  element={<SetupAccount />} />

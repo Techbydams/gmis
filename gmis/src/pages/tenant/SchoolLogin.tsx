@@ -1,7 +1,8 @@
 // ============================================================
 // GMIS — School Login Page
 // Lives at estam.gmis.com/login
-// Handles Student (matric/email) + Lecturer + Admin login
+// Handles Student (matric/email) + Lecturer + Parent login
+// Admin login is SEPARATE at /admin/login
 // ============================================================
 
 import { useState } from 'react'
@@ -11,7 +12,7 @@ import { useTenant } from '../../context/TenantContext'
 import { isValidEmail } from '../../lib/helpers'
 import toast from 'react-hot-toast'
 
-type Role = 'student' | 'lecturer' | 'admin'
+type Role = 'student' | 'lecturer' | 'parent'
 
 interface FormState {
   identifier: string   // matric number or email
@@ -19,33 +20,38 @@ interface FormState {
   remember:   boolean
 }
 
-export default function SchoolLogin() {
-  const navigate          = useNavigate()
-  const { signIn, signInWithMatric } = useAuth()
-  const { tenant, slug }  = useTenant()
+const ROLES: { id: Role; label: string; icon: string; hint: string }[] = [
+  { id: 'student',  label: 'Student',  icon: '👨‍🎓', hint: 'Matric number or email' },
+  { id: 'lecturer', label: 'Lecturer', icon: '👨‍🏫', hint: 'Email address'          },
+  { id: 'parent',   label: 'Parent',   icon: '👨‍👩‍👦', hint: 'Email address'          },
+]
 
-  const [role, setRole]         = useState<Role>('student')
-  const [form, setForm]         = useState<FormState>({ identifier: '', password: '', remember: false })
-  const [errors, setErrors]     = useState<Partial<FormState>>({})
-  const [loading, setLoading]   = useState(false)
+export default function SchoolLogin() {
+  const navigate                     = useNavigate()
+  const { signIn, signInWithMatric } = useAuth()
+  const { tenant, slug }             = useTenant()
+
+  const [role,     setRole]     = useState<Role>('student')
+  const [form,     setForm]     = useState<FormState>({ identifier: '', password: '', remember: false })
+  const [errors,   setErrors]   = useState<Partial<FormState>>({})
+  const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
+
+  const activeRole = ROLES.find(r => r.id === role)!
 
   // ── VALIDATION ────────────────────────────────────────────
   const validate = (): boolean => {
     const e: Partial<FormState> = {}
-
     if (!form.identifier.trim()) {
       e.identifier = role === 'student'
         ? 'Enter your matric number or email'
         : 'Enter your email address'
     }
-
     if (!form.password) {
       e.password = 'Password is required'
     } else if (form.password.length < 6) {
       e.password = 'Password must be at least 6 characters'
     }
-
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -60,26 +66,21 @@ export default function SchoolLogin() {
 
       if (role === 'student') {
         const input = form.identifier.trim()
-        const isEmail = isValidEmail(input)
-
-        if (isEmail) {
-          // Login with email directly
+        if (isValidEmail(input)) {
           const result = await signIn(input, form.password)
           error = result.error
         } else {
-          // Login with matric number — looks up email first
           const result = await signInWithMatric(input, form.password)
           error = result.error
         }
       } else {
-        // Lecturers and admins always use email
+        // Lecturer + Parent both use email
         const result = await signIn(form.identifier.trim(), form.password)
         error = result.error
       }
 
       if (error) {
-        // Make error messages friendlier
-        if (error.includes('Invalid login credentials')) {
+        if (error.includes('Invalid login credentials') || error.includes('Incorrect')) {
           toast.error('Incorrect credentials. Please check and try again.')
         } else if (error.includes('Email not confirmed')) {
           toast.error('Please verify your email first. Check your inbox.')
@@ -92,13 +93,10 @@ export default function SchoolLogin() {
         return
       }
 
-      // Success — redirect based on role
+      // Role-based redirect is handled by RoleRedirect in App.tsx
       toast.success('Welcome back!')
-      if (role === 'admin')    navigate('/admin')
-      else if (role === 'lecturer') navigate('/lecturer')
-      else navigate('/dashboard')
 
-    } catch (err) {
+    } catch {
       toast.error('Something went wrong. Please try again.')
       setLoading(false)
     }
@@ -107,15 +105,13 @@ export default function SchoolLogin() {
   // ── RENDER ────────────────────────────────────────────────
   return (
     <div style={S.page}>
-      {/* Background orbs */}
       <div style={S.orbTR} />
       <div style={S.orbBL} />
-      {/* Background grid */}
       <div style={S.grid} />
 
       <div style={{ width: '100%', maxWidth: 440, position: 'relative' }}>
 
-        {/* School branding banner */}
+        {/* School branding */}
         <div style={S.schoolBanner}>
           <div style={S.schoolLogo}>
             {tenant?.logo_url
@@ -144,31 +140,39 @@ export default function SchoolLogin() {
 
         {/* Login card */}
         <div style={S.card}>
-          {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <h1 style={S.heading}>Welcome back</h1>
             <p style={S.muted}>Sign in to your {tenant?.name || 'school'} portal</p>
           </div>
 
-          {/* Role switcher */}
+          {/* Role switcher — Student / Lecturer / Parent */}
           <div style={S.roleTabs}>
-            {(['student', 'lecturer', 'admin'] as Role[]).map(r => (
+            {ROLES.map(r => (
               <button
-                key={r}
-                onClick={() => { setRole(r); setErrors({}) }}
+                key={r.id}
+                onClick={() => { setRole(r.id); setErrors({}); setForm(p => ({ ...p, identifier: '' })) }}
                 style={{
                   ...S.roleTab,
-                  background:  role === r ? 'linear-gradient(135deg,#2d6cff,#4f3ef8)' : 'transparent',
-                  color:       role === r ? '#fff' : '#7a8bbf',
-                  fontWeight:  role === r ? 700 : 400,
-                  boxShadow:   role === r ? '0 4px 14px rgba(45,108,255,0.3)' : 'none',
+                  background: role === r.id ? 'linear-gradient(135deg,#2d6cff,#4f3ef8)' : 'transparent',
+                  color:      role === r.id ? '#fff' : '#7a8bbf',
+                  fontWeight: role === r.id ? 700 : 400,
+                  boxShadow:  role === r.id ? '0 4px 14px rgba(45,108,255,0.3)' : 'none',
                 }}
               >
-                {r === 'student' ? '👨‍🎓' : r === 'lecturer' ? '👨‍🏫' : '⚙️'}{' '}
-                {r.charAt(0).toUpperCase() + r.slice(1)}
+                {r.icon} {r.label}
               </button>
             ))}
           </div>
+
+          {/* Parent info banner */}
+          {role === 'parent' && (
+            <div style={S.infoBanner}>
+              <span style={{ fontSize: 13 }}>👨‍👩‍👦</span>
+              <span style={{ fontSize: 12, color: '#60a5fa', lineHeight: 1.5 }}>
+                Sign in with the email linked to your ward's profile by the school admin.
+              </span>
+            </div>
+          )}
 
           {/* Identifier field */}
           <div style={S.field}>
@@ -232,15 +236,11 @@ export default function SchoolLogin() {
             </label>
           </div>
 
-          {/* Submit button */}
+          {/* Submit */}
           <button
             onClick={handleLogin}
             disabled={loading}
-            style={{
-              ...S.btnPrimary,
-              opacity: loading ? 0.75 : 1,
-              cursor: loading ? 'not-allowed' : 'pointer',
-            }}
+            style={{ ...S.btnPrimary, opacity: loading ? 0.75 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
           >
             {loading ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
@@ -248,14 +248,14 @@ export default function SchoolLogin() {
                 Signing in...
               </span>
             ) : (
-              `Sign in as ${role.charAt(0).toUpperCase() + role.slice(1)}`
+              `Sign in as ${activeRole.label}`
             )}
           </button>
 
           {/* Divider */}
           <div style={S.divider}><span>or</span></div>
 
-          {/* Links */}
+          {/* Footer links */}
           <div style={{ textAlign: 'center', fontSize: 13, color: '#7a8bbf' }}>
             New student?{' '}
             <button
@@ -266,21 +266,11 @@ export default function SchoolLogin() {
             </button>
           </div>
 
-          <div style={{ textAlign: 'center', fontSize: 13, color: '#7a8bbf', marginTop: 8 }}>
-            Parent?{' '}
-            <button
-              onClick={() => navigate('/parent')}
-              style={{ color: '#60a5fa', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
-            >
-              Access parent portal
-            </button>
-          </div>
-
           {/* Security note */}
           <div style={S.securityNote}>
             <span style={{ fontSize: 14 }}>🔒</span>
             <span style={{ fontSize: 11, color: '#3d4f7a' }}>
-              This portal is exclusively for <strong style={{ color: '#7a8bbf' }}>{tenant?.name || `${slug}`}</strong>.
+              This portal is exclusively for <strong style={{ color: '#7a8bbf' }}>{tenant?.name || slug}</strong>.
               Wrong school?{' '}
               <button
                 onClick={() => navigate('/find')}
@@ -292,7 +282,6 @@ export default function SchoolLogin() {
           </div>
         </div>
 
-        {/* Bottom note */}
         <p style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#3d4f7a' }}>
           Powered by <span style={{ color: '#f0b429', fontWeight: 600 }}>GMIS</span> · A product of DAMS Technologies
         </p>
@@ -300,25 +289,17 @@ export default function SchoolLogin() {
 
       <style>{`
         @keyframes spin  { to { transform: rotate(360deg); } }
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
         input:focus { outline: none; border-color: #2d6cff !important; box-shadow: 0 0 0 3px rgba(45,108,255,0.15); }
       `}</style>
     </div>
   )
 }
 
-// ── STYLES ────────────────────────────────────────────────
 const S: Record<string, React.CSSProperties> = {
   page: {
-    minHeight: '100vh',
-    background: '#03071a',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '32px 20px',
-    position: 'relative',
-    overflow: 'hidden',
+    minHeight: '100vh', background: '#03071a',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    padding: '32px 20px', position: 'relative', overflow: 'hidden',
     fontFamily: "'DM Sans', system-ui, sans-serif",
   },
   orbTR: {
@@ -349,11 +330,9 @@ const S: Record<string, React.CSSProperties> = {
     flexShrink: 0, overflow: 'hidden',
   },
   card: {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.09)',
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)',
     borderRadius: 20, padding: '28px 28px 24px',
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
+    backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
   },
   heading: {
     fontFamily: "'Syne', system-ui, sans-serif",
@@ -361,56 +340,52 @@ const S: Record<string, React.CSSProperties> = {
   },
   muted: { fontSize: 13, color: '#7a8bbf', margin: 0 },
   roleTabs: {
-    display: 'flex',
-    background: 'rgba(255,255,255,0.04)',
+    display: 'flex', background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 13, padding: 4, marginBottom: 22,
+    borderRadius: 13, padding: 4, marginBottom: 18,
   },
   roleTab: {
     flex: 1, padding: '9px 4px', borderRadius: 10,
     border: 'none', fontSize: 12, cursor: 'pointer',
-    transition: 'all 0.2s',
-    fontFamily: "'DM Sans', system-ui, sans-serif",
+    transition: 'all 0.2s', fontFamily: "'DM Sans', system-ui, sans-serif",
   },
-  field: { marginBottom: 16 },
-  label: { fontSize: 12, color: '#7a8bbf', display: 'block', fontWeight: 500 },
+  infoBanner: {
+    display: 'flex', alignItems: 'flex-start', gap: 10,
+    padding: '10px 13px', marginBottom: 16,
+    background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)',
+    borderRadius: 11,
+  },
+  field:     { marginBottom: 16 },
+  label:     { fontSize: 12, color: '#7a8bbf', display: 'block', fontWeight: 500 },
   input: {
     width: '100%', padding: '11px 14px',
     border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: 12, fontSize: 14,
-    background: 'rgba(255,255,255,0.05)',
-    color: '#e8eeff',
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-    transition: 'all 0.2s',
+    background: 'rgba(255,255,255,0.05)', color: '#e8eeff',
+    fontFamily: "'DM Sans', system-ui, sans-serif", transition: 'all 0.2s',
+    boxSizing: 'border-box',
   },
   errMsg: { margin: '4px 0 0', fontSize: 12, color: '#f87171' },
   btnPrimary: {
     width: '100%', padding: '13px',
     background: 'linear-gradient(135deg,#2d6cff,#4f3ef8)',
-    color: '#fff', border: 'none', borderRadius: 12,
-    fontSize: 14, fontWeight: 700,
+    color: '#fff', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
     boxShadow: '0 4px 20px rgba(45,108,255,0.35)',
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-    transition: 'all 0.15s',
+    fontFamily: "'DM Sans', system-ui, sans-serif", transition: 'all 0.15s',
   },
   spinner: {
-    display: 'inline-block',
-    width: 16, height: 16,
-    border: '2px solid rgba(255,255,255,0.3)',
-    borderTopColor: '#fff',
-    borderRadius: '50%',
-    animation: 'spin 0.7s linear infinite',
+    display: 'inline-block', width: 16, height: 16,
+    border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+    borderRadius: '50%', animation: 'spin 0.7s linear infinite',
   },
   divider: {
     display: 'flex', alignItems: 'center', gap: 12,
     margin: '18px 0', color: '#3d4f7a', fontSize: 12,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any,
+  } as React.CSSProperties,
   securityNote: {
     display: 'flex', alignItems: 'flex-start', gap: 8,
     padding: '10px 13px', marginTop: 18,
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
     borderRadius: 10,
   },
 }

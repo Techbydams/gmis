@@ -1,6 +1,15 @@
 // ============================================================
 // GMIS — Placeholder Pages
-// FIXED: Added all missing exports that App.tsx requires
+// Only pages NOT YET BUILT use these.
+//
+// Real pages (no longer placeholders):
+//   StudentVoting    → /pages/tenant/student/Voting.tsx
+//   StudentChat      → /pages/tenant/student/Chat.tsx
+//   StudentGPA       → /pages/tenant/student/GPACalculator.tsx
+//   StudentClearance → /pages/tenant/student/Clearance.tsx
+//   StudentSocial    → /pages/tenant/student/Social.tsx
+//   StudentCalendar  → /pages/tenant/student/Calendar.tsx
+//   StudentSettings  → /pages/tenant/student/Settings.tsx
 // ============================================================
 import { useNavigate } from 'react-router-dom'
 
@@ -8,10 +17,12 @@ const PlaceholderPage = ({
   title,
   description,
   emoji = '🚧',
+  roadmap,
 }: {
   title: string
   description: string
   emoji?: string
+  roadmap?: string[]
 }) => {
   const navigate = useNavigate()
   return (
@@ -39,6 +50,22 @@ const PlaceholderPage = ({
           {description}
         </p>
       </div>
+      {roadmap && roadmap.length > 0 && (
+        <div style={{
+          padding: '14px 20px', background: 'rgba(45,108,255,0.08)',
+          border: '1px solid rgba(45,108,255,0.2)', borderRadius: 14,
+          maxWidth: 360, textAlign: 'left',
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#3d4f7a', marginBottom: 8 }}>
+            Planned features
+          </div>
+          {roadmap.map((f, i) => (
+            <div key={i} style={{ fontSize: 13, color: '#7a8bbf', marginBottom: 4 }}>
+              · {f}
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 12 }}>
         <button
           onClick={() => navigate(-1)}
@@ -51,63 +78,83 @@ const PlaceholderPage = ({
           }}
         >← Go back</button>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           style={{
             padding: '9px 20px', borderRadius: 10, border: 'none',
             background: 'linear-gradient(135deg,#2d6cff,#4f3ef8)',
             color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600,
             fontFamily: "'DM Sans',system-ui",
           }}
-        >Home</button>
+        >Dashboard</button>
       </div>
     </div>
   )
 }
 
-// ── PLATFORM PAGES ─────────────────────────────────────────
-export function OrgRegistrationPlaceholder() {
-  return <PlaceholderPage title="Register Institution" description="Organisation registration form — coming soon." emoji="🏫" />
-}
-export function PlatformAdminPlaceholder() {
-  return <PlaceholderPage title="Platform Admin" description="DAMS Technologies master admin panel." emoji="⚙️" />
-}
-
-// ── STUDENT PAGES ──────────────────────────────────────────
-
-export function StudentVoting() {
-  return <PlaceholderPage title="Voting & Elections" description="Participate in SUG and departmental elections." emoji="🗳️" />
-}
-export function StudentChat() {
-  return <PlaceholderPage title="Chat" description="Message your classmates and lecturers." emoji="💬" />
-}
-export function StudentSocial() {
-  return <PlaceholderPage title="Social Feed" description="See what's happening on campus." emoji="📸" />
-}
-export function StudentGPA() {
-  return <PlaceholderPage title="GPA Calculator" description="Simulate your semester GPA before results drop." emoji="🧮" />
-}
-export function StudentClearance() {
-  return <PlaceholderPage title="Clearance" description="Track your end-of-year clearance status." emoji="🧾" />
-}
-export function StudentCalendar() {
-  return <PlaceholderPage title="Academic Calendar" description="Key dates, exams, deadlines and holidays." emoji="📆" />
-}
+// ── AI ASSISTANT — not yet built ──────────────────────────
 export function StudentAI() {
-  return <PlaceholderPage title="AI Assistant" description="Your Claude-powered academic assistant." emoji="🤖" />
-}
-export function StudentSettings() {
-  return <PlaceholderPage title="Settings" description="Manage your account and preferences." emoji="⚙️" />
+  return (
+    <PlaceholderPage
+      title="AI Academic Assistant"
+      description="Your Claude-powered academic assistant is coming soon. It will help you understand course material, check your results, and answer academic questions."
+      emoji="🤖"
+      roadmap={[
+        'Chat with Claude about your courses',
+        'Get help understanding results and GPA',
+        'Study tips and academic guidance',
+        'Summarise lecture notes',
+      ]}
+    />
+  )
 }
 
-// ── ADMIN PAGES ────────────────────────────────────────────
+// ── ADMIN PLACEHOLDERS ─────────────────────────────────────
 export function AdminTimetable() {
-  return <PlaceholderPage title="Timetable Management" description="Create and manage class timetables." emoji="📅" />
+  return (
+    <PlaceholderPage
+      title="Timetable Management"
+      description="Build and manage class timetables per department. Assign venues and times to course slots."
+      emoji="📅"
+      roadmap={[
+        'Weekly grid timetable builder',
+        'Per-department and per-level views',
+        'Venue and lecturer assignment',
+        'Export to PDF',
+      ]}
+    />
+  )
 }
+
 export function AdminIDCards() {
-  return <PlaceholderPage title="ID Card Generation" description="Generate and print student ID cards." emoji="🪪" />
+  return (
+    <PlaceholderPage
+      title="ID Card Generation"
+      description="Generate and print student ID cards in bulk. Upload your card template and the system fills in student data."
+      emoji="🪪"
+      roadmap={[
+        'Custom card template upload',
+        'Bulk generation by department',
+        'Payment verification before printing',
+        'PDF export for printing',
+      ]}
+    />
+  )
 }
+
 export function AdminElections() {
-  return <PlaceholderPage title="Elections" description="Manage SUG elections and voting." emoji="🗳️" />
+  return (
+    <PlaceholderPage
+      title="Election Management"
+      description="Create and manage SUG elections. Add candidates, set voting periods, and view live results."
+      emoji="🗳️"
+      roadmap={[
+        'Create elections with positions',
+        'Add and manage candidates',
+        'Open/close voting periods',
+        'Live vote count dashboard',
+      ]}
+    />
+  )
 }
 
 export default PlaceholderPage

@@ -27,16 +27,16 @@ import TenantError   from './pages/tenant/TenantError'
 import TenantLoading from './pages/tenant/TenantLoading'
 
 // Real pages
-import StudentDashboard from './pages/tenant/student/Dashboard'
-import StudentResults   from './pages/tenant/student/Results'
-import StudentTimetable from './pages/tenant/student/Timetable'
-import StudentPayments  from './pages/tenant/student/Payments'
+import StudentDashboard         from './pages/tenant/student/Dashboard'
+import StudentResults           from './pages/tenant/student/Results'
+import StudentTimetable         from './pages/tenant/student/Timetable'
+import StudentPayments          from './pages/tenant/student/Payments'
+import CourseRegistration       from './pages/tenant/student/CourseRegistration'
 import AdminDashboard   from './pages/tenant/admin/Dashboard'
 import LecturerPortal   from './pages/tenant/lecturer/Dashboard'
 
 // Placeholders for pages not yet built
 import {
-  StudentCourses,
   StudentVoting,
   StudentChat,
   StudentSocial,
@@ -162,7 +162,7 @@ const AppRouter = () => {
         } />
         <Route path="/courses" element={
           <ProtectedRoute allowedRoles={['student']}>
-            <StudentCourses />
+            <CourseRegistration />
           </ProtectedRoute>
         } />
         <Route path="/voting" element={

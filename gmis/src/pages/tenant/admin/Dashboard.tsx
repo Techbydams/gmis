@@ -1,12 +1,13 @@
 // GMIS — Admin Dashboard (Clean rewrite — no TS errors)
 // Uses 'as any' on all DB insert/update calls to bypass
 // the never[] type issue from ungenerated Supabase types
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useTenant } from '../../../context/TenantContext'
 import { getTenantClient } from '../../../lib/supabase'
 import { timeAgo, formatNaira } from '../../../lib/helpers'
+import { calcGrade, gradeColor, calcGPA, formatGPA } from '../../../lib/grading'
 import toast from 'react-hot-toast'
 import SidebarLayout from '../../../components/layout/SidebarLayout'
 
@@ -466,35 +467,16 @@ export default function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
       </>)}
 
       {/* ── RESULTS ── */}
-      {tab==='results'&&(<>
-        <h2 style={S.ct}>Result management</h2>
-        <div style={S.card}>
-          {courseCodes.length===0?<Empty icon="📊" text="No results yet."/>:
-            (courseCodes as string[]).map(code=>{
-              const cr=results.filter(r=>r.courses?.course_code===code)
-              const locked=cr.every(r=>r.is_locked)&&cr.length>0
-              const pub=cr.every(r=>r.published)&&cr.length>0
-              return(
-                <div key={code} style={{padding:'14px 0',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-                    <div>
-                      <span style={{fontFamily:'monospace',fontWeight:700,color:'#60a5fa',fontSize:14}}>{code}</span>
-                      <span style={{fontSize:13,color:'#e8eeff',marginLeft:10}}>{cr[0]?.courses?.course_name}</span>
-                      <span style={{fontSize:12,color:'#7a8bbf',marginLeft:8}}>{cr.length} results</span>
-                      {locked&&<span style={{marginLeft:8,fontSize:11,background:'rgba(74,222,128,.12)',color:'#4ade80',padding:'2px 8px',borderRadius:100}}>🔒 Submitted</span>}
-                    </div>
-                    <div style={{display:'flex',gap:8}}>
-                      {!pub&&<button onClick={()=>releaseResults(code)} style={{...S.btnPrimary,fontSize:12}}>Release to students</button>}
-                      {pub&&<span style={{fontSize:12,color:'#4ade80',fontWeight:600}}>✓ Published</span>}
-                      {locked&&<button onClick={()=>unlockResults(code)} style={{...S.btnSm,color:'#fbbf24',borderColor:'rgba(251,191,36,.3)'}}>🔓 Unlock</button>}
-                    </div>
-                  </div>
-                </div>
-              )
-            })
-          }
-        </div>
-      </>)}
+      {tab==='results'&&(
+        <ResultsTab
+          db={db}
+          results={results}
+          courses={courses}
+          departments={departments}
+          lecturers={lecturers}
+          onReload={loadResults}
+        />
+      )}
 
       {/* ── FEES ── */}
       {tab==='fees'&&(<>
@@ -593,7 +575,35 @@ export default function AdminDashboard({ initialTab }: { initialTab?: Tab }) {
               <div key={f}><label style={S.label}>{l}</label><input style={S.input} value={orgSettings[f]||''} onChange={e=>setOrgSettings((p:any)=>({...p,[f]:e.target.value}))} placeholder={l}/></div>
             ))}
           </div>
-          <button onClick={async()=>{if(!db)return;const{error}=await db.from('org_settings').upsert(orgSettings as any);if(error)toast.error(error.message);else toast.success('Saved!')}} style={{...S.btnPrimary,marginTop:16}}>Save settings</button>
+
+          {/* Course Registration Toggle */}
+          <div style={{marginTop:20,padding:'14px 16px',background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:600,color:'#e8eeff',marginBottom:3}}>Course registration</div>
+                <div style={{fontSize:12,color:'#7a8bbf'}}>
+                  {orgSettings.registration_open==='true'
+                    ? '🟢 Open — students can register and drop courses'
+                    : '🔴 Closed — students cannot register courses'}
+                </div>
+              </div>
+              <button
+                onClick={()=>setOrgSettings((p:any)=>({...p,registration_open:p.registration_open==='true'?'false':'true'}))}
+                style={{
+                  padding:'8px 20px',
+                  background:orgSettings.registration_open==='true'?'rgba(74,222,128,0.15)':'rgba(248,113,113,0.12)',
+                  border:`1px solid ${orgSettings.registration_open==='true'?'rgba(74,222,128,0.3)':'rgba(248,113,113,0.3)'}`,
+                  borderRadius:10,
+                  color:orgSettings.registration_open==='true'?'#4ade80':'#f87171',
+                  fontSize:12,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' as const,
+                }}
+              >
+                {orgSettings.registration_open==='true'?'Close registration':'Open registration'}
+              </button>
+            </div>
+          </div>
+
+          <button onClick={async()=>{if(!db)return;const{error}=await db.from('org_settings').upsert(orgSettings as any);if(error)toast.error(error.message);else toast.success('Settings saved!')}} style={{...S.btnPrimary,marginTop:16}}>Save settings</button>
         </div>
       )}
 
@@ -827,4 +837,296 @@ const S:Record<string,React.CSSProperties>={
   label:{fontSize:12,color:'#7a8bbf',display:'block',marginBottom:5,fontWeight:500},
   input:{width:'100%',padding:'9px 12px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.12)',borderRadius:10,color:'#e8eeff',fontSize:13,outline:'none',fontFamily:"'DM Sans',system-ui"},
   spin:{width:32,height:32,border:'2px solid rgba(45,108,255,.2)',borderTopColor:'#2d6cff',borderRadius:'50%',animation:'spin .8s linear infinite'},
+}
+
+// ============================================================
+// ResultsTab — full admin results management component
+// View by course / department / lecturer, edit scores, release
+// ============================================================
+function ResultsTab({ db, results, courses, departments, lecturers, onReload }: {
+  db: any, results: any[], courses: any[], departments: any[], lecturers: any[], onReload: () => void
+}) {
+  const [view,       setView]       = React.useState<'course'|'dept'|'lecturer'>('course')
+  const [selected,   setSelected]   = React.useState<string>('')
+  const [editRow,    setEditRow]     = React.useState<any | null>(null)
+  const [editCA,     setEditCA]     = React.useState('')
+  const [editExam,   setEditExam]   = React.useState('')
+  const [saving,     setSaving]     = React.useState(false)
+  const [releasing,  setReleasing]  = React.useState(false)
+
+  // Group results by view mode
+  const groupKeys: string[] = React.useMemo(() => {
+    if (view === 'course')   return [...new Set(results.map((r:any) => r.courses?.course_code).filter(Boolean))].sort() as string[]
+    if (view === 'dept')     return [...new Set(results.map((r:any) => r.courses?.department_id).filter(Boolean))] as string[]
+    if (view === 'lecturer') return [...new Set(results.map((r:any) => r.lecturer_id).filter(Boolean))] as string[]
+    return []
+  }, [results, view])
+
+  const getGroupLabel = (key: string) => {
+    if (view === 'course')   return key
+    if (view === 'dept')     return departments.find((d:any) => d.id === key)?.name || key
+    if (view === 'lecturer') return lecturers.find((l:any) => l.id === key)?.full_name || key
+    return key
+  }
+
+  const getGroupResults = (key: string) => {
+    if (view === 'course')   return results.filter((r:any) => r.courses?.course_code === key)
+    if (view === 'dept')     return results.filter((r:any) => r.courses?.department_id === key)
+    if (view === 'lecturer') return results.filter((r:any) => r.lecturer_id === key)
+    return []
+  }
+
+  const selectedResults = selected ? getGroupResults(selected) : []
+  const groupStats = (rows: any[]) => {
+    const avg = rows.length ? rows.reduce((s:number,r:any)=>(s+(r.ca_score||0)+(r.exam_score||0)),0)/rows.length : 0
+    const passed = rows.filter((r:any)=>(r.ca_score||0)+(r.exam_score||0)>=40).length
+    return { avg: avg.toFixed(1), passed, total: rows.length }
+  }
+
+  const releaseGroup = async (rows: any[]) => {
+    if (!db) return
+    const ids = rows.map((r:any)=>r.id)
+    if (!ids.length) return
+    setReleasing(true)
+    await db.from('results').update({ published: true, released_at: new Date().toISOString() } as any).in('id', ids)
+    setReleasing(false)
+    toast.success('Results released to students!')
+    onReload()
+  }
+
+  const unlockGroup = async (rows: any[]) => {
+    if (!db) return
+    await db.from('results').update({ is_locked: false, submitted_at: null } as any).in('id', rows.map((r:any)=>r.id))
+    toast.success('Results unlocked for lecturer')
+    onReload()
+  }
+
+  const saveEdit = async () => {
+    if (!db || !editRow) return
+    const ca   = parseFloat(editCA)
+    const exam = parseFloat(editExam)
+    if (isNaN(ca) || ca < 0 || ca > 40)    { toast.error('CA must be 0–40'); return }
+    if (isNaN(exam) || exam < 0 || exam > 60) { toast.error('Exam must be 0–60'); return }
+    const { grade, points, remark } = calcGrade(ca, exam)
+    setSaving(true)
+    const { error } = await db.from('results').update({
+      ca_score: ca, exam_score: exam,
+      grade, grade_point: points, remark,
+    } as any).eq('id', editRow.id)
+    setSaving(false)
+    if (error) { toast.error(error.message); return }
+    toast.success('Result updated!')
+    setEditRow(null)
+    onReload()
+  }
+
+  const RS: Record<string, React.CSSProperties> = {
+    card:  { background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:18,padding:'18px 20px',marginBottom:16 },
+    th:    { textAlign:'left',fontSize:10,fontWeight:700,textTransform:'uppercase' as const,letterSpacing:1,color:'#3d4f7a',padding:'8px 12px',borderBottom:'1px solid rgba(255,255,255,0.07)',whiteSpace:'nowrap' as const },
+    td:    { padding:'10px 12px',borderBottom:'1px solid rgba(255,255,255,0.05)',fontSize:13,color:'#7a8bbf',verticalAlign:'middle' as const },
+    btnP:  { padding:'6px 14px',background:'linear-gradient(135deg,#2d6cff,#4f3ef8)',color:'#fff',border:'none',borderRadius:9,fontSize:12,fontWeight:700,cursor:'pointer' },
+    btnS:  { padding:'5px 12px',background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:8,color:'#7a8bbf',fontSize:12,cursor:'pointer' },
+    input: { padding:'7px 10px',background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.14)',borderRadius:8,color:'#e8eeff',fontSize:13,outline:'none',width:70,textAlign:'center' as const },
+  }
+
+  return (
+    <>
+      {/* Header + view switcher */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
+        <div>
+          <h2 style={{fontFamily:"'Syne',system-ui",fontWeight:700,fontSize:18,color:'#e8eeff',marginBottom:4}}>Result management</h2>
+          <p style={{fontSize:13,color:'#7a8bbf'}}>{results.length} total results · CA /40 · Exam /60 · Total /100</p>
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          {(['course','dept','lecturer'] as const).map(v=>(
+            <button key={v} onClick={()=>{setView(v);setSelected('')}}
+              style={{...RS.btnS,background:view===v?'linear-gradient(135deg,#2d6cff,#4f3ef8)':'rgba(255,255,255,0.05)',color:view===v?'#fff':'#7a8bbf',border:view===v?'none':'1px solid rgba(255,255,255,0.1)',fontWeight:view===v?700:400}}>
+              {v==='course'?'By course':v==='dept'?'By department':'By lecturer'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {results.length === 0 ? (
+        <div style={{...RS.card,textAlign:'center',padding:'48px 0'}}>
+          <div style={{fontSize:48,marginBottom:12}}>📊</div>
+          <div style={{fontSize:14,color:'#7a8bbf'}}>No results uploaded by lecturers yet.</div>
+        </div>
+      ) : (
+        <div style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:16,alignItems:'start'}}>
+
+          {/* Left: group list */}
+          <div style={RS.card}>
+            <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase' as const,letterSpacing:1,color:'#3d4f7a',marginBottom:10}}>
+              {view==='course'?'Courses':view==='dept'?'Departments':'Lecturers'}
+            </div>
+            {groupKeys.length === 0
+              ? <div style={{fontSize:13,color:'#3d4f7a'}}>No data</div>
+              : groupKeys.map(key=>{
+                  const rows = getGroupResults(key)
+                  const pub  = rows.every((r:any)=>r.published) && rows.length > 0
+                  const locked = rows.every((r:any)=>r.is_locked) && rows.length > 0
+                  const { avg, passed, total } = groupStats(rows)
+                  return (
+                    <div key={key} onClick={()=>setSelected(key)}
+                      style={{padding:'10px 12px',borderRadius:10,marginBottom:6,cursor:'pointer',border:`1px solid ${selected===key?'rgba(45,108,255,0.4)':'rgba(255,255,255,0.05)'}`,background:selected===key?'rgba(45,108,255,0.1)':'rgba(255,255,255,0.02)',transition:'all .15s'}}>
+                      <div style={{fontWeight:700,fontSize:13,color:'#e8eeff',fontFamily:'monospace',marginBottom:3}}>{getGroupLabel(key)}</div>
+                      <div style={{fontSize:11,color:'#7a8bbf'}}>{total} students · avg {avg}</div>
+                      <div style={{display:'flex',gap:6,marginTop:5}}>
+                        {pub && <span style={{fontSize:10,background:'rgba(74,222,128,.12)',color:'#4ade80',padding:'1px 7px',borderRadius:100}}>Published</span>}
+                        {locked && !pub && <span style={{fontSize:10,background:'rgba(251,191,36,.12)',color:'#fbbf24',padding:'1px 7px',borderRadius:100}}>🔒 Submitted</span>}
+                        {!pub && !locked && <span style={{fontSize:10,background:'rgba(255,255,255,.05)',color:'#7a8bbf',padding:'1px 7px',borderRadius:100}}>Draft</span>}
+                      </div>
+                    </div>
+                  )
+                })
+            }
+          </div>
+
+          {/* Right: results table */}
+          <div>
+            {!selected ? (
+              <div style={{...RS.card,textAlign:'center',padding:'48px 0'}}>
+                <div style={{fontSize:36,marginBottom:10}}>👈</div>
+                <div style={{fontSize:13,color:'#7a8bbf'}}>Select a {view==='course'?'course':view==='dept'?'department':'lecturer'} to view results</div>
+              </div>
+            ) : (
+              <div style={RS.card}>
+                {/* Selected group header */}
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16,flexWrap:'wrap',gap:10}}>
+                  <div>
+                    <div style={{fontFamily:"'Syne',system-ui",fontWeight:700,fontSize:15,color:'#e8eeff',marginBottom:4}}>
+                      {view==='course' ? (() => {
+                        const c = courses.find((c:any)=>c.course_code===selected)
+                        return c ? `${c.course_code} — ${c.course_name}` : selected
+                      })() : getGroupLabel(selected)}
+                    </div>
+                    {(() => {
+                      const rows = selectedResults
+                      const { avg, passed, total } = groupStats(rows)
+                      const gpa = calcGPA(rows.map((r:any)=>({credit_units:r.courses?.credit_units||3,grade_point:r.grade_point||0})))
+                      return (
+                        <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+                          {[
+                            ['Students', total],
+                            ['Avg score', avg],
+                            ['Pass rate', total>0?`${Math.round(passed/total*100)}%`:'—'],
+                            ['Avg GPA', formatGPA(gpa)],
+                          ].map(([l,v])=>(
+                            <div key={l as string} style={{fontSize:12}}>
+                              <span style={{color:'#3d4f7a'}}>{l as string}: </span>
+                              <span style={{color:'#e8eeff',fontWeight:600}}>{v as string}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    {selectedResults.every((r:any)=>r.is_locked) && selectedResults.length > 0 && (
+                      <button onClick={()=>unlockGroup(selectedResults)} style={{...RS.btnS,color:'#fbbf24',borderColor:'rgba(251,191,36,.3)'}}>🔓 Unlock</button>
+                    )}
+                    {!selectedResults.every((r:any)=>r.published) && selectedResults.length > 0 && (
+                      <button onClick={()=>releaseGroup(selectedResults)} disabled={releasing} style={RS.btnP}>
+                        {releasing?'Releasing...':'✓ Release to students'}
+                      </button>
+                    )}
+                    {selectedResults.every((r:any)=>r.published) && selectedResults.length > 0 && (
+                      <span style={{fontSize:12,color:'#4ade80',fontWeight:600,padding:'6px 0'}}>✓ Published</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Results table */}
+                <div style={{overflowX:'auto'}}>
+                  <table style={{width:'100%',borderCollapse:'collapse',minWidth:620}}>
+                    <thead>
+                      <tr>
+                        {['Matric no.','Student','CA /40','Exam /60','Total','Grade','Points','Status','Edit'].map(h=>(
+                          <th key={h} style={RS.th}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedResults.map((r:any)=>{
+                        const total = (r.ca_score||0) + (r.exam_score||0)
+                        const gc = gradeColor(r.grade||'F')
+                        const isEditing = editRow?.id === r.id
+                        return (
+                          <tr key={r.id}>
+                            <td style={{...RS.td,fontFamily:'monospace',color:'#60a5fa',fontSize:12}}>{r.students?.matric_number}</td>
+                            <td style={{...RS.td,color:'#e8eeff',fontWeight:500}}>{r.students?.first_name} {r.students?.last_name}</td>
+
+                            {/* CA — editable inline */}
+                            <td style={RS.td}>
+                              {isEditing
+                                ? <input style={RS.input} type="number" min="0" max="40" value={editCA} onChange={e=>setEditCA(e.target.value)}/>
+                                : <span style={{fontWeight:600,color:'#e8eeff'}}>{r.ca_score ?? '—'}</span>
+                              }
+                            </td>
+
+                            {/* Exam — editable inline */}
+                            <td style={RS.td}>
+                              {isEditing
+                                ? <input style={RS.input} type="number" min="0" max="60" value={editExam} onChange={e=>setEditExam(e.target.value)}/>
+                                : <span style={{fontWeight:600,color:'#e8eeff'}}>{r.exam_score ?? '—'}</span>
+                              }
+                            </td>
+
+                            <td style={{...RS.td,fontWeight:700,color:'#e8eeff'}}>
+                              {isEditing
+                                ? (() => { const t=(parseFloat(editCA)||0)+(parseFloat(editExam)||0); return <span style={{color:gradeColor(calcGrade(parseFloat(editCA)||0,parseFloat(editExam)||0).grade)}}>{t}</span> })()
+                                : total
+                              }
+                            </td>
+                            <td style={RS.td}>
+                              <span style={{fontSize:13,fontWeight:800,color:gc,background:gc+'18',padding:'3px 10px',borderRadius:100}}>
+                                {isEditing ? calcGrade(parseFloat(editCA)||0,parseFloat(editExam)||0).grade : (r.grade||'—')}
+                              </span>
+                            </td>
+                            <td style={{...RS.td,color:'#e8eeff',fontWeight:600}}>
+                              {isEditing ? calcGrade(parseFloat(editCA)||0,parseFloat(editExam)||0).points.toFixed(1) : (r.grade_point?.toFixed(1)||'—')}
+                            </td>
+                            <td style={RS.td}>
+                              {r.published
+                                ? <span style={{fontSize:11,color:'#4ade80',fontWeight:600}}>Published</span>
+                                : r.is_locked
+                                ? <span style={{fontSize:11,color:'#fbbf24'}}>Submitted</span>
+                                : <span style={{fontSize:11,color:'#7a8bbf'}}>Draft</span>
+                              }
+                            </td>
+                            <td style={RS.td}>
+                              {isEditing ? (
+                                <div style={{display:'flex',gap:6}}>
+                                  <button onClick={saveEdit} disabled={saving} style={{...RS.btnP,padding:'5px 12px',fontSize:11}}>{saving?'...':'Save'}</button>
+                                  <button onClick={()=>setEditRow(null)} style={{...RS.btnS,padding:'5px 10px',fontSize:11}}>Cancel</button>
+                                </div>
+                              ) : (
+                                <button onClick={()=>{setEditRow(r);setEditCA(String(r.ca_score??''));setEditExam(String(r.exam_score??''))}}
+                                  style={{...RS.btnS,padding:'4px 10px',fontSize:11}}>Edit</button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {selectedResults.length===0&&(
+                    <div style={{textAlign:'center',padding:'32px 0',color:'#3d4f7a',fontSize:13}}>No results found.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit modal note */}
+      {editRow && (
+        <div style={{position:'fixed',bottom:24,right:24,background:'rgba(45,108,255,0.15)',border:'1px solid rgba(45,108,255,0.3)',borderRadius:12,padding:'10px 16px',fontSize:12,color:'#60a5fa',zIndex:999}}>
+          ✏️ Editing {editRow.students?.matric_number} — click Save or Cancel above
+        </div>
+      )}
+    </>
+  )
 }

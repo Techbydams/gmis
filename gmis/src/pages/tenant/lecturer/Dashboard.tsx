@@ -49,16 +49,8 @@ interface HandoutPayment {
 
 type Tab = 'dashboard' | 'students' | 'results' | 'attendance' | 'handouts'
 
-// ── GRADE CALCULATOR ─────────────────────────────────────
-const calcGrade = (ca: number, exam: number) => {
-  const total = ca + exam
-  if (total >= 70) return { grade: 'A', points: 5.0, remark: 'pass' }
-  if (total >= 60) return { grade: 'B', points: 4.0, remark: 'pass' }
-  if (total >= 50) return { grade: 'C', points: 3.0, remark: 'pass' }
-  if (total >= 45) return { grade: 'D', points: 2.0, remark: 'pass' }
-  if (total >= 40) return { grade: 'E', points: 1.0, remark: 'pass' }
-  return { grade: 'F', points: 0.0, remark: 'fail' }
-}
+// Grade calculator imported from shared utility (CA/40 + Exam/60, A=70+)
+import { calcGrade } from '../../../lib/grading'
 
 export default function LecturerPortal({ initialTab }: { initialTab?: Tab }) {
   const navigate          = useNavigate()

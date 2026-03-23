@@ -1,7 +1,9 @@
 // ============================================================
 // GMIS — Tenant Context
-// Detects which school's subdomain we're on and loads
-// that school's info from the master database
+// FIXED:
+//   - Null safety on org_feature_toggles → features join
+//   - Error message improved for locked schools
+//   - Slug detection is now stable on re-renders
 // ============================================================
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
@@ -25,17 +27,17 @@ const TenantContext = createContext<TenantContextType>({
   isMainPlatform: true,
 })
 
-export const TenantProvider = ({ children }: { children: ReactNode }) => {
-  const [tenant, setTenant] = useState<TenantInfo | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+// Compute slug once at module level — it doesn't change during a session
+const SLUG = getTenantSlug()
+const IS_MAIN_PLATFORM = SLUG === null
 
-  const slug = getTenantSlug()
-  const isMainPlatform = slug === null
+export const TenantProvider = ({ children }: { children: ReactNode }) => {
+  const [tenant,  setTenant]  = useState<TenantInfo | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState<string | null>(null)
 
   useEffect(() => {
-    if (isMainPlatform) {
-      // We're on gmis.com — no tenant to load
+    if (IS_MAIN_PLATFORM) {
       setLoading(false)
       return
     }
@@ -45,7 +47,6 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
         setLoading(true)
         setError(null)
 
-        // Look up this school in the master database by slug
         const { data: org, error: orgError } = await supabase
           .from('organizations')
           .select(`
@@ -57,48 +58,73 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
             supabase_anon_key,
             status,
             org_feature_toggles (
-              features (key),
-              is_enabled
+              is_enabled,
+              features (
+                key
+              )
             )
           `)
-          .eq('slug', slug)
-          .eq('status', 'approved')
+          .eq('slug', SLUG)
           .single()
 
         if (orgError || !org) {
-          setError(`School "${slug}" not found or not yet approved on GMIS.`)
+          setError(`School "${SLUG}" is not registered on GMIS.`)
           setLoading(false)
           return
         }
 
-        // Build list of enabled feature keys
+        if (org.status === 'locked') {
+          setError(`The portal for "${org.name}" has been temporarily locked. Please contact your school administrator.`)
+          setLoading(false)
+          return
+        }
+
+        if (org.status === 'suspended') {
+          setError(`The portal for "${org.name}" has been suspended. Please contact GMIS support.`)
+          setLoading(false)
+          return
+        }
+
+        if (org.status !== 'approved') {
+          setError(`"${org.name}" is not yet approved on GMIS. Please check back later.`)
+          setLoading(false)
+          return
+        }
+
+        // FIXED: Safe access on the features join — features can be null if
+        // the feature record was deleted without removing the toggle
         const features: string[] = (org.org_feature_toggles || [])
-          .filter((toggle: any) => toggle.is_enabled)
-          .map((toggle: any) => toggle.features?.key)
-          .filter(Boolean)
+          .filter((toggle: any) => toggle.is_enabled && toggle.features?.key)
+          .map((toggle: any) => toggle.features.key as string)
 
         setTenant({
-          slug: org.slug,
-          name: org.name,
-          logo_url: org.logo_url,
-          supabase_url: org.supabase_url,
+          slug:              org.slug,
+          name:              org.name,
+          logo_url:          org.logo_url,
+          supabase_url:      org.supabase_url,
           supabase_anon_key: org.supabase_anon_key,
-          status: org.status,
+          status:            org.status,
           features,
         })
       } catch (err) {
-        setError('Failed to load school information. Please try again.')
         console.error('Tenant load error:', err)
+        setError('Failed to load school information. Please refresh the page.')
       } finally {
         setLoading(false)
       }
     }
 
     loadTenant()
-  }, [slug, isMainPlatform])
+  }, []) // slug is stable — no deps needed
 
   return (
-    <TenantContext.Provider value={{ tenant, slug, loading, error, isMainPlatform }}>
+    <TenantContext.Provider value={{
+      tenant,
+      slug:           SLUG,
+      loading,
+      error,
+      isMainPlatform: IS_MAIN_PLATFORM,
+    }}>
       {children}
     </TenantContext.Provider>
   )

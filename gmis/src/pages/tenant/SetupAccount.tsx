@@ -1,18 +1,15 @@
 // ============================================================
 // GMIS — Account Setup Page
 // Handles two flows:
-//   1. /setup?role=admin  — First-time admin account creation
-//   2. /setup?role=lecturer&token=xxx — Lecturer activating their invite
+//   1. /setup?role=admin    — First-time admin account creation
+//   2. /setup?role=lecturer — Lecturer self-activates by email lookup
 //
-// Why this exists:
-//   - Admins are created by DAMS Tech when a school is approved.
-//     They receive an email with a link to /setup?role=admin
-//   - Lecturers are added by the admin in Academic Setup.
-//     They receive an email with a link to /setup?role=lecturer&token=xxx
-//   - Both set their password here on first login
+// Lecturer flow: admin adds them in the dashboard, lecturer comes
+// here, types their email — system finds their record and creates
+// their Supabase auth account. No tokens or edge functions needed.
 // ============================================================
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTenant } from '../../context/TenantContext'
 import { getTenantClient } from '../../lib/supabase'
@@ -26,55 +23,22 @@ export default function SetupAccount() {
   const [params]       = useSearchParams()
   const { tenant, slug, loading: tenantLoading } = useTenant()
 
-  const role  = params.get('role') as SetupRole
-  const token = params.get('token')
+  const role = params.get('role') as SetupRole
 
-  const [email,      setEmail]      = useState('')
-  const [password,   setPassword]   = useState('')
-  const [confirm,    setConfirm]    = useState('')
-  const [fullName,   setFullName]   = useState('')
-  const [loading,    setLoading]    = useState(false)
-  const [verifying,  setVerifying]  = useState(false)
-  const [lecturerId, setLecturerId] = useState<string | null>(null)
-  const [errors,     setErrors]     = useState<Record<string, string>>({})
-
-  // For lecturers: verify their token and pre-fill name/email
-  useEffect(() => {
-    if (role !== 'lecturer' || !token || !tenant || tenantLoading) return
-
-    const verifyToken = async () => {
-      setVerifying(true)
-      const db = getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!)
-      const { data, error } = await db
-        .from('lecturers')
-        .select('id, full_name, email')
-        .eq('invite_token', token)
-        .eq('is_active', true)
-        .maybeSingle()
-
-      setVerifying(false)
-
-      if (error || !data) {
-        toast.error('Invalid or expired invitation link. Please contact your admin.')
-        navigate('/login')
-        return
-      }
-
-      setLecturerId(data.id)
-      setFullName(data.full_name)
-      setEmail(data.email)
-    }
-
-    verifyToken()
-  }, [role, token, tenant, tenantLoading, slug, navigate])
+  const [email,    setEmail]    = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm,  setConfirm]  = useState('')
+  const [fullName, setFullName] = useState('')
+  const [loading,  setLoading]  = useState(false)
+  const [errors,   setErrors]   = useState<Record<string, string>>({})
 
   const validate = (): boolean => {
     const e: Record<string, string> = {}
-    if (!email.trim())           e.email    = 'Email is required'
-    if (!fullName.trim())        e.fullName = 'Full name is required'
-    if (!password)               e.password = 'Password is required'
+    if (!email.trim())                   e.email    = 'Email is required'
+    if (!fullName.trim())                e.fullName = 'Full name is required'
+    if (!password)                       e.password = 'Password is required'
     else if (!isValidPassword(password)) e.password = 'Password must be at least 8 characters'
-    if (password !== confirm)    e.confirm  = 'Passwords do not match'
+    if (password !== confirm)            e.confirm  = 'Passwords do not match'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -84,30 +48,53 @@ export default function SetupAccount() {
     setLoading(true)
 
     const db = getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!)
+    const cleanEmail = email.trim().toLowerCase()
 
     try {
-      if (role === 'lecturer' && lecturerId) {
-        // Lecturer: update their Supabase auth password via the magic link session
-        // (Supabase sends a magic link in the invite email — by the time they land here
-        //  they are already authenticated via that link)
-        const { error: pwError } = await db.auth.updateUser({ password })
-        if (pwError) {
-          toast.error('Failed to set password. Your invitation link may have expired.')
+      if (role === 'lecturer') {
+        // Step 1: Check the lecturer exists in the DB (admin must have added them first)
+        const { data: lecturer, error: lookupError } = await db
+          .from('lecturers')
+          .select('id, full_name, supabase_uid')
+          .eq('email', cleanEmail)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (lookupError || !lecturer) {
+          toast.error('Your email is not registered as a lecturer. Ask your admin to add you first.')
           setLoading(false)
           return
         }
 
-        // Get the user's UID from the current session
-        const { data: { user } } = await db.auth.getUser()
-        if (user) {
-          await db.from('lecturers').update({
-            supabase_uid:  user.id,
-            invite_token:  null, // clear token so it can't be reused
-          }).eq('id', lecturerId)
+        if (lecturer.supabase_uid) {
+          toast.error('This lecturer account is already activated. Use the login page.')
+          setLoading(false)
+          return
         }
 
-        toast.success('Account activated! Welcome to GMIS.')
-        navigate('/lecturer')
+        // Step 2: Create Supabase auth account
+        const { data: authData, error: signUpError } = await db.auth.signUp({
+          email:    cleanEmail,
+          password,
+          options: { data: { full_name: fullName.trim(), role: 'lecturer' } },
+        })
+
+        if (signUpError) {
+          toast.error(signUpError.message)
+          setLoading(false)
+          return
+        }
+
+        // Step 3: Link the auth UID to the lecturers table
+        if (authData?.user?.id) {
+          await db.from('lecturers').update({
+            supabase_uid: authData.user.id,
+            full_name:    fullName.trim(), // allow them to correct their name
+          }).eq('id', lecturer.id)
+        }
+
+        toast.success('Account activated! You can now sign in.')
+        navigate('/login')
 
       } else if (role === 'admin') {
         // Admin first-time setup: they sign up with the email DAMS Tech registered
@@ -175,14 +162,12 @@ export default function SetupAccount() {
     }
   }
 
-  if (tenantLoading || verifying) {
+  if (tenantLoading) {
     return (
       <div style={S.page}>
         <div style={{ textAlign: 'center', color: '#7a8bbf' }}>
           <div style={S.spinner} />
-          <p style={{ marginTop: 16, fontSize: 14 }}>
-            {verifying ? 'Verifying your invitation...' : 'Loading...'}
-          </p>
+          <p style={{ marginTop: 16, fontSize: 14 }}>Loading...</p>
         </div>
       </div>
     )
@@ -233,7 +218,7 @@ export default function SetupAccount() {
           </h1>
           <p style={{ fontSize: 13, color: '#7a8bbf', lineHeight: 1.6 }}>
             {isLecturer
-              ? 'Welcome! Set your password to activate your GMIS lecturer account.'
+              ? 'Enter the email your admin registered for you, then set your password.'
               : 'Set your password to activate your GMIS admin account.'
             }
           </p>
@@ -244,11 +229,10 @@ export default function SetupAccount() {
           <div style={{ marginBottom: 14 }}>
             <label style={S.label}>Full name *</label>
             <input
-              style={{ ...S.input, ...(errors.fullName ? { borderColor: '#f87171' } : {}), ...(isLecturer ? { background: 'rgba(255,255,255,0.03)', cursor: 'not-allowed' } : {}) }}
+              style={{ ...S.input, ...(errors.fullName ? { borderColor: '#f87171' } : {}) }}
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder="Dr. Jane Smith"
-              readOnly={isLecturer} // lecturer name is pre-filled from DB
             />
             {errors.fullName && <p style={S.err}>{errors.fullName}</p>}
           </div>
@@ -257,12 +241,11 @@ export default function SetupAccount() {
           <div style={{ marginBottom: 14 }}>
             <label style={S.label}>Email address *</label>
             <input
-              style={{ ...S.input, ...(errors.email ? { borderColor: '#f87171' } : {}), ...(isLecturer ? { background: 'rgba(255,255,255,0.03)', cursor: 'not-allowed' } : {}) }}
+              style={{ ...S.input, ...(errors.email ? { borderColor: '#f87171' } : {}) }}
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="you@institution.edu"
-              readOnly={isLecturer} // lecturer email is pre-filled from DB
             />
             {errors.email && <p style={S.err}>{errors.email}</p>}
           </div>
@@ -298,7 +281,7 @@ export default function SetupAccount() {
           {/* Info box */}
           <div style={{ padding: '10px 14px', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 10, marginBottom: 18, fontSize: 12, color: '#60a5fa', lineHeight: 1.6 }}>
             {isLecturer
-              ? 'ℹ Once activated, sign in at the login page using your email and the password you set here.'
+              ? 'ℹ Enter the exact email your admin used when adding you. You can correct your display name above.'
               : 'ℹ Once set up, sign in at the login page. Choose "Admin" on the role selector.'
             }
           </div>

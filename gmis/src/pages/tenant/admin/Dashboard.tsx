@@ -10,6 +10,7 @@ import { timeAgo, formatNaira } from '../../../lib/helpers'
 import { calcGrade, gradeColor, calcGPA, formatGPA } from '../../../lib/grading'
 import toast from 'react-hot-toast'
 import SidebarLayout from '../../../components/layout/SidebarLayout'
+import type { TenantDatabase } from '../../../types/tenant'
 
 type Tab = 'dashboard'|'approvals'|'students'|'courses'|'results'|'fees'|'news'|'paystack'|'settings'|'academic'
 type AcademicTab = 'faculties'|'departments'|'courses'|'lecturers'

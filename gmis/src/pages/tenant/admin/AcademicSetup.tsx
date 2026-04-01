@@ -9,6 +9,7 @@ import { useTenant } from '../../../context/TenantContext'
 import { getTenantClient } from '../../../lib/supabase'
 import toast from 'react-hot-toast'
 import SidebarLayout from '../../../components/layout/SidebarLayout'
+import type { TenantDatabase } from '../../../types/tenant'
 
 // ── TYPES ─────────────────────────────────────────────────
 interface Faculty {
@@ -83,7 +84,15 @@ export default function AdminAcademicSetup() {
     setLoading(false)
   }
 
-  const loadFaculties  = async () => { const { data } = await db!.from('faculties').select('*').order('name'); if (data) setFaculties(data) }
+  const loadFaculties  = async () => { const { data } = await db!.from('faculties').select('*').order('name'); if (data) setFaculties(data) {
+    // Convert null is_active to boolean
+    const cleaned = data.map(f => ({
+      ...f,
+      is_active: f.is_active ?? true // if null, default to true
+    }))
+    setFaculties(cleaned)
+  } 
+}
   const loadDepartments= async () => { const { data } = await db!.from('departments').select('*, faculties(name)').order('name'); if (data) setDepartments(data as Department[]) }
   const loadCourses    = async () => { const { data } = await db!.from('courses').select('*, departments(name), lecturers(full_name)').order('course_code'); if (data) setCourses(data as Course[]) }
   const loadLecturers  = async () => { const { data } = await db!.from('lecturers').select('*, departments(name)').order('full_name'); if (data) setLecturers(data as Lecturer[]) }

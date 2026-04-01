@@ -10,6 +10,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '../lib/supabase'
 import { getTenantSlug } from '../lib/helpers'
 import type { TenantInfo } from '../types'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import type { TenantDatabase } from '../types/tenant'
 
 interface TenantContextType {
   tenant: TenantInfo | null
@@ -17,6 +19,7 @@ interface TenantContextType {
   loading: boolean
   error: string | null
   isMainPlatform: boolean
+  tenantDb: SupabaseClient<TenantDatabase> | null
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -25,6 +28,7 @@ const TenantContext = createContext<TenantContextType>({
   loading: true,
   error: null,
   isMainPlatform: true,
+  tenantDb: null,
 })
 
 // Compute slug once at module level — it doesn't change during a session
@@ -35,6 +39,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   const [tenant,  setTenant]  = useState<TenantInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
+  const [tenantDb, setTenantDb] = useState<SupabaseClient<TenantDatabase> | null>(null)
 
   useEffect(() => {
     if (IS_MAIN_PLATFORM) {
@@ -91,6 +96,9 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
           return
         }
 
+        const client = createClient<TenantDatabase>(org.supabase_url!, org.supabase_anon_key!)
+          setTenantDb(client)
+
         // FIXED: Safe access on the features join — features can be null if
         // the feature record was deleted without removing the toggle
         const features: string[] = (org.org_feature_toggles || [])
@@ -124,6 +132,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
       loading,
       error,
       isMainPlatform: IS_MAIN_PLATFORM,
+      tenantDb,
     }}>
       {children}
     </TenantContext.Provider>

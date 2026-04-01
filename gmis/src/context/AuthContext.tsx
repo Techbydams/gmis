@@ -15,6 +15,7 @@ import {
 import { supabase, getTenantClient } from '../lib/supabase'
 import { useTenant } from './TenantContext'
 import type { AuthUser } from '../types'
+import type { TenantDatabase } from '../types/tenant'
 
 interface AuthContextType {
   user:             AuthUser | null
@@ -36,7 +37,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user,    setUser]    = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const { tenant, isMainPlatform, slug } = useTenant()
+  const { tenant, tenantDb, isMainPlatform, slug } = useTenant()
 
   // Track in-flight role resolution so stale ones don't overwrite fresh ones
   const resolveCounterRef = useRef(0)

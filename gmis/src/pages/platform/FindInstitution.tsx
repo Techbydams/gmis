@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { redirectToTenant } from '../../lib/helpers'
-import { Button, Card, Input, Spinner } from '../../components/ui'
+import { Button, Card, Spinner } from '../../components/ui'
 import type { Organization } from '../../types'
 
 export default function FindInstitution() {

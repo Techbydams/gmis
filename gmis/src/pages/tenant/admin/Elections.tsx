@@ -11,6 +11,7 @@ import { useTenant } from '../../../context/TenantContext'
 import { getTenantClient } from '../../../lib/supabase'
 import SidebarLayout from '../../../components/layout/SidebarLayout'
 import toast from 'react-hot-toast'
+import type { TenantDatabase } from '../../../types/tenant'
 
 // ── TYPES ─────────────────────────────────────────────────
 interface Election {

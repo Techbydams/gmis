@@ -74,7 +74,7 @@ export default function AdminAcademicSetup() {
   const [searchCrs,   setSearchCrs]   = useState('')
   const [searchLec,   setSearchLec]   = useState('')
 
-  const db = tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null
+  const db = tenant ? getTenantClient<TenantDatabase>(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null
 
   useEffect(() => { if (db) loadAll() }, [db])
 
@@ -84,19 +84,37 @@ export default function AdminAcademicSetup() {
     setLoading(false)
   }
 
-  const loadFaculties  = async () => { const { data } = await db!.from('faculties').select('*').order('name'); if (data) setFaculties(data) {
-    // Convert null is_active to boolean
-    const cleaned = data.map(f => ({
-      ...f,
-      is_active: f.is_active ?? true // if null, default to true
-    }))
-    setFaculties(cleaned)
-  } 
-}
-  const loadDepartments= async () => { const { data } = await db!.from('departments').select('*, faculties(name)').order('name'); if (data) setDepartments(data as Department[]) }
-  const loadCourses    = async () => { const { data } = await db!.from('courses').select('*, departments(name), lecturers(full_name)').order('course_code'); if (data) setCourses(data as Course[]) }
-  const loadLecturers  = async () => { const { data } = await db!.from('lecturers').select('*, departments(name)').order('full_name'); if (data) setLecturers(data as Lecturer[]) }
+    const loadFaculties = async () => {
+    if (!db) return
+    const { data } = await db.from('faculties').select('*').order('name')
+    if (data) {
+      const cleaned = data.map(f => ({
+        ...f,
+        is_active: f.is_active ?? true
+      }))
+      setFaculties(cleaned)
+    }
+  }
 
+  const loadDepartments = async () => {
+    if (!db) return
+    const { data } = await db.from('departments').select('*, faculties(name)').order('name')
+    if (data) setDepartments(data as Department[])
+  }
+
+  const loadCourses = async () => {
+    if (!db) return
+    const { data } = await db.from('courses').select('*, departments(name), lecturers(full_name)').order('course_code')
+    if (data) setCourses(data as Course[])
+  }
+
+  const loadLecturers = async () => {
+    if (!db) return
+    const { data } = await db.from('lecturers').select('*, departments(name)').order('full_name')
+    if (data) setLecturers(data as Lecturer[])
+  }
+  
+  
   // ── FACULTY CRUD ──────────────────────────────────────
   const saveFaculty = async () => {
     if (!facForm.name.trim() || !facForm.code.trim()) { toast.error('Name and code are required'); return }

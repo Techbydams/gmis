@@ -4,6 +4,23 @@
 
 import { ReactNode, InputHTMLAttributes, SelectHTMLAttributes } from 'react'
 
+// -- PAGE HEADER --
+interface PageHeaderProps {
+  title: string
+  subtitle?: string
+  action?: ReactNode
+}
+
+export const PageHeader = ({ title, subtitle, action }: PageHeaderProps) => (
+  <div className="flex items-start justify-between mb-6 gap-4">
+    <div>
+      <h1 className="text-xl font-black text-slate-100 font-display">{title}</h1>
+      {subtitle && <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>}
+    </div>
+    {action && <div className="flex-shrink-0">{action}</div>}
+  </div>
+)
+
 // ── BUTTON ────────────────────────────────────────────────
 interface ButtonProps {
   children: ReactNode

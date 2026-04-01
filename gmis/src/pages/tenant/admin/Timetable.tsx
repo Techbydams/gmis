@@ -1,14 +1,14 @@
 // ============================================================
 // GMIS — Admin Timetable Management
-// /admin/timetable
-// Schedule view (day tabs) + Manage view (table)
-// Add/Edit modal + CSV import with preview
-// Times are NOT hardcoded — admin enters freely
+// FIXED:
+//   - Wrapped in SidebarLayout
+//   - Department filter now correctly matches using course_id lookup
 // ============================================================
 
 import { useState, useEffect, useMemo } from 'react'
 import { useTenant } from '../../../context/TenantContext'
 import { getTenantClient } from '../../../lib/supabase'
+import SidebarLayout from '../../../components/layout/SidebarLayout'
 import toast from 'react-hot-toast'
 
 // ── TYPES ─────────────────────────────────────────────────
@@ -28,6 +28,7 @@ interface TTEntry {
     course_code: string
     course_name: string
     level: string
+    department_id?: string
     departments?: { id: string; name: string }
     lecturers?: { full_name: string }
   }
@@ -59,7 +60,7 @@ const DAY_FULL: Record<Day, string> = {
 }
 const LEVELS = ['100','200','300','400','500','600']
 
-const todayIdx = new Date().getDay() // 0=Sun
+const todayIdx = new Date().getDay()
 const todayName: Day = DAYS[todayIdx - 1] ?? 'monday'
 
 const fmtTime = (t: string) => {
@@ -89,7 +90,10 @@ const BLANK_FORM = {
 // ── COMPONENT ─────────────────────────────────────────────
 export default function AdminTimetable() {
   const { tenant, slug } = useTenant()
-  const db = useMemo(() => tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null, [tenant, slug])
+  const db = useMemo(
+    () => tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null,
+    [tenant, slug]
+  )
 
   const [entries,  setEntries]  = useState<TTEntry[]>([])
   const [courses,  setCourses]  = useState<Course[]>([])
@@ -125,7 +129,7 @@ export default function AdminTimetable() {
     setLoading(true)
     const [eRes, cRes, dRes, sRes] = await Promise.all([
       db.from('timetable')
-        .select('*, courses(course_code, course_name, level, departments(id, name), lecturers(full_name))')
+        .select('*, courses(course_code, course_name, level, department_id, departments(id, name), lecturers(full_name))')
         .order('day_of_week').order('start_time'),
       db.from('courses')
         .select('id, course_code, course_name, level, department_id, lecturer_id, departments(name), lecturers(full_name)')
@@ -146,15 +150,22 @@ export default function AdminTimetable() {
   }
 
   // ── FILTERED DATA ────────────────────────────────────────
+  // FIXED: Department filter now uses course_id to look up department_id from courses array
   const filtered = useMemo(() => entries.filter(e => {
     const c = e.courses
     if (!c) return true
-    if (fDept  && (c.departments as any)?.id !== fDept) return false
+
+    if (fDept) {
+      // Use the flat department_id from the courses join, or look it up from courses array
+      const deptId = c.department_id || courses.find(co => co.id === e.course_id)?.department_id
+      if (deptId !== fDept) return false
+    }
+
     if (fLevel && c.level !== fLevel) return false
     if (fSession  && e.session  && e.session  !== fSession)  return false
     if (fSemester && e.semester && e.semester !== fSemester) return false
     return true
-  }), [entries, fDept, fLevel, fSession, fSemester])
+  }), [entries, courses, fDept, fLevel, fSession, fSemester])
 
   const byDay = useMemo(() => {
     const map = {} as Record<Day, TTEntry[]>
@@ -166,7 +177,11 @@ export default function AdminTimetable() {
   // ── MODAL HELPERS ────────────────────────────────────────
   const openAdd = () => {
     setEditEntry(null)
-    setForm({ ...BLANK_FORM, session: settings?.current_session || '', semester: settings?.current_semester || 'first' })
+    setForm({
+      ...BLANK_FORM,
+      session:  settings?.current_session  || '',
+      semester: settings?.current_semester || 'first',
+    })
     setShowModal(true)
   }
 
@@ -271,143 +286,149 @@ export default function AdminTimetable() {
     ].join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    a.download = 'timetable_template.csv'; a.click()
+    a.download = 'timetable_template.csv'
+    a.click()
   }
-
-  // ── RENDER ────────────────────────────────────────────────
-  if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-      <div style={S.spin} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  )
 
   const selectedCourse = courses.find(c => c.id === form.course_id)
 
+  if (loading) return (
+    <SidebarLayout active="timetable" role="admin">
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+        <div style={S.spin} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </SidebarLayout>
+  )
+
   return (
-    <div style={{ fontFamily: "'DM Sans',system-ui", color: '#e8eeff' }}>
+    <SidebarLayout active="timetable" role="admin">
+      <div style={{ fontFamily: "'DM Sans',system-ui", color: '#e8eeff' }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h2 style={{ fontFamily: "'Syne',system-ui", fontWeight: 800, fontSize: 20, margin: 0, color: '#e8eeff' }}>
-            Class Timetable
-          </h2>
-          <p style={{ fontSize: 13, color: '#7a8bbf', margin: '4px 0 0' }}>
-            {filtered.length} entries · {settings?.current_session || '—'} · {settings?.current_semester || '—'} semester
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={downloadTemplate} style={S.btnSm}>⬇ Template</button>
-          <label style={{ ...S.btnSm, cursor: 'pointer' }}>
-            📂 Import CSV
-            <input type="file" accept=".csv" onChange={handleFileUpload} style={{ display: 'none' }} />
-          </label>
-          <button onClick={openAdd} style={S.btnPrimary}>+ Add Entry</button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        <select value={fDept} onChange={e => setFDept(e.target.value)} style={S.select}>
-          <option value="">All departments</option>
-          {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        <select value={fLevel} onChange={e => setFLevel(e.target.value)} style={S.select}>
-          <option value="">All levels</option>
-          {LEVELS.map(l => <option key={l} value={l}>{l}L</option>)}
-        </select>
-        <select value={fSemester} onChange={e => setFSemester(e.target.value)} style={S.select}>
-          <option value="">All semesters</option>
-          <option value="first">First semester</option>
-          <option value="second">Second semester</option>
-        </select>
-        <input
-          value={fSession}
-          onChange={e => setFSession(e.target.value)}
-          placeholder="Session e.g. 2024/2025"
-          style={{ ...S.select, minWidth: 160 }}
-        />
-      </div>
-
-      {/* View toggle */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-        {(['schedule', 'manage'] as const).map(v => (
-          <button key={v} onClick={() => setView(v)} style={{
-            padding: '8px 16px', borderRadius: 10, fontSize: 13, cursor: 'pointer',
-            fontFamily: "'DM Sans',system-ui", transition: 'all .15s', fontWeight: v === view ? 700 : 400,
-            background: v === view ? 'linear-gradient(135deg,#2d6cff,#4f3ef8)' : 'rgba(255,255,255,0.04)',
-            color: v === view ? '#fff' : '#7a8bbf',
-            border: v === view ? 'none' : '1px solid rgba(255,255,255,0.08)',
-          }}>
-            {v === 'schedule' ? '📅 Schedule View' : '⚙️ Manage Entries'}
-          </button>
-        ))}
-      </div>
-
-      {/* ── SCHEDULE VIEW ── */}
-      {view === 'schedule' && (
-        <>
-          {/* Day tabs */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
-            {DAYS.map(d => {
-              const isToday = d === todayName
-              const count   = byDay[d].length
-              return (
-                <button key={d} onClick={() => setActiveDay(d)} style={{
-                  padding: '8px 14px', borderRadius: 10, fontSize: 12, cursor: 'pointer',
-                  fontFamily: "'DM Sans',system-ui", transition: 'all .15s',
-                  background: activeDay === d ? 'linear-gradient(135deg,#2d6cff,#4f3ef8)' : 'rgba(255,255,255,0.04)',
-                  color: activeDay === d ? '#fff' : isToday ? '#60a5fa' : '#7a8bbf',
-                  border: activeDay === d ? 'none' : isToday ? '1px solid rgba(96,165,250,0.3)' : '1px solid rgba(255,255,255,0.08)',
-                  fontWeight: isToday ? 700 : 400,
-                }}>
-                  {DAY_LABELS[d]}{isToday ? ' · Today' : ''}
-                  {count > 0 && <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 11 }}>({count})</span>}
-                </button>
-              )
-            })}
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h2 style={{ fontFamily: "'Syne',system-ui", fontWeight: 800, fontSize: 20, margin: 0, color: '#e8eeff' }}>
+              Class Timetable
+            </h2>
+            <p style={{ fontSize: 13, color: '#7a8bbf', margin: '4px 0 0' }}>
+              {filtered.length} entries · {settings?.current_session || '—'} · {settings?.current_semester || '—'} semester
+            </p>
           </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={downloadTemplate} style={S.btnSm}>⬇ Template</button>
+            <label style={{ ...S.btnSm, cursor: 'pointer' }}>
+              📂 Import CSV
+              <input type="file" accept=".csv" onChange={handleFileUpload} style={{ display: 'none' }} />
+            </label>
+            <button onClick={openAdd} style={S.btnPrimary}>+ Add Entry</button>
+          </div>
+        </div>
 
-          {/* Day entries */}
-          {byDay[activeDay].length === 0
-            ? (
+        {/* Filters */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+          <select value={fDept} onChange={e => setFDept(e.target.value)} style={S.select}>
+            <option value="">All departments</option>
+            {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          <select value={fLevel} onChange={e => setFLevel(e.target.value)} style={S.select}>
+            <option value="">All levels</option>
+            {LEVELS.map(l => <option key={l} value={l}>{l}L</option>)}
+          </select>
+          <select value={fSemester} onChange={e => setFSemester(e.target.value)} style={S.select}>
+            <option value="">All semesters</option>
+            <option value="first">First semester</option>
+            <option value="second">Second semester</option>
+          </select>
+          <input
+            value={fSession}
+            onChange={e => setFSession(e.target.value)}
+            placeholder="Session e.g. 2024/2025"
+            style={{ ...S.select, minWidth: 160 }}
+          />
+        </div>
+
+        {/* View toggle */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+          {(['schedule', 'manage'] as const).map(v => (
+            <button key={v} onClick={() => setView(v)} style={{
+              padding: '8px 16px', borderRadius: 10, fontSize: 13, cursor: 'pointer',
+              fontFamily: "'DM Sans',system-ui", transition: 'all .15s', fontWeight: v === view ? 700 : 400,
+              background: v === view ? 'linear-gradient(135deg,#2d6cff,#4f3ef8)' : 'rgba(255,255,255,0.04)',
+              color: v === view ? '#fff' : '#7a8bbf',
+              border: v === view ? 'none' : '1px solid rgba(255,255,255,0.08)',
+            }}>
+              {v === 'schedule' ? '📅 Schedule View' : '⚙️ Manage Entries'}
+            </button>
+          ))}
+        </div>
+
+        {/* ── SCHEDULE VIEW ── */}
+        {view === 'schedule' && (
+          <>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+              {DAYS.map(d => {
+                const isToday = d === todayName
+                const count   = byDay[d].length
+                return (
+                  <button key={d} onClick={() => setActiveDay(d)} style={{
+                    padding: '8px 14px', borderRadius: 10, fontSize: 12, cursor: 'pointer',
+                    fontFamily: "'DM Sans',system-ui", transition: 'all .15s',
+                    background: activeDay === d ? 'linear-gradient(135deg,#2d6cff,#4f3ef8)' : 'rgba(255,255,255,0.04)',
+                    color: activeDay === d ? '#fff' : isToday ? '#60a5fa' : '#7a8bbf',
+                    border: activeDay === d ? 'none' : isToday ? '1px solid rgba(96,165,250,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                    fontWeight: isToday ? 700 : 400,
+                  }}>
+                    {DAY_LABELS[d]}{isToday ? ' · Today' : ''}
+                    {count > 0 && <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 11 }}>({count})</span>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {byDay[activeDay].length === 0 ? (
               <div style={{ textAlign: 'center', padding: '52px 0', color: '#3d4f7a' }}>
                 <div style={{ fontSize: 38, marginBottom: 12 }}>📭</div>
                 <div style={{ fontSize: 14, marginBottom: 16 }}>No classes scheduled for {DAY_FULL[activeDay]}</div>
                 <button onClick={openAdd} style={S.btnPrimary}>+ Add Class</button>
               </div>
-            )
-            : [...byDay[activeDay]]
+            ) : (
+              [...byDay[activeDay]]
                 .sort((a, b) => a.start_time.localeCompare(b.start_time))
                 .map(e => <EntryCard key={e.id} e={e} onEdit={openEdit} onDelete={deleteEntry} />)
-          }
-        </>
-      )}
+            )}
+          </>
+        )}
 
-      {/* ── MANAGE VIEW ── */}
-      {view === 'manage' && (
-        filtered.length === 0
-          ? (
+        {/* ── MANAGE VIEW ── */}
+        {view === 'manage' && (
+          filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '52px 0', color: '#3d4f7a' }}>
               <div style={{ fontSize: 14 }}>No entries match your filters.</div>
             </div>
-          )
-          : (
+          ) : (
             <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
                 <thead>
-                  <tr>{['Day','Time','Course','Dept / Level','Venue','Lecturer',''].map(h => (
-                    <th key={h} style={S.th}>{h}</th>
-                  ))}</tr>
+                  <tr>
+                    {['Day','Time','Course','Dept / Level','Venue','Lecturer',''].map(h => (
+                      <th key={h} style={S.th}>{h}</th>
+                    ))}
+                  </tr>
                 </thead>
                 <tbody>
                   {[...filtered]
-                    .sort((a, b) => DAYS.indexOf(a.day_of_week) - DAYS.indexOf(b.day_of_week) || a.start_time.localeCompare(b.start_time))
+                    .sort((a, b) =>
+                      DAYS.indexOf(a.day_of_week) - DAYS.indexOf(b.day_of_week) ||
+                      a.start_time.localeCompare(b.start_time)
+                    )
                     .map(e => (
-                      <tr key={e.id} style={{ transition: 'background .15s' }}
+                      <tr
+                        key={e.id}
+                        style={{ transition: 'background .15s' }}
                         onMouseEnter={ev => (ev.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
-                        onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
+                        onMouseLeave={ev => (ev.currentTarget.style.background = '')}
+                      >
                         <td style={S.td}>
                           <span style={{ fontWeight: 600, textTransform: 'capitalize', color: e.day_of_week === todayName ? '#60a5fa' : '#e8eeff' }}>
                             {e.day_of_week}
@@ -438,145 +459,180 @@ export default function AdminTimetable() {
               </table>
             </div>
           )
-      )}
+        )}
 
-      {/* ── ADD/EDIT MODAL ── */}
-      {showModal && (
-        <div style={S.overlay} onClick={e => e.target === e.currentTarget && setShowModal(false)}>
-          <div style={S.modal}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontFamily: "'Syne',system-ui", fontWeight: 800, fontSize: 16, margin: 0 }}>
-                {editEntry ? 'Edit Entry' : 'Add Timetable Entry'}
-              </h3>
-              <button onClick={() => setShowModal(false)} style={S.btnClose}>×</button>
-            </div>
-
-            <div style={S.field}>
-              <label style={S.label}>Course *</label>
-              <select value={form.course_id} onChange={e => setForm(p => ({ ...p, course_id: e.target.value }))} style={S.input}>
-                <option value="">Select course...</option>
-                {courses.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.course_code} — {c.course_name} ({c.level}L)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Show who will see this slot */}
-            {selectedCourse && (
-              <div style={{ padding: '9px 12px', background: 'rgba(45,108,255,0.08)', border: '1px solid rgba(45,108,255,0.2)', borderRadius: 9, marginBottom: 14, fontSize: 12, color: '#60a5fa' }}>
-                ℹ Visible to: <strong>{(selectedCourse.departments as any)?.name || 'all'} — {selectedCourse.level}L</strong>
-                {(selectedCourse.lecturers as any)?.full_name && (
-                  <span style={{ color: '#7a8bbf' }}> · Lecturer: {(selectedCourse.lecturers as any).full_name}</span>
-                )}
+        {/* ── ADD/EDIT MODAL ── */}
+        {showModal && (
+          <div style={S.overlay} onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+            <div style={S.modal}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 style={{ fontFamily: "'Syne',system-ui", fontWeight: 800, fontSize: 16, margin: 0 }}>
+                  {editEntry ? 'Edit Entry' : 'Add Timetable Entry'}
+                </h3>
+                <button onClick={() => setShowModal(false)} style={S.btnClose}>×</button>
               </div>
-            )}
 
-            <div style={S.field}>
-              <label style={S.label}>Day *</label>
-              <select value={form.day_of_week} onChange={e => setForm(p => ({ ...p, day_of_week: e.target.value as Day }))} style={S.input}>
-                {DAYS.map(d => <option key={d} value={d}>{DAY_FULL[d]}</option>)}
-              </select>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={S.field}>
-                <label style={S.label}>Start time *</label>
-                <input type="time" value={form.start_time} onChange={e => setForm(p => ({ ...p, start_time: e.target.value }))} style={S.input} />
-              </div>
-              <div style={S.field}>
-                <label style={S.label}>End time *</label>
-                <input type="time" value={form.end_time} onChange={e => setForm(p => ({ ...p, end_time: e.target.value }))} style={S.input} />
-              </div>
-            </div>
-
-            <div style={S.field}>
-              <label style={S.label}>Venue</label>
-              <input value={form.venue} onChange={e => setForm(p => ({ ...p, venue: e.target.value }))} placeholder="e.g. Room 201, LT3, Online" style={S.input} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={S.field}>
-                <label style={S.label}>Session</label>
-                <input value={form.session} onChange={e => setForm(p => ({ ...p, session: e.target.value }))} placeholder={settings?.current_session || '2024/2025'} style={S.input} />
-              </div>
-              <div style={S.field}>
-                <label style={S.label}>Semester</label>
-                <select value={form.semester} onChange={e => setForm(p => ({ ...p, semester: e.target.value }))} style={S.input}>
-                  <option value="first">First</option>
-                  <option value="second">Second</option>
+                <label style={S.label}>Course *</label>
+                <select
+                  value={form.course_id}
+                  onChange={e => setForm(p => ({ ...p, course_id: e.target.value }))}
+                  style={S.input}
+                >
+                  <option value="">Select course...</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.course_code} — {c.course_name} ({c.level}L)
+                    </option>
+                  ))}
                 </select>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowModal(false)} style={S.btnSm}>Cancel</button>
-              <button onClick={saveEntry} disabled={saving} style={{ ...S.btnPrimary, opacity: saving ? 0.7 : 1 }}>
-                {saving ? 'Saving...' : editEntry ? 'Update' : 'Add Entry'}
-              </button>
+              {selectedCourse && (
+                <div style={{ padding: '9px 12px', background: 'rgba(45,108,255,0.08)', border: '1px solid rgba(45,108,255,0.2)', borderRadius: 9, marginBottom: 14, fontSize: 12, color: '#60a5fa' }}>
+                  ℹ Visible to: <strong>{(selectedCourse.departments as any)?.name || 'all'} — {selectedCourse.level}L</strong>
+                  {(selectedCourse.lecturers as any)?.full_name && (
+                    <span style={{ color: '#7a8bbf' }}> · Lecturer: {(selectedCourse.lecturers as any).full_name}</span>
+                  )}
+                </div>
+              )}
+
+              <div style={S.field}>
+                <label style={S.label}>Day *</label>
+                <select
+                  value={form.day_of_week}
+                  onChange={e => setForm(p => ({ ...p, day_of_week: e.target.value as Day }))}
+                  style={S.input}
+                >
+                  {DAYS.map(d => <option key={d} value={d}>{DAY_FULL[d]}</option>)}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={S.field}>
+                  <label style={S.label}>Start time *</label>
+                  <input
+                    type="time"
+                    value={form.start_time}
+                    onChange={e => setForm(p => ({ ...p, start_time: e.target.value }))}
+                    style={S.input}
+                  />
+                </div>
+                <div style={S.field}>
+                  <label style={S.label}>End time *</label>
+                  <input
+                    type="time"
+                    value={form.end_time}
+                    onChange={e => setForm(p => ({ ...p, end_time: e.target.value }))}
+                    style={S.input}
+                  />
+                </div>
+              </div>
+
+              <div style={S.field}>
+                <label style={S.label}>Venue</label>
+                <input
+                  value={form.venue}
+                  onChange={e => setForm(p => ({ ...p, venue: e.target.value }))}
+                  placeholder="e.g. Room 201, LT3, Online"
+                  style={S.input}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={S.field}>
+                  <label style={S.label}>Session</label>
+                  <input
+                    value={form.session}
+                    onChange={e => setForm(p => ({ ...p, session: e.target.value }))}
+                    placeholder={settings?.current_session || '2024/2025'}
+                    style={S.input}
+                  />
+                </div>
+                <div style={S.field}>
+                  <label style={S.label}>Semester</label>
+                  <select
+                    value={form.semester}
+                    onChange={e => setForm(p => ({ ...p, semester: e.target.value }))}
+                    style={S.input}
+                  >
+                    <option value="first">First</option>
+                    <option value="second">Second</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowModal(false)} style={S.btnSm}>Cancel</button>
+                <button onClick={saveEntry} disabled={saving} style={{ ...S.btnPrimary, opacity: saving ? 0.7 : 1 }}>
+                  {saving ? 'Saving...' : editEntry ? 'Update' : 'Add Entry'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── CSV PREVIEW MODAL ── */}
-      {showCSV && (
-        <div style={S.overlay} onClick={e => e.target === e.currentTarget && setShowCSV(false)}>
-          <div style={{ ...S.modal, maxWidth: 700 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontFamily: "'Syne',system-ui", fontWeight: 800, fontSize: 16, margin: 0 }}>
-                CSV Preview — {csvRows.length} rows
-              </h3>
-              <button onClick={() => setShowCSV(false)} style={S.btnClose}>×</button>
-            </div>
+        {/* ── CSV PREVIEW MODAL ── */}
+        {showCSV && (
+          <div style={S.overlay} onClick={e => e.target === e.currentTarget && setShowCSV(false)}>
+            <div style={{ ...S.modal, maxWidth: 700 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ fontFamily: "'Syne',system-ui", fontWeight: 800, fontSize: 16, margin: 0 }}>
+                  CSV Preview — {csvRows.length} rows
+                </h3>
+                <button onClick={() => setShowCSV(false)} style={S.btnClose}>×</button>
+              </div>
 
-            <div style={{ overflowX: 'auto', maxHeight: 300, overflowY: 'auto', marginBottom: 14, border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    {Object.keys(csvRows[0] || {}).map(h => <th key={h} style={S.th}>{h}</th>)}
-                    <th style={S.th}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {csvRows.map((row, i) => {
-                    const found = courses.some(c => c.course_code.toLowerCase() === row.course_code?.toLowerCase())
-                    return (
-                      <tr key={i} style={{ opacity: found ? 1 : 0.5 }}>
-                        {Object.values(row).map((v, j) => <td key={j} style={S.td}>{v}</td>)}
-                        <td style={S.td}>
-                          {found
-                            ? <span style={{ color: '#4ade80', fontWeight: 700 }}>✓ OK</span>
-                            : <span style={{ color: '#f87171' }}>✗ Course not found</span>
-                          }
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+              <div style={{ overflowX: 'auto', maxHeight: 300, overflowY: 'auto', marginBottom: 14, border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      {Object.keys(csvRows[0] || {}).map(h => <th key={h} style={S.th}>{h}</th>)}
+                      <th style={S.th}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvRows.map((row, i) => {
+                      const found = courses.some(c => c.course_code.toLowerCase() === row.course_code?.toLowerCase())
+                      return (
+                        <tr key={i} style={{ opacity: found ? 1 : 0.5 }}>
+                          {Object.values(row).map((v, j) => <td key={j} style={S.td}>{v}</td>)}
+                          <td style={S.td}>
+                            {found
+                              ? <span style={{ color: '#4ade80', fontWeight: 700 }}>✓ OK</span>
+                              : <span style={{ color: '#f87171' }}>✗ Course not found</span>
+                            }
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-            <p style={{ fontSize: 12, color: '#7a8bbf', marginBottom: 14 }}>
-              Rows with unrecognised course codes will be skipped.
-            </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => { setShowCSV(false); setCsvRows([]) }} style={S.btnSm}>Cancel</button>
-              <button onClick={importCSV} disabled={importing} style={{ ...S.btnPrimary, opacity: importing ? 0.7 : 1 }}>
-                {importing ? 'Importing...' : `Import ${csvRows.filter(r => courses.some(c => c.course_code.toLowerCase() === r.course_code?.toLowerCase())).length} Valid Rows`}
-              </button>
+              <p style={{ fontSize: 12, color: '#7a8bbf', marginBottom: 14 }}>
+                Rows with unrecognised course codes will be skipped.
+              </p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button onClick={() => { setShowCSV(false); setCsvRows([]) }} style={S.btnSm}>Cancel</button>
+                <button onClick={importCSV} disabled={importing} style={{ ...S.btnPrimary, opacity: importing ? 0.7 : 1 }}>
+                  {importing
+                    ? 'Importing...'
+                    : `Import ${csvRows.filter(r => courses.some(c => c.course_code.toLowerCase() === r.course_code?.toLowerCase())).length} Valid Rows`
+                  }
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} input:focus,select:focus{outline:none;border-color:#2d6cff!important;box-shadow:0 0 0 3px rgba(45,108,255,0.15)}`}</style>
-    </div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}} input:focus,select:focus{outline:none;border-color:#2d6cff!important;box-shadow:0 0 0 3px rgba(45,108,255,0.15)}`}</style>
+      </div>
+    </SidebarLayout>
   )
 }
 
-// ── ENTRY CARD COMPONENT ────────────────────────────────────
+// ── ENTRY CARD ────────────────────────────────────────────
 function EntryCard({ e, onEdit, onDelete }: { e: TTEntry; onEdit: (e: TTEntry) => void; onDelete: (id: string) => void }) {
   return (
     <div style={{
@@ -584,13 +640,11 @@ function EntryCard({ e, onEdit, onDelete }: { e: TTEntry; onEdit: (e: TTEntry) =
       borderRadius: 12, padding: '12px 14px', marginBottom: 10,
       display: 'flex', alignItems: 'center', gap: 14,
     }}>
-      {/* Time block */}
       <div style={{ minWidth: 76, textAlign: 'center', background: 'rgba(45,108,255,0.12)', borderRadius: 8, padding: '8px 6px', flexShrink: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa' }}>{fmtTime(e.start_time)}</div>
         <div style={{ fontSize: 9, color: '#3d4f7a', margin: '3px 0' }}>——</div>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa' }}>{fmtTime(e.end_time)}</div>
       </div>
-      {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#e8eeff' }}>
           <span style={{ fontFamily: 'monospace', color: '#60a5fa' }}>{e.courses?.course_code}</span>
@@ -602,7 +656,6 @@ function EntryCard({ e, onEdit, onDelete }: { e: TTEntry; onEdit: (e: TTEntry) =
           {(e.courses?.departments as any)?.name && <span>🏛 {(e.courses?.departments as any).name} · {e.courses?.level}L</span>}
         </div>
       </div>
-      {/* Actions */}
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
         <button onClick={() => onEdit(e)} style={S.btnIcon} title="Edit">✏️</button>
         <button onClick={() => onDelete(e.id)} style={S.btnIcon} title="Delete">🗑️</button>

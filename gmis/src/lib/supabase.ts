@@ -5,8 +5,8 @@
 // ============================================================
 
 import { createClient } from '@supabase/supabase-js'
-import type { Database as MasterDB } from '../types/master'
-import type { Database as TenantDB } from '../types/tenant'
+import type { MasterDatabase as MasterDB } from '../types/master'
+import type { TenantDatabase as TenantDB } from '../types/tenant'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!

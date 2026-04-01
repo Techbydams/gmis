@@ -74,7 +74,7 @@ export default function AdminAcademicSetup() {
   const [searchCrs,   setSearchCrs]   = useState('')
   const [searchLec,   setSearchLec]   = useState('')
 
-  const db = tenant ? getTenantClient<TenantDatabase>(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null
+  const db = tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null
 
   useEffect(() => { if (db) loadAll() }, [db])
 

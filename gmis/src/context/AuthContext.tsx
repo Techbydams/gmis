@@ -92,6 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       // Check all four role tables in parallel
+      if (!tenantDb) return;
       const [adminRes, lecturerRes, studentRes, parentRes] = await Promise.all([
         tenantDb.from('admin_users').select('id, role').eq('supabase_uid', uid).maybeSingle(),
         tenantDb.from('lecturers').select('id').eq('supabase_uid', uid).maybeSingle(),

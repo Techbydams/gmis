@@ -23,7 +23,7 @@ interface Election {
   department_id: string | null
   start_date: string | null
   end_date: string | null
-  status: 'draft' | 'active' | 'closed'
+  status: 'active' | 'draft' | 'closed'
   nomination_open: boolean
   departments?: { name: string }
 }

@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Academic Calendar
-// estam.gmis.com/calendar
+// estam.gmis.app/calendar
 //
 // DB table expected:
 //   academic_calendar (

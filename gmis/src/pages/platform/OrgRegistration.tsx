@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Organisation Registration Page
-// gmis.com/register
+// gmis.app/register
 // Schools sign up here — DAMS Technologies reviews & approves
 // ============================================================
 
@@ -235,7 +235,7 @@ export default function OrgRegistration() {
           <div style={{ ...styles.infoBox, marginBottom: 28, textAlign: 'left' }}>
             <p style={{ margin: 0, fontSize: 13, color: '#60a5fa' }}>
               📌 Your school's portal will be available at:<br />
-              <strong style={{ fontSize: 15 }}>{form.slug}.gmis.com</strong>
+              <strong style={{ fontSize: 15 }}>{form.slug}.gmis.app</strong>
             </p>
           </div>
           <button style={styles.btnPrimary} onClick={() => navigate('/')}>← Back to GMIS home</button>
@@ -308,7 +308,7 @@ export default function OrgRegistration() {
               <Field
                 label="Preferred subdomain *"
                 error={errors.slug}
-                hint={form.slug ? `Your portal will be at: ${form.slug}.gmis.com` : 'Auto-generated from name. Lowercase letters and numbers only.'}
+                hint={form.slug ? `Your portal will be at: ${form.slug}.gmis.app` : 'Auto-generated from name. Lowercase letters and numbers only.'}
               >
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
@@ -326,7 +326,7 @@ export default function OrgRegistration() {
                     {checkingSlug ? '...' : 'Check'}
                   </button>
                 </div>
-                {slugAvail === true && <p style={{ marginTop: 4, fontSize: 12, color: '#4ade80' }}>✓ {form.slug}.gmis.com is available!</p>}
+                {slugAvail === true && <p style={{ marginTop: 4, fontSize: 12, color: '#4ade80' }}>✓ {form.slug}.gmis.app is available!</p>}
                 {slugAvail === false && <p style={{ marginTop: 4, fontSize: 12, color: '#f87171' }}>✗ This subdomain is already taken. Try another.</p>}
               </Field>
 
@@ -392,7 +392,7 @@ export default function OrgRegistration() {
 
               <div style={styles.infoBox}>
                 <p style={{ margin: 0, fontSize: 13, color: '#60a5fa' }}>
-                  🔒 Your password is stored securely. After your school is approved, you'll use this email and password to log in at <strong>{form.slug}.gmis.com</strong>
+                  🔒 Your password is stored securely. After your school is approved, you'll use this email and password to log in at <strong>{form.slug}.gmis.app</strong>
                 </p>
               </div>
 
@@ -450,7 +450,7 @@ export default function OrgRegistration() {
               <ReviewSection title="Institution">
                 <ReviewRow label="Name"     value={form.name} />
                 <ReviewRow label="Type"     value={form.type.charAt(0).toUpperCase() + form.type.slice(1)} />
-                <ReviewRow label="Portal"   value={`${form.slug}.gmis.com`} highlight />
+                <ReviewRow label="Portal"   value={`${form.slug}.gmis.app`} highlight />
                 <ReviewRow label="State"    value={form.state} />
                 <ReviewRow label="Country"  value={form.country} />
                 <ReviewRow label="Phone"    value={form.phone} />

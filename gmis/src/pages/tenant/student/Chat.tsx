@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Internal Chat
-// estam.gmis.com/chat
+// estam.gmis.app/chat
 // WhatsApp-style DMs + course group chats
 // ============================================================
 import { useState, useEffect, useRef } from 'react'

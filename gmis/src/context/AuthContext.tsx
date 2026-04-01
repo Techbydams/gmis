@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true)
     const myCount = ++resolveCounterRef.current
 
-    // Platform admin (gmis.com)
+    // Platform admin (gmis.app)
     if (isMainPlatform) {
       if (myCount !== resolveCounterRef.current) return
       setUser({ id: uid, email, role: 'platform_admin' })

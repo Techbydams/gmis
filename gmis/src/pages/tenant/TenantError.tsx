@@ -7,7 +7,7 @@ export default function TenantError({ message }: Props) {
       <div className="text-6xl">🏫</div>
       <h1 className="font-display font-bold text-2xl text-slate-800 dark:text-slate-200">School not found</h1>
       <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">{message}</p>
-      <a href="https://gmis.com/find" className="text-blue-600 text-sm font-medium hover:underline">
+      <a href="https://gmis.app/find" className="text-blue-600 text-sm font-medium hover:underline">
         ← Find your institution on GMIS
       </a>
     </div>

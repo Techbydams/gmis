@@ -1,5 +1,5 @@
 // ============================================================
-// GMIS — Find Institution Page (gmis.com/find)
+// GMIS — Find Institution Page (gmis.app/find)
 // User types school name → system finds it → redirects to subdomain
 // ============================================================
 
@@ -74,7 +74,7 @@ export default function FindInstitution() {
         <div className="text-center relative">
           <p className="text-slate-500 dark:text-slate-400 mb-2">Redirecting you to</p>
           <p className="font-display font-black text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            {selected.slug}.gmis.com
+            {selected.slug}.gmis.app
           </p>
           <p className="text-sm text-slate-400 mt-2">{selected.name} · Isolated portal</p>
         </div>
@@ -137,7 +137,7 @@ export default function FindInstitution() {
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">{org.name}</div>
-                    <div className="text-xs text-slate-400">{org.slug}.gmis.com</div>
+                    <div className="text-xs text-slate-400">{org.slug}.gmis.app</div>
                   </div>
                   <span className="text-slate-400 text-xs">→</span>
                 </button>
@@ -157,12 +157,12 @@ export default function FindInstitution() {
                   <div className="text-xs text-slate-500 capitalize">{selected.type}</div>
                   <div className="flex items-center gap-1.5 mt-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    <span className="text-xs text-green-600 dark:text-green-400 font-semibold">{selected.slug}.gmis.com</span>
+                    <span className="text-xs text-green-600 dark:text-green-400 font-semibold">{selected.slug}.gmis.app</span>
                   </div>
                 </div>
               </div>
               <Button full onClick={() => handleRedirect(selected)}>
-                {action === 'signup' ? `✨ Sign up at ${selected.slug}.gmis.com →` : `🔐 Sign in to ${selected.slug}.gmis.com →`}
+                {action === 'signup' ? `✨ Sign up at ${selected.slug}.gmis.app →` : `🔐 Sign in to ${selected.slug}.gmis.app →`}
               </Button>
               <p className="text-xs text-slate-400 text-center mt-2">You'll be redirected to your school's isolated secure portal</p>
             </div>

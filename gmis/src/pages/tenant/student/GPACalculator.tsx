@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — GPA Calculator
-// estam.gmis.com/gpa
+// estam.gmis.app/gpa
 // ============================================================
 import { useState } from 'react'
 import { formatGPA, getHonourClass } from '../../../lib/helpers'

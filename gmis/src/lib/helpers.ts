@@ -8,9 +8,9 @@
  * Gets the school slug from the current URL subdomain.
  *
  * Examples:
- *   estam.gmis.com       → "estam"
- *   unilag.gmis.com      → "unilag"
- *   gmis.com             → null  (main platform, no school)
+ *   estam.gmis.app       → "estam"
+ *   unilag.gmis.app      → "unilag"
+ *   gmis.app             → null  (main platform, no school)
  *   localhost:5173        → null  (local dev, use DEV_TENANT_SLUG instead)
  */
 export const getTenantSlug = (): string | null => {
@@ -23,8 +23,8 @@ export const getTenantSlug = (): string | null => {
 
   const parts = hostname.split('.')
 
-  // gmis.com has 2 parts → no subdomain → main platform
-  // estam.gmis.com has 3 parts → "estam" is the slug
+  // gmis.app has 2 parts → no subdomain → main platform
+  // estam.gmis.app has 3 parts → "estam" is the slug
   if (parts.length >= 3) {
     return parts[0]
   }
@@ -33,8 +33,8 @@ export const getTenantSlug = (): string | null => {
 }
 
 /**
- * Checks if we're on the main platform (gmis.com)
- * vs a school's subdomain (estam.gmis.com)
+ * Checks if we're on the main platform (gmis.app)
+ * vs a school's subdomain (estam.gmis.app)
  */
 export const isMainPlatform = (): boolean => {
   return getTenantSlug() === null
@@ -53,7 +53,7 @@ export const getTenantUrl = (slug: string): string => {
 
   // Production: redirect to subdomain
   const protocol = window.location.protocol
-  const domain = 'gmis.com'                    // change to your real domain
+  const domain = 'gmis.app'                    // change to your real domain
   return `${protocol}//${slug}.${domain}`
 }
 

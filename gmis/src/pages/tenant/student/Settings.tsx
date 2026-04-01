@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Student Settings
-// estam.gmis.com/settings
+// estam.gmis.app/settings
 //
 // Tabs:
 //   Profile    — update name, phone, address, profile photo URL
@@ -606,7 +606,7 @@ export default function StudentSettings() {
                 ['Email address',  user?.email || '—', false],
                 ['Role',           'Student',           false],
                 ['Institution',    tenant?.name || '—', false],
-                ['Portal',         `${slug}.gmis.com`,  false],
+                ['Portal',         `${slug}.gmis.app`,  false],
               ].map(([l, v]) => (
                 <div key={l as string} style={{
                   display: 'flex', justifyContent: 'space-between',

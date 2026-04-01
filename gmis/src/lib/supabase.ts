@@ -20,7 +20,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-// This is the master database client — only used on gmis.com
+// This is the master database client — only used on gmis.app
 // Each school has its own separate Supabase client (created dynamically)
 
 export const supabase = createClient<MasterDB>(supabaseUrl, supabaseAnonKey, {
@@ -33,7 +33,7 @@ export const supabase = createClient<MasterDB>(supabaseUrl, supabaseAnonKey, {
 
 // ── TENANT CLIENT FACTORY ─────────────────────────────────
 // Creates a Supabase client for a specific school's database
-// Called when a user lands on schoolname.gmis.com
+// Called when a user lands on schoolname.gmis.app
 
 type TenantClient = ReturnType<typeof createClient<TenantDB>>
 

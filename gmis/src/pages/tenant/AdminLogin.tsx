@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Admin Login
-// Lives at estam.gmis.com/admin/login
+// Lives at estam.gmis.app/admin/login
 // Deliberately separate from the public-facing school login.
 // Only school admins should ever know this URL exists.
 // ============================================================
@@ -109,7 +109,7 @@ export default function AdminLogin() {
           <div style={S.schoolStrip}>
             <div style={S.stripDot} />
             <span style={{ fontSize: 11, color: '#7a8bbf', fontFamily: 'monospace', letterSpacing: 0.5 }}>
-              {slug}.gmis.com
+              {slug}.gmis.app
             </span>
             <div style={{ flex: 1 }} />
             <span style={{ fontSize: 10, color: '#3d4f7a', textTransform: 'uppercase', letterSpacing: 1 }}>Admin</span>

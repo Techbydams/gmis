@@ -324,7 +324,7 @@ export default function StudentSignup() {
             <div style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>
               {tenant?.name}
               <span style={{ fontWeight: 400, opacity: 0.55, fontSize: 12, marginLeft: 6 }}>
-                · {slug}.gmis.com
+                · {slug}.gmis.app
               </span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — School Login Page
-// Lives at estam.gmis.com/login
+// Lives at estam.gmis.app/login
 // Handles Student (matric/email) + Lecturer + Parent login
 // Admin login is SEPARATE at /admin/login
 // ============================================================
@@ -123,11 +123,11 @@ export default function SchoolLogin() {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, color: '#fff', fontSize: 15 }}>
-              {tenant?.name || `${slug}.gmis.com`}
+              {tenant?.name || `${slug}.gmis.app`}
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80' }} />
-              {slug}.gmis.com · Powered by GMIS
+              {slug}.gmis.app · Powered by GMIS
             </div>
           </div>
           <button

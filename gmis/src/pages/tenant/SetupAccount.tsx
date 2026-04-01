@@ -249,7 +249,7 @@ export default function SetupAccount() {
             </div>
             <div>
               <div style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>{tenant.name}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{slug}.gmis.com</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{slug}.gmis.app</div>
             </div>
           </div>
         )}

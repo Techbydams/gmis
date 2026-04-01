@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Student Clearance
-// estam.gmis.com/clearance
+// estam.gmis.app/clearance
 // ============================================================
 import { useState, useEffect } from 'react'
 import { useAuth }   from '../../../context/AuthContext'

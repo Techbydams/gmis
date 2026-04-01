@@ -1,7 +1,7 @@
 -- ============================================================
 -- GMIS — Tenant Database RLS Policies
 -- Run this in your TENANT Supabase project SQL editor
--- (NOT the master gmis.com database — the school's own DB)
+-- (NOT the master gmis.app database — the school's own DB)
 --
 -- This fixes all 403/401 "permission denied" errors you see in console:
 --   - departments table (student signup dropdown)

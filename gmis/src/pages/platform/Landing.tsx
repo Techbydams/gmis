@@ -1,5 +1,5 @@
 // ============================================================
-// GMIS — Landing Page (gmis.com)
+// GMIS — Landing Page (gmis.app)
 // UPDATED:
 //   - Removed all Nigeria-specific language
 //   - Rebranded as international academic platform
@@ -77,7 +77,7 @@ const FEATURES = [
 ]
 
 const FAQS = [
-  ['How does the subdomain system work?', 'Each institution gets their own URL — e.g. yourschool.gmis.com. This is configured automatically via wildcard DNS when your institution is approved. No extra technical setup needed on your end.'],
+  ['How does the subdomain system work?', 'Each institution gets their own URL — e.g. yourschool.gmis.app. This is configured automatically via wildcard DNS when your institution is approved. No extra technical setup needed on your end.'],
   ['Does GMIS take a cut from student payments?', 'No. GMIS takes zero cut from student transactions. Institutions link their own payment gateway and all fee payments go 100% directly to the institution.'],
   ['How is each institution\'s data isolated?', 'Every institution gets its own dedicated database. There is zero shared data between institutions — authentication, files, and records are fully separate.'],
   ['Can students self-register?', 'Yes. Students register on their institution\'s portal using their student ID. The admin reviews and approves each account before portal access is granted.'],
@@ -184,13 +184,13 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="text-xs font-bold uppercase tracking-[3px] text-slate-400 mb-3">How it works</div>
-            <h2 className="font-display font-black text-4xl text-slate-800 dark:text-slate-100">From gmis.com to your institution portal in seconds</h2>
+            <h2 className="font-display font-black text-4xl text-slate-800 dark:text-slate-100">From gmis.app to your institution portal in seconds</h2>
           </div>
           <div className="flex items-stretch justify-center gap-0 flex-wrap md:flex-nowrap">
             {[
-              ['01', '🌐', 'Visit gmis.com',     'The gateway for all institutions on the platform.'],
+              ['01', '🌐', 'Visit gmis.app',     'The gateway for all institutions on the platform.'],
               ['02', '🔍', 'Find your school',    'Type your institution name. System resolves the subdomain.'],
-              ['03', '🔀', 'Auto-redirect',       'Sent to yourschool.gmis.com — fully isolated portal.'],
+              ['03', '🔀', 'Auto-redirect',       'Sent to yourschool.gmis.app — fully isolated portal.'],
               ['04', '🔐', 'Sign in',             'Students use their ID number. Staff use email.'],
               ['05', '🎓', 'Full portal access',  'Results, payments, voting, chat, AI — everything.'],
             ].map(([num, icon, title, desc], i) => (

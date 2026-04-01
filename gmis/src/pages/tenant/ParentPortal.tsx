@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Parent Portal
-// estam.gmis.com/parent
+// estam.gmis.app/parent
 // Parents link via matric number to monitor ward
 // ============================================================
 import { useState, useEffect } from 'react'

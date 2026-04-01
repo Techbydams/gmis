@@ -115,7 +115,7 @@ function Sidebar({ navItems, activeId, role, onNavigate, onClose }: SidebarProps
             }}>
               {tenant?.name || slug}
             </div>
-            <div style={{ fontSize: 10, color: '#3d4f7a' }}>{slug}.gmis.com</div>
+            <div style={{ fontSize: 10, color: '#3d4f7a' }}>{slug}.gmis.app</div>
           </div>
         </div>
       </div>
@@ -327,7 +327,7 @@ export default function SidebarLayout({ children, active, role = 'student' }: Pr
             {tenant?.name || slug}
           </span>
           <div style={{ marginLeft: 'auto', fontSize: 10, color: '#3d4f7a' }}>
-            {slug}.gmis.com
+            {slug}.gmis.app
           </div>
         </div>
 

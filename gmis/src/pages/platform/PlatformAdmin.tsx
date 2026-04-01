@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Platform Admin Panel
-// gmis.com/admin
+// gmis.app/admin
 // DAMS Technologies reviews and approves organisations
 // ============================================================
 
@@ -333,7 +333,7 @@ export default function PlatformAdmin() {
                   {orgs.map(org => (
                     <tr key={org.id}>
                       <td style={s.td}>{org.name}</td>
-                      <td style={{ ...s.td, color: '#60a5fa', fontFamily: 'monospace' }}>{org.slug}.gmis.com</td>
+                      <td style={{ ...s.td, color: '#60a5fa', fontFamily: 'monospace' }}>{org.slug}.gmis.app</td>
                       <td style={s.td}><StatusBadge status={org.payment_status} /></td>
                       <td style={{ ...s.td, color: '#7a8bbf' }}>{org.subscription_end ? formatDate(org.subscription_end) : '—'}</td>
                       <td style={s.td}>
@@ -369,7 +369,7 @@ function OrgTable({ orgs, onSelect, onApprove, onLock }: { orgs: Org[]; onSelect
         {orgs.map(org => (
           <tr key={org.id}>
             <td style={s.td}><div style={{ fontWeight: 600, color: '#e8eeff' }}>{org.name}</div><div style={{ fontSize: 11, color: '#7a8bbf' }}>{org.admin_email}</div></td>
-            <td style={{ ...s.td, color: '#60a5fa', fontFamily: 'monospace', fontSize: 12 }}>{org.slug}.gmis.com</td>
+            <td style={{ ...s.td, color: '#60a5fa', fontFamily: 'monospace', fontSize: 12 }}>{org.slug}.gmis.app</td>
             <td style={s.td}><span style={{ fontSize: 12, color: '#7a8bbf', textTransform: 'capitalize' }}>{org.type}</span></td>
             <td style={s.td}><StatusBadge status={org.status} /></td>
             <td style={{ ...s.td, color: '#7a8bbf', fontSize: 12 }}>{formatDate(org.created_at)}</td>
@@ -397,7 +397,7 @@ function OrgCard({ org, onApprove, onReject, onViewDocs }: { org: Org; onApprove
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontFamily: "'Syne',system-ui", fontWeight: 700, fontSize: 16, color: '#e8eeff', marginBottom: 4 }}>{org.name}</div>
-          <div style={{ fontSize: 12, color: '#60a5fa', fontFamily: 'monospace', marginBottom: 8 }}>{org.slug}.gmis.com</div>
+          <div style={{ fontSize: 12, color: '#60a5fa', fontFamily: 'monospace', marginBottom: 8 }}>{org.slug}.gmis.app</div>
           <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#7a8bbf', flexWrap: 'wrap' }}>
             <span>👤 {org.admin_name}</span>
             <span>✉️ {org.admin_email}</span>
@@ -437,7 +437,7 @@ function OrgDetailModal({ org, onClose, onApprove, onReject, onLock }: { org: Or
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#7a8bbf', fontSize: 20, cursor: 'pointer' }}>✕</button>
         </div>
 
-        {[['Subdomain', `${org.slug}.gmis.com`], ['Type', org.type], ['State', org.state], ['Country', org.country], ['Phone', org.phone || '—'], ['Admin name', org.admin_name], ['Admin email', org.admin_email], ['Status', org.status], ['Registered', formatDate(org.created_at)]].map(([k,v]) => (
+        {[['Subdomain', `${org.slug}.gmis.app`], ['Type', org.type], ['State', org.state], ['Country', org.country], ['Phone', org.phone || '—'], ['Admin name', org.admin_name], ['Admin email', org.admin_email], ['Status', org.status], ['Registered', formatDate(org.created_at)]].map(([k,v]) => (
           <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 13 }}>
             <span style={{ color: '#7a8bbf' }}>{k}</span>
             <span style={{ fontWeight: 600, color: '#e8eeff' }}>{v}</span>

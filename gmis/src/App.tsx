@@ -123,7 +123,7 @@ const AppRouter = () => {
   if (loading) return <TenantLoading />
   if (error)   return <TenantError message={error} />
 
-  // Platform routes (gmis.com)
+  // Platform routes (gmis.app)
   if (isMainPlatform) {
     return (
       <Routes>
@@ -136,7 +136,7 @@ const AppRouter = () => {
     )
   }
 
-  // Tenant routes (estam.gmis.com)
+  // Tenant routes (estam.gmis.app)
   return (
     <>
       <RoleRedirect />

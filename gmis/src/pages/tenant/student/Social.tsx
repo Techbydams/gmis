@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Student Social Feed
-// estam.gmis.com/social
+// estam.gmis.app/social
 //
 // DB tables expected:
 //   social_posts  (id, student_id, content, image_url, created_at)

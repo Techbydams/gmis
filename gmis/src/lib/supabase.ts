@@ -5,9 +5,13 @@
 // ============================================================
 
 import { createClient } from '@supabase/supabase-js'
+import type { Database as MasterDB } from '../types/master'
+import type { Database as TenantDB } from '../types/tenant'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!
+
+
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
@@ -18,7 +22,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // This is the master database client — only used on gmis.com
 // Each school has its own separate Supabase client (created dynamically)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+
+export const supabase = createClient<MasterDB>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,

@@ -253,7 +253,7 @@ export interface Notification {
 export interface AuthUser {
   id: string
   email: string
-  role: 'student' | 'admin' | 'lecturer' | 'platform_admin'
+  role: 'student' | 'admin' | 'lecturer' | 'platform_admin' | 'parent'
   org_slug?: string
 }
 

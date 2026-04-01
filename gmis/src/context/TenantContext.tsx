@@ -100,9 +100,9 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
         setTenant({
           slug:              org.slug,
           name:              org.name,
-          logo_url:          org.logo_url,
-          supabase_url:      org.supabase_url,
-          supabase_anon_key: org.supabase_anon_key,
+          logo_url:          org.logo_url ?? undefined,
+          supabase_url:      org.supabase_url!,
+          supabase_anon_key: org.supabase_anon_key!,
           status:            org.status,
           features,
         })

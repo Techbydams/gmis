@@ -92,10 +92,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Check all four role tables in parallel
       const [adminRes, lecturerRes, studentRes, parentRes] = await Promise.all([
-        client.from('admin_users').select('id, role').eq('supabase_uid', uid).maybeSingle(),
-        client.from('lecturers').select('id').eq('supabase_uid', uid).maybeSingle(),
-        client.from('students').select('id, status').eq('supabase_uid', uid).maybeSingle(),
-        client.from('students').select('id').eq('parent_supabase_uid', uid).limit(1),
+        tenantDb.from('admin_users').select('id, role').eq('supabase_uid', uid).maybeSingle(),
+        tenantDb.from('lecturers').select('id').eq('supabase_uid', uid).maybeSingle(),
+        tenantDb.from('students').select('id, status').eq('supabase_uid', uid).maybeSingle(),
+        tenantDb.from('students').select('id').eq('parent_supabase_uid', uid).limit(1),
       ])
 
       // Bail out if a newer resolveRole() call has started

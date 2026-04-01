@@ -35,12 +35,14 @@ export const supabase = createClient<MasterDB>(supabaseUrl, supabaseAnonKey, {
 // Creates a Supabase client for a specific school's database
 // Called when a user lands on schoolname.gmis.com
 
-const tenantClients: Record<string, ReturnType<typeof createClient>> = {}
+type TenantClient = ReturnType<typeof createClient<TenantDB>>
+
+const tenantClients: Record<string, TenantClient> = {}
 
 export const getTenantClient = (supabaseUrl: string, supabaseAnonKey: string, slug: string) => {
   // Cache clients so we don't recreate them on every render
   if (!tenantClients[slug]) {
-    tenantClients[slug] = createClient(supabaseUrl, supabaseAnonKey, {
+    tenantClients[slug] = createClient<TenantDB>(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,

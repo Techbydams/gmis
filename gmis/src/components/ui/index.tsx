@@ -77,7 +77,7 @@ export const Button = ({
 }
 
 // ── INPUT ─────────────────────────────────────────────────
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   hint?: string
@@ -108,7 +108,7 @@ export const Input = ({ label, error, hint, className = '', ...props }: InputPro
 )
 
 // ── SELECT ────────────────────────────────────────────────
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
   children: ReactNode

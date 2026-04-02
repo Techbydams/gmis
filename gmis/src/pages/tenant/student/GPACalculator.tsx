@@ -120,7 +120,7 @@ export default function GPACalculator() {
         </div>
 
         {courses.map(c => {
-          const pts = GRADE_POINTS[c.grade] || 0
+          const _pts = GRADE_POINTS[c.grade] || 0
           const u   = parseFloat(c.units) || 0
           const gc: Record<string, string> = { A: '#4ade80', B: '#60a5fa', C: '#fbbf24', D: '#fb923c', E: '#f97316', F: '#f87171' }
           return (

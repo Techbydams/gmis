@@ -142,10 +142,11 @@ export default function AdminTimetable() {
     if (cRes.data) setCourses(cRes.data as Course[])
     if (dRes.data) setDepts(dRes.data as Dept[])
     if (sRes.data) {
-      setSettings(sRes.data)
-      setFSession(sRes.data.current_session)
-      setFSemester(sRes.data.current_semester)
-      setForm(f => ({ ...f, session: sRes.data.current_session, semester: sRes.data.current_semester }))
+      const s = sRes.data as any
+      setSettings(s)
+      setFSession(s.current_session)
+      setFSemester(s.current_semester)
+      setForm(f => ({ ...f, session: s.current_session, semester: s.current_semester }))
     }
     setLoading(false)
   }
@@ -634,7 +635,7 @@ export default function AdminTimetable() {
 }
 
 // ── ENTRY CARD ────────────────────────────────────────────
-function EntryCard({ e, onEdit, onDelete }: { e: TTEntry; onEdit: (e: TTEntry) => void; onDelete: (id: string) => void }) {
+function EntryCard({ e, onEdit, onDelete }: { e: TTEntry; onEdit: (e: TTEntry) => void; onDelete: (id: string) => void | Promise<void> }) {
   return (
     <div style={{
       background: 'rgba(45,108,255,0.06)', border: '1px solid rgba(45,108,255,0.15)',

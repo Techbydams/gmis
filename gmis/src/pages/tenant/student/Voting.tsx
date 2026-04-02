@@ -227,8 +227,8 @@ export default function StudentVoting() {
   const activeElection = elections.find(e => e.id === activeId)
   const activeCands    = activeId ? (candidates[activeId] || []) : []
   const counts         = activeId ? (voteCounts[activeId] || {}) : {}
-  const totalVotes     = Object.values(counts).reduce((s, n) => s + n, 0)
-  const maxVotes       = Math.max(...Object.values(counts), 1)
+  const totalVotes     = Object.values(counts).reduce((s: number, n) => s + (n as number), 0)
+  const maxVotes       = Math.max(...Object.values(counts).map(v => v as number), 1)
   const myVote         = activeId ? votedMap[activeId] : undefined
   const isClosed       = activeElection?.status === 'closed'
   const canVote        = activeElection && isLive(activeElection) && !myVote
@@ -361,7 +361,7 @@ export default function StudentVoting() {
                             Total votes: <strong style={{ color: '#e8eeff' }}>{totalVotes}</strong>
                           </div>
                           {[...activeCands]
-                            .sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0))
+                            .sort((a, b) => ((counts[b.id] as number) || 0) - ((counts[a.id] as number) || 0))
                             .map((c, i) => {
                               const cVotes = counts[c.id] || 0
                               const pct    = totalVotes > 0 ? Math.round((cVotes / totalVotes) * 100) : 0

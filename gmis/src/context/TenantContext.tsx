@@ -1,11 +1,3 @@
-// ============================================================
-// GMIS — Tenant Context
-// FIXED:
-//   - Null safety on org_feature_toggles → features join
-//   - Error message improved for locked schools
-//   - Slug detection is now stable on re-renders
-// ============================================================
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { getTenantSlug } from '../lib/helpers'
@@ -31,7 +23,6 @@ const TenantContext = createContext<TenantContextType>({
   tenantDb: null,
 })
 
-// Compute slug once at module level — it doesn't change during a session
 const SLUG = getTenantSlug()
 const IS_MAIN_PLATFORM = SLUG === null
 
@@ -70,7 +61,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
             )
           `)
           .eq('slug', SLUG)
-          .single()
+          .single() as any
 
         if (orgError || !org) {
           setError(`School "${SLUG}" is not registered on GMIS.`)
@@ -78,40 +69,49 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
           return
         }
 
-        if (org.status === 'locked') {
-          setError(`The portal for "${org.name}" has been temporarily locked. Please contact your school administrator.`)
+        const orgData = org as {
+          id: string
+          name: string
+          slug: string
+          logo_url: string | null
+          supabase_url: string | null
+          supabase_anon_key: string | null
+          status: string | null
+          org_feature_toggles: Array<{ is_enabled: boolean | null; features: { key: string } | null }>
+        }
+
+        if (orgData.status === 'locked') {
+          setError(`The portal for "${orgData.name}" has been temporarily locked. Please contact your school administrator.`)
           setLoading(false)
           return
         }
 
-        if (org.status === 'suspended') {
-          setError(`The portal for "${org.name}" has been suspended. Please contact GMIS support.`)
+        if (orgData.status === 'suspended') {
+          setError(`The portal for "${orgData.name}" has been suspended. Please contact GMIS support.`)
           setLoading(false)
           return
         }
 
-        if (org.status !== 'approved') {
-          setError(`"${org.name}" is not yet approved on GMIS. Please check back later.`)
+        if (orgData.status !== 'approved') {
+          setError(`"${orgData.name}" is not yet approved on GMIS. Please check back later.`)
           setLoading(false)
           return
         }
 
-        const client = createClient<TenantDatabase>(org.supabase_url!, org.supabase_anon_key!)
-          setTenantDb(client)
+        const client = createClient<TenantDatabase>(orgData.supabase_url!, orgData.supabase_anon_key!)
+        setTenantDb(client)
 
-        // FIXED: Safe access on the features join — features can be null if
-        // the feature record was deleted without removing the toggle
-        const features: string[] = (org.org_feature_toggles || [])
+        const features: string[] = (orgData.org_feature_toggles || [])
           .filter((toggle: any) => toggle.is_enabled && toggle.features?.key)
           .map((toggle: any) => toggle.features.key as string)
 
         setTenant({
-          slug:              org.slug,
-          name:              org.name,
-          logo_url:          org.logo_url ?? undefined,
-          supabase_url:      org.supabase_url!,
-          supabase_anon_key: org.supabase_anon_key!,
-          status:            org.status,
+          slug:              orgData.slug,
+          name:              orgData.name,
+          logo_url:          orgData.logo_url ?? undefined,
+          supabase_url:      orgData.supabase_url!,
+          supabase_anon_key: orgData.supabase_anon_key!,
+          status:            orgData.status,
           features,
         })
       } catch (err) {
@@ -123,7 +123,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     }
 
     loadTenant()
-  }, []) // slug is stable — no deps needed
+  }, [])
 
   return (
     <TenantContext.Provider value={{

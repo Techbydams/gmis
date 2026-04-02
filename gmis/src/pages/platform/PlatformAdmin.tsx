@@ -151,7 +151,7 @@ export default function PlatformAdmin() {
 
     await supabase
       .from('org_feature_toggles')
-      .upsert({ org_id: toggleOrg, feature_id: featureId, is_enabled: newVal }, { onConflict: 'org_id,feature_id' })
+      .upsert({ org_id: toggleOrg, feature_id: featureId, is_enabled: newVal }, { onConflict: 'org_id,feature_id' } as any)
 
     setToggles(prev =>
       prev.some(t => t.feature_id === featureId)
@@ -389,7 +389,7 @@ function OrgTable({ orgs, onSelect, onApprove, onLock }: { orgs: Org[]; onSelect
 }
 
 // ── ORG CARD (pending view) ───────────────────────────────
-function OrgCard({ org, onApprove, onReject, onViewDocs }: { org: Org; onApprove: () => void; onReject: (r: string) => void; onViewDocs: () => void }) {
+function OrgCard({ org, onApprove, onReject, onViewDocs, ...rest }: { org: Org; onApprove: () => void | Promise<void>; onReject: (r: string) => void | Promise<void>; onViewDocs: () => void }) {
   const [showReject, setShowReject] = useState(false)
   const [reason, setReason] = useState('')
   return (

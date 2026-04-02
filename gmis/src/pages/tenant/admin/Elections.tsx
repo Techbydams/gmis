@@ -23,7 +23,7 @@ interface Election {
   department_id: string | null
   start_date: string | null
   end_date: string | null
-  status: 'active' | 'draft' | 'closed'
+  status: string
   nomination_open: boolean
   departments?: { name: string }
 }
@@ -298,8 +298,8 @@ export default function AdminElections() {
   const approvedCands  = activeCands.filter(c => c.nomination_status === 'approved')
   const pendingCands   = activeCands.filter(c => c.nomination_status === 'pending')
   const counts         = activeId ? (voteCounts[activeId] || {}) : {}
-  const totalVotes     = Object.values(counts).reduce((s, n) => s + n, 0)
-  const maxVotes       = Math.max(...Object.values(counts), 1)
+  const totalVotes     = Object.values(counts).reduce((s: number, n) => s + (n as number), 0)
+  const maxVotes       = Math.max(...Object.values(counts).map(v => v as number), 1)
 
   // ── SHARED MODALS (used in both views) ───────────────────
   const ElectionModalJSX = showEModal ? (
@@ -541,9 +541,9 @@ export default function AdminElections() {
               Total votes cast: <strong style={{ color: '#e8eeff' }}>{totalVotes}</strong>
             </div>
             {[...approvedCands]
-              .sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0))
+              .sort((a, b) => ((counts[b.id] as number) || 0) - ((counts[a.id] as number) || 0))
               .map((c, i) => {
-                const cVotes = counts[c.id] || 0
+                const cVotes = (counts[c.id] as number) || 0
                 const pct    = totalVotes > 0 ? Math.round((cVotes / totalVotes) * 100) : 0
                 const winner = i === 0 && cVotes > 0
                 return (

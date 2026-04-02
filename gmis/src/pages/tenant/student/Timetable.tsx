@@ -81,7 +81,7 @@ const fmtTime = (t: string) => {
   return `${hr}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-const fmtDate = (d: string) =>
+const _fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 
 type ClassStatus = 'now' | 'next' | 'past' | 'upcoming' | 'other_day'
@@ -163,7 +163,7 @@ export default function StudentTimetable() {
       const deptCourseIds = new Set((deptCourses || []).map((c: any) => c.id))
 
       // Match timetable entries against the student's courses
-      const filtered = (tt as any[]).filter(e => deptCourseIds.has(e.course_id || e.courses?.id))
+      const _filtered = (tt as any[]).filter(e => deptCourseIds.has(e.course_id || e.courses?.id))
 
       // If course_id isn't in the select, do it with a fallback
       setEntries(tt.filter((_e, i) => {

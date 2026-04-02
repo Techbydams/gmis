@@ -1,13 +1,3 @@
-// ============================================================
-// GMIS — Auth Context
-// FIXED:
-//   - resolveRole() race condition with cancellation flag
-//   - getClient() memoised to avoid re-creation every render
-//   - signInWithMatric() wrapped in try/catch
-//   - No more manual navigate() on login — RoleRedirect in App handles it
-//   - Auth state listener properly cleaned up
-// ============================================================
-
 import {
   createContext, useContext, useState, useEffect,
   useRef, useMemo, ReactNode,
@@ -15,7 +5,6 @@ import {
 import { supabase, getTenantClient } from '../lib/supabase'
 import { useTenant } from './TenantContext'
 import type { AuthUser } from '../types'
-import type { TenantDatabase } from '../types/tenant'
 
 interface AuthContextType {
   user:             AuthUser | null
@@ -39,17 +28,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
   const { tenant, tenantDb, isMainPlatform, slug } = useTenant()
 
-  // Track in-flight role resolution so stale ones don't overwrite fresh ones
   const resolveCounterRef = useRef(0)
 
-  // Memoize the client so it doesn't get recreated on every render
   const client = useMemo(() => {
     if (isMainPlatform || !tenant) return supabase
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!)
   }, [isMainPlatform, tenant, slug])
 
   useEffect(() => {
-    // Check existing session on mount
     client.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         resolveRole(session.user.id, session.user.email!, session.user.user_metadata)
@@ -58,7 +44,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }).catch(() => setLoading(false))
 
-    // Listen for auth state changes
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         resolveRole(session.user.id, session.user.email!, session.user.user_metadata)
@@ -72,8 +57,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client])
 
-  // ── ROLE RESOLUTION ────────────────────────────────────
-  // Uses a counter to cancel stale calls if a newer one fires before this completes
   const resolveRole = async (
     uid: string,
     email: string,
@@ -82,7 +65,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true)
     const myCount = ++resolveCounterRef.current
 
-    // Platform admin (gmis.app)
     if (isMainPlatform) {
       if (myCount !== resolveCounterRef.current) return
       setUser({ id: uid, email, role: 'platform_admin' })
@@ -91,8 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Check all four role tables in parallel
-      if (!tenantDb) return;
+      if (!tenantDb) return
       const [adminRes, lecturerRes, studentRes, parentRes] = await Promise.all([
         tenantDb.from('admin_users').select('id, role').eq('supabase_uid', uid).maybeSingle(),
         tenantDb.from('lecturers').select('id').eq('supabase_uid', uid).maybeSingle(),
@@ -100,24 +81,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         tenantDb.from('students').select('id').eq('parent_supabase_uid', uid).limit(1),
       ])
 
-      // Bail out if a newer resolveRole() call has started
       if (myCount !== resolveCounterRef.current) return
 
-      if (adminRes.data) {
+      const adminData = adminRes.data as { id: string; role: string | null } | null
+      const studentData = studentRes.data as { id: string; status: string | null } | null
+
+      if (adminData) {
         setUser({
           id:  uid,
           email,
-          role: (adminRes.data.role === 'super_admin' ? 'admin' : adminRes.data.role) as AuthUser['role'],
+          role: (adminData.role === 'super_admin' ? 'admin' : adminData.role) as AuthUser['role'],
           org_slug: slug || undefined,
         })
       } else if (lecturerRes.data) {
         setUser({ id: uid, email, role: 'lecturer', org_slug: slug || undefined })
-      } else if (studentRes.data) {
+      } else if (studentData) {
         setUser({ id: uid, email, role: 'student', org_slug: slug || undefined })
       } else if (parentRes.data && parentRes.data.length > 0) {
         setUser({ id: uid, email, role: 'parent', org_slug: slug || undefined })
       } else {
-        // Not in any table yet — fall back to metadata
         const metaRole = (metadata?.role as string) || 'student'
         setUser({
           id: uid, email,
@@ -128,7 +110,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('Role resolution error:', err)
       if (myCount !== resolveCounterRef.current) return
-      // Fallback to metadata on DB error
       const metaRole = (metadata?.role as string) || 'student'
       setUser({
         id: uid, email,
@@ -142,7 +123,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  // ── SIGN IN WITH EMAIL ──────────────────────────────────
   const signIn = async (
     email: string,
     password: string,
@@ -163,14 +143,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: error.message }
       }
 
-      // Role is resolved by onAuthStateChange listener — no manual navigate needed
       return { error: null }
-    } catch (err) {
+    } catch {
       return { error: 'Network error. Please check your connection and try again.' }
     }
   }
 
-  // ── SIGN IN WITH MATRIC ─────────────────────────────────
   const signInWithMatric = async (
     matric: string,
     password: string,
@@ -182,7 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('students')
         .select('email')
         .eq('matric_number', matric.trim().toUpperCase())
-        .maybeSingle()
+        .maybeSingle() as any
 
       if (lookupError) {
         console.error('Matric lookup error:', lookupError)
@@ -194,12 +172,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       return await signIn(student.email, password)
-    } catch (err) {
+    } catch {
       return { error: 'Network error. Please check your connection and try again.' }
     }
   }
 
-  // ── SIGN OUT ────────────────────────────────────────────
   const signOut = async () => {
     try {
       await client.auth.signOut()

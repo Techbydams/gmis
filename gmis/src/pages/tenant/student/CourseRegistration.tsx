@@ -181,7 +181,7 @@ export default function CourseRegistration() {
   })
 
   const levels    = [...new Set(courses.map(c => c.level))].sort()
-  const semesters = [...new Set(courses.map(c => c.semester))]
+  const semesters = [...new Set(courses.map(c => c.semester as string))]
 
   // ── LOADING ───────────────────────────────────────────────
   if (loading) return (
@@ -310,7 +310,7 @@ export default function CourseRegistration() {
           </select>
           <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)} style={{ ...S.input, maxWidth: 140 }}>
             <option value="">All semesters</option>
-            {semesters.map(s => <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.charAt(0).toUpperCase() + s.slice(1)} Semester</option>)}
+            {semesters.map(s => <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{String(s).charAt(0).toUpperCase() + String(s).slice(1)} Semester</option>)}
           </select>
           {(search || filterLevel || filterSemester) && (
             <button onClick={() => { setSearch(''); setFilterLevel(''); setFilterSemester('') }} style={S.btnSm}>

@@ -1,6 +1,6 @@
 // ============================================================
 // GMIS — Supabase Clients
-// FIX: Removed type parameters from createClient to prevent
+// FIX: getTenantClient typed as `any` to prevent
 // PostgrestVersion mismatch causing all tables to type as never
 // ============================================================
 import { createClient } from '@supabase/supabase-js'
@@ -25,15 +25,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 })
 
 // ── TENANT CLIENT FACTORY ─────────────────────────────────
-// Creates a Supabase client for a specific school's database
-// Called when a user lands on schoolname.gmis.app
-const tenantClients: Record<string, ReturnType<typeof createClient>> = {}
+// Creates a Supabase client for a specific school's database.
+// Typed as `any` intentionally — tenant DBs have no generated
+// types, so strict typing causes every table to resolve as `never`.
+const tenantClients: Record<string, any> = {}
 
 export const getTenantClient = (
   tenantUrl: string,
   tenantAnonKey: string,
   slug: string,
-) => {
+): any => {
   if (!tenantClients[slug]) {
     tenantClients[slug] = createClient(tenantUrl, tenantAnonKey, {
       auth: {

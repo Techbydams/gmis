@@ -207,7 +207,7 @@ export default function LecturerPortal({ initialTab }: { initialTab?: Tab }) {
       grade, grade_point: points, remark,
       published:   false, is_locked: false,
       uploaded_by: lecturer.id,
-    }, { onConflict: 'student_id,course_id,session,semester' } as any)
+    } as any), { onConflict: 'student_id,course_id,session,semester' })
 
     if (error) { toast.error('Failed to save result'); return }
     toast.success('Result saved')

@@ -47,7 +47,7 @@ const BLANK_ELECTION = {
   title: '', description: '', position: '',
   scope: 'sug', department_id: '',
   start_date: '', end_date: '',
-  status: 'draft' as const, nomination_open: false,
+  status: 'draft' as 'active' | 'draft' | 'closed', nomination_open: false,
 }
 
 const BLANK_CANDIDATE = {

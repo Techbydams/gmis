@@ -80,7 +80,7 @@ export default function StudentPayments() {
     await db!.from('student_payments').insert(({
       student_id: studentId, fee_type_id: fee.fee_types.id,
       amount: fee.amount, reference: ref, status: 'pending', session: fee.session,
-    })
+    } as any))
 
     // Load Paystack script dynamically
     const existing = document.getElementById('paystack-script')

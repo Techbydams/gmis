@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, getTenantClient } from '../lib/supabase'
 import { getTenantSlug } from '../lib/helpers'
 import type { TenantInfo } from '../types'
-import { createClient } from '@supabase/supabase-js'
 
 interface TenantContextType {
   tenant:         TenantInfo | null
@@ -10,7 +9,7 @@ interface TenantContextType {
   loading:        boolean
   error:          string | null
   isMainPlatform: boolean
-  tenantDb:       ReturnType<typeof createClient> | null
+  tenantDb:       any | null
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -25,7 +24,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
   const [tenant,   setTenant]   = useState<TenantInfo | null>(null)
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState<string | null>(null)
-  const [tenantDb, setTenantDb] = useState<ReturnType<typeof createClient> | null>(null)
+  const [tenantDb, setTenantDb] = useState<any | null>(null)
 
   useEffect(() => {
     if (IS_MAIN_PLATFORM) { setLoading(false); return }
@@ -63,7 +62,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
           setLoading(false); return
         }
 
-        const client = createClient(o.supabase_url!, o.supabase_anon_key!)
+        const client = getTenantClient(o.supabase_url!, o.supabase_anon_key!, o.slug)
         setTenantDb(client)
 
         const features: string[] = (o.org_feature_toggles || [])

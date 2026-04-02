@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user,    setUser]    = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const { tenant, tenantDb, isMainPlatform, slug } = useTenant()
-
   const resolveCounterRef = useRef(0)
 
   const client = useMemo(() => {
@@ -37,39 +36,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     client.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        resolveRole(session.user.id, session.user.email!, session.user.user_metadata)
-      } else {
-        setLoading(false)
-      }
+      if (session?.user) resolveRole(session.user.id, session.user.email!, session.user.user_metadata)
+      else setLoading(false)
     }).catch(() => setLoading(false))
 
     const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        resolveRole(session.user.id, session.user.email!, session.user.user_metadata)
-      } else {
-        setUser(null)
-        setLoading(false)
-      }
+      if (session?.user) resolveRole(session.user.id, session.user.email!, session.user.user_metadata)
+      else { setUser(null); setLoading(false) }
     })
 
     return () => subscription.unsubscribe()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client])
 
-  const resolveRole = async (
-    uid: string,
-    email: string,
-    metadata: Record<string, unknown>,
-  ) => {
+  const resolveRole = async (uid: string, email: string, metadata: Record<string, unknown>) => {
     setLoading(true)
     const myCount = ++resolveCounterRef.current
 
     if (isMainPlatform) {
       if (myCount !== resolveCounterRef.current) return
       setUser({ id: uid, email, role: 'platform_admin' })
-      setLoading(false)
-      return
+      setLoading(false); return
     }
 
     try {
@@ -83,56 +70,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (myCount !== resolveCounterRef.current) return
 
-      const adminData = adminRes.data as { id: string; role: string | null } | null
-      const studentData = studentRes.data as { id: string; status: string | null } | null
+      const adminData   = adminRes.data   as any
+      const lecData     = lecturerRes.data as any
+      const studentData = studentRes.data  as any
+      const parentData  = parentRes.data   as any[]
 
       if (adminData) {
         setUser({
-          id:  uid,
-          email,
+          id: uid, email,
           role: (adminData.role === 'super_admin' ? 'admin' : adminData.role) as AuthUser['role'],
           org_slug: slug || undefined,
         })
-      } else if (lecturerRes.data) {
+      } else if (lecData) {
         setUser({ id: uid, email, role: 'lecturer', org_slug: slug || undefined })
       } else if (studentData) {
         setUser({ id: uid, email, role: 'student', org_slug: slug || undefined })
-      } else if (parentRes.data && parentRes.data.length > 0) {
+      } else if (parentData && parentData.length > 0) {
         setUser({ id: uid, email, role: 'parent', org_slug: slug || undefined })
       } else {
         const metaRole = (metadata?.role as string) || 'student'
-        setUser({
-          id: uid, email,
-          role: metaRole as AuthUser['role'],
-          org_slug: slug || undefined,
-        })
+        setUser({ id: uid, email, role: metaRole as AuthUser['role'], org_slug: slug || undefined })
       }
     } catch (err) {
       console.error('Role resolution error:', err)
       if (myCount !== resolveCounterRef.current) return
       const metaRole = (metadata?.role as string) || 'student'
-      setUser({
-        id: uid, email,
-        role: metaRole as AuthUser['role'],
-        org_slug: slug || undefined,
-      })
+      setUser({ id: uid, email, role: metaRole as AuthUser['role'], org_slug: slug || undefined })
     } finally {
-      if (myCount === resolveCounterRef.current) {
-        setLoading(false)
-      }
+      if (myCount === resolveCounterRef.current) setLoading(false)
     }
   }
 
-  const signIn = async (
-    email: string,
-    password: string,
-  ): Promise<{ error: string | null }> => {
+  const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
     try {
       const { error } = await client.auth.signInWithPassword({
-        email:    email.trim().toLowerCase(),
-        password,
+        email: email.trim().toLowerCase(), password,
       })
-
       if (error) {
         if (error.message.includes('Invalid login credentials'))
           return { error: 'Incorrect email or password. Please try again.' }
@@ -142,60 +115,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return { error: 'Too many attempts. Please wait a few minutes.' }
         return { error: error.message }
       }
-
       return { error: null }
     } catch {
       return { error: 'Network error. Please check your connection and try again.' }
     }
   }
 
-  const signInWithMatric = async (
-    matric: string,
-    password: string,
-  ): Promise<{ error: string | null }> => {
+  const signInWithMatric = async (matric: string, password: string): Promise<{ error: string | null }> => {
     if (!tenant || !slug) return { error: 'School portal not found.' }
-
     try {
       const { data: student, error: lookupError } = await client
-        .from('students')
-        .select('email')
+        .from('students').select('email')
         .eq('matric_number', matric.trim().toUpperCase())
-        .maybeSingle() as any
-
-      if (lookupError) {
-        console.error('Matric lookup error:', lookupError)
-        return { error: 'Could not verify matric number. Please try again.' }
-      }
-
-      if (!student?.email) {
-        return { error: 'Matric number not found. Contact your registrar.' }
-      }
-
-      return await signIn(student.email, password)
+        .maybeSingle()
+      if (lookupError) return { error: 'Could not verify matric number. Please try again.' }
+      const s = student as any
+      if (!s?.email) return { error: 'Matric number not found. Contact your registrar.' }
+      return await signIn(s.email, password)
     } catch {
       return { error: 'Network error. Please check your connection and try again.' }
     }
   }
 
   const signOut = async () => {
-    try {
-      await client.auth.signOut()
-    } catch (err) {
-      console.error('Sign out error:', err)
-    } finally {
-      setUser(null)
-    }
+    try { await client.auth.signOut() }
+    catch (err) { console.error('Sign out error:', err) }
+    finally { setUser(null) }
   }
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      signIn,
-      signInWithMatric,
-      signOut,
-      isAuthenticated: !!user,
-    }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signInWithMatric, signOut, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

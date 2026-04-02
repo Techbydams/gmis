@@ -113,16 +113,17 @@ export default function LecturerPortal({ initialTab }: { initialTab?: Tab }) {
 
       if (lec) {
         setLecturer(lec)
+        const lecAny = lec as any
         const { data: c } = await db!
           .from('courses')
           .select('*, departments(name)')
-          .eq('lecturer_id', lec.id)
+          .eq('lecturer_id', lecAny.id)
           .eq('is_active', true)
           .order('course_code')
 
         if (c) {
           setCourses(c as Course[])
-          if (c.length > 0) setSelCourse(c[0].id)
+          if (c.length > 0) setSelCourse((c[0] as any).id)
         }
       }
     } finally {
@@ -192,20 +193,21 @@ export default function LecturerPortal({ initialTab }: { initialTab?: Tab }) {
     const { grade, points, remark } = calcGrade(caNum, examNum)
 
     const { data: settings } = await db.from('org_settings').select('current_session, current_semester').maybeSingle()
-    const session  = settings?.current_session  || '2024/2025'
-    const semester = settings?.current_semester || 'first'
+    const settingsAny = settings as any
+    const session  = settingsAny?.current_session  || '2024/2025'
+    const semester = settingsAny?.current_semester || 'first'
 
-    const { error } = await db.from('results').upsert({
+    const { error } = await db.from('results').upsert(({
       student_id:  studentId,
       course_id:   selCourse,
-      lecturer_id: lecturer.id,
+      lecturer_id: (lecturer as any).id,
       session, semester,
       ca_score:    caNum,
       exam_score:  examNum,
       grade, grade_point: points, remark,
       published:   false, is_locked: false,
       uploaded_by: lecturer.id,
-    }, { onConflict: 'student_id,course_id,session,semester' })
+    }, { onConflict: 'student_id,course_id,session,semester' } as any)
 
     if (error) { toast.error('Failed to save result'); return }
     toast.success('Result saved')
@@ -219,7 +221,7 @@ export default function LecturerPortal({ initialTab }: { initialTab?: Tab }) {
 
     setSaving(true)
     const { error } = await db.from('results')
-      .update({ submitted_at: new Date().toISOString(), is_locked: true })
+      .update({ submitted_at: new Date().toISOString(), is_locked: true } as any)
       .eq('course_id', selCourse)
       .eq('lecturer_id', lecturer.id)
       .is('submitted_at', null)
@@ -234,14 +236,14 @@ export default function LecturerPortal({ initialTab }: { initialTab?: Tab }) {
     if (!db || !lecturer || !selCourse) return
     setQrLoading(true)
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
-    const { data, error } = await db.from('qr_codes').insert({
+    const { data, error } = await db.from('qr_codes').insert(({
       course_id:   selCourse,
-      lecturer_id: lecturer.id,
+      lecturer_id: (lecturer as any).id,
       class_date:  new Date().toISOString().split('T')[0],
       venue:       'Lecture Hall',
       expires_at:  expiresAt,
       is_active:   true,
-    }).select().single()
+    } as any)).select().single()
 
     setQrLoading(false)
     if (error || !data) { toast.error('Failed to generate QR code'); return }

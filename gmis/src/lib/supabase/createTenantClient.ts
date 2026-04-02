@@ -1,9 +1,5 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import type { TenantDatabase } from '@/types/tenant'
+import { createClient } from '@supabase/supabase-js'
 
-export const createTenantClient = (
-  url: string,
-  anonKey: string
-): SupabaseClient<TenantDatabase> => {
-  return createClient<TenantDatabase>(url, anonKey)
+export const createTenantClient = (url: string, anonKey: string) => {
+  return createClient(url, anonKey)
 }

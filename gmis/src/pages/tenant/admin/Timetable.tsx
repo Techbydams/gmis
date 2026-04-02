@@ -143,10 +143,7 @@ export default function AdminTimetable() {
     if (dRes.data) setDepts(dRes.data as Dept[])
     if (sRes.data) {
       const s = sRes.data as any
-      setSettings(s)
-      setFSession(s.current_session)
-      setFSemester(s.current_semester)
-      setForm(f => ({ ...f, session: s.current_session, semester: s.current_semester }))
+      if (s) { setSettings(s); setFSession(s.current_session); setFSemester(s.current_semester); setForm(f => ({ ...f, session: s.current_session, semester: s.current_semester })) }
     }
     setLoading(false)
   }

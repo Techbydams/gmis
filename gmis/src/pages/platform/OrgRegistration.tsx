@@ -176,7 +176,7 @@ export default function OrgRegistration() {
       // Insert organisation record
       const { data: org, error: orgError } = await supabase
         .from('organizations')
-        .insert({
+        .insert(({
           id:          orgId,
           name:        form.name.trim(),
           slug:        form.slug.trim().toLowerCase(),
@@ -193,18 +193,18 @@ export default function OrgRegistration() {
           admin_name:  form.admin_name.trim(),
           admin_email: form.admin_email.trim().toLowerCase(),
           admin_phone: form.admin_phone.trim() || null,
-        })
+        }) as any)
         .select()
         .single()
 
       if (orgError) throw new Error(orgError.message)
 
       // Insert documents
-      await supabase.from('organization_documents').insert([
+      await supabase.from('organization_documents').insert(([
         { org_id: orgId, document_type: 'cac',         file_url: cacUrl,         file_name: form.doc_cac!.name },
         { org_id: orgId, document_type: 'nuc',         file_url: nucUrl,         file_name: form.doc_nuc!.name },
         { org_id: orgId, document_type: 'letterhead',  file_url: letterheadUrl,  file_name: form.doc_letterhead!.name },
-      ])
+      ]) as any)
 
       toast.success('Registration submitted!', { id: 'upload' })
       setDone(true)

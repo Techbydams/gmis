@@ -70,7 +70,7 @@ export default function StudentResults() {
           published, session, semester,
           courses ( course_code, course_name, credit_units, departments(name) )
         `)
-        .eq('student_id', s.id)
+        .eq('student_id', (s as any).id)
         .eq('published', true)
         .order('session', { ascending: false })
 

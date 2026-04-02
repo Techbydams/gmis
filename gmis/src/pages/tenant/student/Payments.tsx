@@ -42,17 +42,18 @@ export default function StudentPayments() {
     try {
       // Load Paystack public key from school's org_settings table
       const {data:cfg} = await db!.from('org_settings').select('paystack_public_key').single()
-      if(cfg?.paystack_public_key) setPaystackKey(cfg.paystack_public_key)
+      const cfgAny = cfg as any
+      if(cfgAny?.paystack_public_key) setPaystackKey(cfgAny.paystack_public_key)
 
       // Get student record
       const {data:s} = await db!.from('students').select('id').eq('supabase_uid',user!.id).single()
       if(!s) return
-      setStudentId(s.id)
+      setStudentId((s as any).id)
 
       // Load fee structure and payment history in parallel
       const [feesRes, paidRes] = await Promise.all([
         db!.from('fee_structure').select('*, fee_types(id,name,description)').eq('is_active',true),
-        db!.from('student_payments').select('*, fee_types(name)').eq('student_id',s.id).order('created_at',{ascending:false}),
+        db!.from('student_payments').select('*, fee_types(name)').eq('student_id',(s as any).id).order('created_at',{ascending:false}),
       ])
 
       const fees = (feesRes.data||[]) as FeeItem[]
@@ -76,7 +77,7 @@ export default function StudentPayments() {
     const ref = `GMIS-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`
 
     // Save pending record in DB first
-    await db!.from('student_payments').insert({
+    await db!.from('student_payments').insert(({
       student_id: studentId, fee_type_id: fee.fee_types.id,
       amount: fee.amount, reference: ref, status: 'pending', session: fee.session,
     })
@@ -112,14 +113,14 @@ export default function StudentPayments() {
         callback: async (res:{reference:string}) => {
           // Mark as paid in DB
           await db!.from('student_payments')
-            .update({status:'success', paystack_ref:res.reference, paid_at:new Date().toISOString()})
+            .update({status:'success', paystack_ref:res.reference, paid_at:new Date().toISOString()} as any)
             .eq('reference',ref)
           toast.success(`✓ ${formatNaira(fee.amount)} payment successful!`)
           setPaying(null)
           loadAll()
         },
         onClose: async () => {
-          await db!.from('student_payments').update({status:'failed'}).eq('reference',ref)
+          await db!.from('student_payments').update({status:'failed'} as any).eq('reference',ref)
           toast.error('Payment cancelled.')
           setPaying(null)
         },

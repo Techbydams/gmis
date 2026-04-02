@@ -55,10 +55,11 @@ export default function ParentPortal() {
     setLinking(false)
     if (error || !data) { toast.error('Matric number not found. Check and try again.'); return }
 
-    setWard(data as Ward)
+    const d = data as any
+    setWard(d as Ward)
     setLinked(true)
-    loadWardData(data.id)
-    toast.success(`Linked to ${data.first_name} ${data.last_name}'s profile`)
+    loadWardData(d.id)
+    toast.success(`Linked to ${d.first_name} ${d.last_name}'s profile`)
   }
 
   const loadWardData = async (wardId: string) => {

@@ -101,7 +101,7 @@ export default function PlatformAdmin() {
   const approveOrg = async (org: Org) => {
     const { error } = await supabase
       .from('organizations')
-      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .update({ status: 'approved', approved_at: new Date().toISOString() } as any)
       .eq('id', org.id)
 
     if (error) { toast.error('Failed to approve'); return }
@@ -114,7 +114,7 @@ export default function PlatformAdmin() {
   const rejectOrg = async (org: Org, reason: string) => {
     const { error } = await supabase
       .from('organizations')
-      .update({ status: 'rejected', rejection_reason: reason })
+      .update({ status: 'rejected', rejection_reason: reason } as any)
       .eq('id', org.id)
 
     if (error) { toast.error('Failed to reject'); return }
@@ -128,7 +128,7 @@ export default function PlatformAdmin() {
     const newStatus = org.status === 'locked' ? 'approved' : 'locked'
     await supabase
       .from('organizations')
-      .update({ status: newStatus, locked_at: newStatus === 'locked' ? new Date().toISOString() : null, lock_reason: newStatus === 'locked' ? 'Manual lock by admin' : null })
+      .update({ status: newStatus, locked_at: newStatus === 'locked' ? new Date().toISOString() : null, lock_reason: newStatus === 'locked' ? 'Manual lock by admin' : null } as any)
       .eq('id', org.id)
     toast.success(`${org.name} ${newStatus === 'locked' ? 'locked' : 'unlocked'}.`)
     loadData()
@@ -151,7 +151,7 @@ export default function PlatformAdmin() {
 
     await supabase
       .from('org_feature_toggles')
-      .upsert({ org_id: toggleOrg, feature_id: featureId, is_enabled: newVal }, { onConflict: 'org_id,feature_id' } as any)
+      .upsert({ org_id: toggleOrg, feature_id: featureId, is_enabled: newVal } as any, { onConflict: 'org_id,feature_id' })
 
     setToggles(prev =>
       prev.some(t => t.feature_id === featureId)
@@ -389,7 +389,7 @@ function OrgTable({ orgs, onSelect, onApprove, onLock }: { orgs: Org[]; onSelect
 }
 
 // ── ORG CARD (pending view) ───────────────────────────────
-function OrgCard({ org, onApprove, onReject, onViewDocs, ...rest }: { org: Org; onApprove: () => void | Promise<void>; onReject: (r: string) => void | Promise<void>; onViewDocs: () => void }) {
+function OrgCard({ org, onApprove, onReject, onViewDocs, ...rest }: { org: Org; onApprove: () => void; onReject: (r: string) => void; onViewDocs: () => void }) {
   const [showReject, setShowReject] = useState(false)
   const [reason, setReason] = useState('')
   return (

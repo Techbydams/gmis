@@ -103,9 +103,9 @@ export default function StudentDashboard() {
 
       // Load everything else in parallel using student.id
       await Promise.allSettled([
-        loadClasses(s.id),
-        loadNotifs(s.id),
-        loadStats(s.id),
+        loadClasses((s as any).id),
+        loadNotifs((s as any).id),
+        loadStats((s as any).id),
       ])
     } catch (err) {
       console.error('Dashboard load error:', err)
@@ -199,7 +199,7 @@ export default function StudentDashboard() {
     if (!db) return
     const ids = notifs.filter(n => !n.is_read).map(n => n.id)
     if (!ids.length) return
-    await db.from('notifications').update({ is_read: true }).in('id', ids)
+    await db.from('notifications').update({ is_read: true } as any).in('id', ids)
     setNotifs(p => p.map(n => ({ ...n, is_read: true })))
     setUnread(0)
   }

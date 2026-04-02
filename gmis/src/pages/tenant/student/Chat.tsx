@@ -48,13 +48,13 @@ export default function Chat() {
     setLoading(true)
     const { data: s } = await db!.from('students').select('id').eq('supabase_uid', user!.id).single()
     if (!s) { setLoading(false); return }
-    setStudentId(s.id)
+    setStudentId((s as any).id)
 
     // Load registered courses for group chats
     const { data: regs } = await db!
       .from('semester_registrations')
       .select('courses(id, course_code, course_name)')
-      .eq('student_id', s.id).eq('status', 'registered')
+      .eq('student_id', (s as any).id).eq('status', 'registered')
 
     const courseList = (regs || []).map((r: any) => r.courses).filter(Boolean) as Course[]
     setCourses(courseList)
@@ -75,12 +75,12 @@ export default function Chat() {
   const sendMessage = async () => {
     if (!newMsg.trim() || !studentId || !activeCourse) return
     setSending(true)
-    const { error } = await db!.from('chat_messages').insert({
+    const { error } = await db!.from('chat_messages').insert(({
       sender_id: studentId,
       course_id: activeCourse,
       message:   newMsg.trim(),
       is_read:   false,
-    })
+    } as any))
     setSending(false)
     if (error) return
     setNewMsg('')

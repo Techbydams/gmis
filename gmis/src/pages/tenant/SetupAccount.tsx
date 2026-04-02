@@ -66,7 +66,8 @@ export default function SetupAccount() {
           return
         }
 
-        if (lecturer.supabase_uid) {
+        const lecAny = lecturer as any
+        if (lecAny.supabase_uid) {
           toast.error('This lecturer account is already activated. Use the login page.')
           setLoading(false)
           return
@@ -89,8 +90,8 @@ export default function SetupAccount() {
         if (authData?.user?.id) {
           await db.from('lecturers').update({
             supabase_uid: authData.user.id,
-            full_name:    fullName.trim(), // allow them to correct their name
-          }).eq('id', lecturer.id)
+            full_name:    fullName.trim(),
+          } as any).eq('id', (lecturer as any).id)
         }
 
         toast.success('Account activated! You can now sign in.')
@@ -135,7 +136,8 @@ export default function SetupAccount() {
           .eq('email', email.trim().toLowerCase())
           .maybeSingle()
 
-        if (!adminRecord) {
+        const adminAny = adminRecord as any
+        if (!adminAny) {
           toast.error('Your email is not registered as an admin for this institution. Contact DAMS Tech.')
           // Sign out the accidentally-created auth user
           await db.auth.signOut()
@@ -146,7 +148,7 @@ export default function SetupAccount() {
         // Update admin_users with their supabase_uid
         const { data: { user } } = await db.auth.getUser()
         if (user) {
-          await db.from('admin_users').update({ supabase_uid: user.id }).eq('id', adminRecord.id)
+          await db.from('admin_users').update({ supabase_uid: user.id } as any).eq('id', (adminRecord as any).id)
         }
 
         toast.success('Admin account activated!')
@@ -191,7 +193,7 @@ export default function SetupAccount() {
             .eq('parent_email', cleanEmail)
         }
 
-        toast.success(`Account activated! You can monitor ${children.length > 1 ? `${children.length} children` : children[0].first_name}.`)
+        toast.success(`Account activated! You can monitor ${children.length > 1 ? `${children.length} children` : (children[0] as any).first_name}.`)
         navigate('/parent')
 
       } else {

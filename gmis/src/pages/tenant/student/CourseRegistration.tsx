@@ -67,13 +67,13 @@ export default function CourseRegistration() {
         .maybeSingle()
 
       if (!s) { setLoading(false); return }
-      setStudentId(s.id)
+      setStudentId((s as any).id)
 
       // Load all in parallel
       await Promise.all([
         loadSettings(),
         loadCourses(),
-        loadRegistrations(s.id),
+        loadRegistrations((s as any).id),
       ])
     } finally {
       setLoading(false)
@@ -83,10 +83,11 @@ export default function CourseRegistration() {
   const loadSettings = async () => {
     if (!db) return
     const { data } = await db.from('org_settings').select('registration_open, current_session, current_semester').maybeSingle()
-    if (data) {
-      setRegOpen(data.registration_open === 'true' || data.registration_open === true)
-      setSession(data.current_session || '2024/2025')
-      setSemester(data.current_semester || 'first')
+    const cfg = data as any
+    if (cfg) {
+      setRegOpen(cfg.registration_open === 'true' || cfg.registration_open === true)
+      setSession(cfg.current_session || '2024/2025')
+      setSemester(cfg.current_semester || 'first')
     }
   }
 
@@ -181,7 +182,7 @@ export default function CourseRegistration() {
   })
 
   const levels    = [...new Set(courses.map(c => c.level))].sort()
-  const semesters = [...new Set(courses.map(c => c.semester as string))]
+  const semesters = [...new Set(courses.map((c: any) => c.semester as string))]
 
   // ── LOADING ───────────────────────────────────────────────
   if (loading) return (
@@ -310,7 +311,7 @@ export default function CourseRegistration() {
           </select>
           <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)} style={{ ...S.input, maxWidth: 140 }}>
             <option value="">All semesters</option>
-            {semesters.map(s => <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{String(s).charAt(0).toUpperCase() + String(s).slice(1)} Semester</option>)}
+            {semesters.map(s => <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.charAt(0).toUpperCase() + s.slice(1)} Semester</option>)}
           </select>
           {(search || filterLevel || filterSemester) && (
             <button onClick={() => { setSearch(''); setFilterLevel(''); setFilterSemester('') }} style={S.btnSm}>

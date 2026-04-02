@@ -101,7 +101,7 @@ export default function ParentPortal() {
       }
 
       setChildren(kids as Child[])
-      setActiveChild(kids[0].id)
+      setActiveChild((kids[0] as any).id)
 
       // Load school news
       const { data: n } = await db

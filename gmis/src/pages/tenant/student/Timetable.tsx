@@ -181,7 +181,7 @@ export default function StudentTimetable() {
           .from('timetable')
           .select('id, day_of_week, start_time, end_time, venue, session, semester, courses(course_code, course_name, credit_units, lecturers(full_name))')
           .in('course_id', ids)
-          .eq(s?.current_session  ? 'session'  : 'id', s?.current_session  || 'skip' )
+          .eq((s as any)?.current_session ? 'session' : 'id', (s as any)?.current_session || 'skip')
           .order('day_of_week').order('start_time')
 
         // Re-query without session filter if no results

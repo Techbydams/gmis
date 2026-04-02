@@ -43,7 +43,7 @@ export default function Clearance() {
     const { data } = await db!
       .from('clearance_items')
       .select('*')
-      .eq('student_id', s.id)
+      .eq('student_id', (s as any).id)
       .eq('session', session)
     setItems((data || []) as ClearanceItem[])
     setLoading(false)

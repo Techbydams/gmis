@@ -88,7 +88,7 @@ export default function AdminAcademicSetup() {
     if (!db) return
     const { data } = await db.from('faculties').select('*').order('name')
     if (data) {
-      const cleaned = data.map(f => ({
+      const cleaned = (data as any[]).map((f: any) => ({
         ...f,
         is_active: f.is_active ?? true
       }))
@@ -121,8 +121,8 @@ export default function AdminAcademicSetup() {
     setSaving(true)
     const payload = { name: facForm.name.trim(), code: facForm.code.trim().toUpperCase(), is_active: true }
     const { error } = editId
-      ? await db!.from('faculties').update(payload).eq('id', editId)
-      : await db!.from('faculties').insert(payload)
+      ? await db!.from('faculties').update(payload as any).eq('id', editId)
+      : await db!.from('faculties').insert(payload as any)
     setSaving(false)
     if (error) { toast.error(error.message); return }
     toast.success(editId ? 'Faculty updated!' : 'Faculty created!')
@@ -146,8 +146,8 @@ export default function AdminAcademicSetup() {
     setSaving(true)
     const payload = { name: deptForm.name.trim(), code: deptForm.code.trim().toUpperCase(), faculty_id: deptForm.faculty_id, is_active: true }
     const { error } = editId
-      ? await db!.from('departments').update(payload).eq('id', editId)
-      : await db!.from('departments').insert(payload)
+      ? await db!.from('departments').update(payload as any).eq('id', editId)
+      : await db!.from('departments').insert(payload as any)
     setSaving(false)
     if (error) { toast.error(error.message); return }
     toast.success(editId ? 'Department updated!' : 'Department created!')
@@ -183,8 +183,8 @@ export default function AdminAcademicSetup() {
       is_active:     true,
     }
     const { error } = editId
-      ? await db!.from('courses').update(payload).eq('id', editId)
-      : await db!.from('courses').insert(payload)
+      ? await db!.from('courses').update(payload as any).eq('id', editId)
+      : await db!.from('courses').insert(payload as any)
     setSaving(false)
     if (error) { toast.error(error.message); return }
     toast.success(editId ? 'Course updated!' : 'Course created!')
@@ -209,7 +209,7 @@ export default function AdminAcademicSetup() {
 
   // Assign lecturer to course without opening full edit form
   const assignLecturer = async (courseId: string, lecturerId: string) => {
-    const { error } = await db!.from('courses').update({ lecturer_id: lecturerId || null }).eq('id', courseId)
+    const { error } = await db!.from('courses').update({ lecturer_id: lecturerId || null } as any).eq('id', courseId)
     if (error) { toast.error('Failed to assign lecturer'); return }
     toast.success('Lecturer assigned!')
     loadCourses()
@@ -228,7 +228,7 @@ export default function AdminAcademicSetup() {
     }
 
     if (editId) {
-      const { error } = await db!.from('lecturers').update(payload).eq('id', editId)
+      const { error } = await db!.from('lecturers').update(payload as any).eq('id', editId)
       setSaving(false)
       if (error) { toast.error(error.message); return }
       toast.success('Lecturer updated!')
@@ -238,10 +238,10 @@ export default function AdminAcademicSetup() {
         ? await (db!.auth as any).admin.createUser({ email: lecForm.email.trim().toLowerCase(), password: 'ChangeMe@2025', email_confirm: true, user_metadata: { role: 'lecturer', full_name: lecForm.full_name.trim() } })
         : { data: null, error: null }
 
-      const { error } = await db!.from('lecturers').insert({
+      const { error } = await db!.from('lecturers').insert(({
         ...payload,
         supabase_uid: authData?.user?.id || null,
-      })
+      }) as any)
       setSaving(false)
       if (error) { toast.error(error.message); return }
       toast.success('Lecturer created! They can now log in with their email.')
@@ -257,7 +257,7 @@ export default function AdminAcademicSetup() {
 
   const deleteLecturer = async (id: string, name: string) => {
     if (!confirm(`Remove "${name}" as a lecturer? Their assigned courses will be unassigned.`)) return
-    await db!.from('courses').update({ lecturer_id: null }).eq('lecturer_id', id)
+    await db!.from('courses').update({ lecturer_id: null } as any).eq('lecturer_id', id)
     await db!.from('lecturers').delete().eq('id', id)
     toast.success('Lecturer removed'); loadAll()
   }

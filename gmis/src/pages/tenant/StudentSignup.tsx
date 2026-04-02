@@ -218,7 +218,7 @@ export default function StudentSignup() {
       }
 
       // 4 — Insert student record (pending admin approval)
-      const { error: studentError } = await db.from('students').insert({
+      const { error: studentError } = await db.from('students').insert(({
         supabase_uid:    authData.user?.id || null,
         matric_number:   form.matric_number.trim().toUpperCase(),
         email:           form.email.trim().toLowerCase(),
@@ -235,7 +235,7 @@ export default function StudentSignup() {
         gpa:  0, cgpa: 0,
         id_card_printed: false, id_card_paid: false,
         parent_email:    form.parent_email.trim() || null,
-      })
+      } as any))
 
       if (studentError) {
         console.error('Student insert error:', studentError)

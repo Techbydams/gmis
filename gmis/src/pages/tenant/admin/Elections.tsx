@@ -163,7 +163,7 @@ export default function AdminElections() {
       department_id:   e.department_id || '',
       start_date:      e.start_date    ? e.start_date.slice(0, 16) : '',
       end_date:        e.end_date      ? e.end_date.slice(0, 16)   : '',
-      status:          e.status,
+      status:          e.status as 'active' | 'draft' | 'closed',
       nomination_open: e.nomination_open,
     })
     setShowEModal(true)
@@ -185,8 +185,8 @@ export default function AdminElections() {
       nomination_open: eForm.nomination_open,
     }
     const { error } = editElect
-      ? await db.from('elections').update(payload).eq('id', editElect.id)
-      : await db.from('elections').insert(payload)
+      ? await db.from('elections').update(payload as any).eq('id', editElect.id)
+      : await db.from('elections').insert(payload as any)
     setSavingE(false)
     if (error) { toast.error('Save failed: ' + error.message); return }
     toast.success(editElect ? 'Election updated' : 'Election created')
@@ -263,8 +263,8 @@ export default function AdminElections() {
       nomination_status: 'approved',
     }
     const { error } = editCand
-      ? await db.from('election_candidates').update(payload).eq('id', editCand.id)
-      : await db.from('election_candidates').insert(payload)
+      ? await db.from('election_candidates').update(payload as any).eq('id', editCand.id)
+      : await db.from('election_candidates').insert(payload as any)
     setSavingC(false)
     if (error) { toast.error('Save failed: ' + error.message); return }
     toast.success(editCand ? 'Candidate updated' : 'Candidate added')
@@ -541,7 +541,7 @@ export default function AdminElections() {
               Total votes cast: <strong style={{ color: '#e8eeff' }}>{totalVotes}</strong>
             </div>
             {[...approvedCands]
-              .sort((a, b) => ((counts[b.id] as number) || 0) - ((counts[a.id] as number) || 0))
+              .sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0))
               .map((c, i) => {
                 const cVotes = (counts[c.id] as number) || 0
                 const pct    = totalVotes > 0 ? Math.round((cVotes / totalVotes) * 100) : 0

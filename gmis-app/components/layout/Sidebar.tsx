@@ -138,7 +138,7 @@ export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
     <View
       style={[
         styles.sidebar,
-        layout.fillCol,
+        layout.col,
         {
           backgroundColor:  colors.bg.secondary,
           borderRightColor: colors.border.DEFAULT,
@@ -283,7 +283,9 @@ export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
 const styles = StyleSheet.create({
   sidebar: {
     width:            sizes.sidebarWidth,   // 260
-    flexShrink:       0,
+    flexGrow:         0,                    // never expand beyond 260px
+    flexShrink:       0,                    // never collapse below 260px
+    flexBasis:        sizes.sidebarWidth,
     borderRightWidth: 1,
   },
   brand: {

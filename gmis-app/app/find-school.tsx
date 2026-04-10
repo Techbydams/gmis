@@ -23,7 +23,10 @@ import {
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
+  Image,
 } from "react-native";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter }    from "expo-router";
 import { supabase }         from "@/lib/supabase";
@@ -191,7 +194,7 @@ export default function FindSchool() {
               }}
             />
             <View style={[styles.logoBox, { width: 64, height: 64, borderRadius: radius.xl }]}>
-              <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize.xl, color: "#fff" }}>G</Text>
+              <Image source={GMIS_LOGO} style={{ width: 44, height: 26 }} resizeMode="contain" />
             </View>
           </View>
 
@@ -239,13 +242,9 @@ export default function FindSchool() {
             <Animated.View
               style={[layout.centredH, { marginBottom: spacing[6], transform: [{ scale: logoScale }], opacity: logoOpacity }]}
             >
-              <TouchableOpacity
-                onPress={() => router.canGoBack() ? router.back() : null}
-                style={[styles.logoBox, { marginBottom: spacing[5] }]}
-                activeOpacity={0.8}
-              >
-                <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize.xl, color: "#fff" }}>G</Text>
-              </TouchableOpacity>
+              <View style={[styles.logoBox, { marginBottom: spacing[5] }]}>
+                <Image source={GMIS_LOGO} style={{ width: 52, height: 30 }} resizeMode="contain" />
+              </View>
 
               <Text variant="title" color="primary" align="center">Find your institution</Text>
               <Text

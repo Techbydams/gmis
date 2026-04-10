@@ -15,3 +15,6 @@ export { DrawerOverlay } from "./DrawerOverlay";
 export type { SidebarUser } from "./Sidebar";
 export type { NavItem }     from "./Sidebar";
 export type { BottomNavItem } from "./BottomNav";
+
+// Re-export drawer hook so screens can open the drawer without prop-drilling
+export { useDrawer } from "@/context/DrawerContext";

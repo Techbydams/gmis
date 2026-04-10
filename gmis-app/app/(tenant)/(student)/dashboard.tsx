@@ -13,11 +13,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
+  View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter }     from "expo-router";
 import { useAuth }       from "@/context/AuthContext";
 import { useTenant }     from "@/context/TenantContext";
+import { useDrawer }     from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { formatGPA, getHonourClass, timeAgo, greeting } from "@/lib/helpers";
 import { Text, Card, Badge, StatCard, SkeletonDashboard } from "@/components/ui";
@@ -27,6 +29,8 @@ import { useTheme }      from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 
 // ── Confirmed students columns ────────────────────────────
 // id, supabase_uid, matric_number, application_no, email,
@@ -79,6 +83,8 @@ export default function StudentDashboard() {
   const { tenant, slug }     = useTenant();
   const { colors }           = useTheme();
   const { pagePadding }      = useResponsive();
+  const { openDrawer }       = useDrawer();
+  const insets               = useSafeAreaInsets();
 
   const [student,    setStudent]    = useState<Student | null>(null);
   const [deptName,   setDeptName]   = useState("");
@@ -331,9 +337,27 @@ export default function StudentDashboard() {
       role="student"
       user={shellUser}
       schoolName={tenant?.name || ""}
-      pageTitle="Dashboard"
       onLogout={async () => { await signOut(); router.replace("/login"); }}
     >
+      {/* Native mobile top bar */}
+      <View style={[styles.nativeTopBar, {
+        backgroundColor:   colors.bg.card,
+        borderBottomColor: colors.border.DEFAULT,
+        paddingTop:        insets.top + spacing[2],
+      }]}>
+        <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Icon name="ui-menu" size="md" color={colors.text.secondary} />
+        </TouchableOpacity>
+        <Image source={GMIS_LOGO} style={styles.topLogo} resizeMode="contain" />
+        <TouchableOpacity
+          onPress={() => router.push("/(tenant)/(student)/settings" as any)}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Icon name="nav-settings" size="md" color={colors.text.secondary} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, paddingBottom: spacing[12], gap: spacing[4] }}
@@ -346,25 +370,16 @@ export default function StudentDashboard() {
           />
         }
       >
-        {/* ── Header row ────────────────────────────────── */}
-        <View style={[layout.rowBetween, { alignItems: "flex-start" }]}>
-          <View style={layout.fill}>
-            <Text variant="heading" color="primary">
-              {greeting()}, {firstName}
-            </Text>
-            <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
-              {student?.matric_number}
-              {deptName ? ` · ${deptName}` : ""}
-              {student?.level ? ` · ${student.level}L` : ""}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => router.push("/(tenant)/(student)/settings" as any)}
-            style={[styles.settingsBtn, { backgroundColor: colors.bg.hover, borderColor: colors.border.DEFAULT }]}
-            activeOpacity={0.7}
-          >
-            <Icon name="nav-settings" size="md" color={colors.text.secondary} />
-          </TouchableOpacity>
+        {/* ── Greeting header ────────────────────────────── */}
+        <View>
+          <Text variant="heading" color="primary">
+            {greeting()}, {firstName}
+          </Text>
+          <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
+            {student?.matric_number}
+            {deptName ? ` · ${deptName}` : ""}
+            {student?.level ? ` · ${student.level}L` : ""}
+          </Text>
         </View>
 
         {/* ── Next class hero card ───────────────────────── */}
@@ -574,6 +589,19 @@ const styles = StyleSheet.create({
     width: spacing[10], height: spacing[10],
     borderRadius: radius.full, borderWidth: 1,
     alignItems: "center", justifyContent: "center",
+  },
+  // Native top bar
+  nativeTopBar: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    justifyContent:    "space-between",
+    paddingHorizontal: spacing[4],
+    paddingBottom:     spacing[3],
+    borderBottomWidth: 1,
+  },
+  topLogo: {
+    width:  80,
+    height: 28,
   },
   // Hero next-class card
   heroCard: {

@@ -9,10 +9,12 @@
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
 import { useState, useEffect, useMemo } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
+import { useDrawer } from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { Text, Card, StatCard, Badge, Spinner } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
@@ -23,6 +25,8 @@ import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 import { greeting } from "@/lib/helpers";
 
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
+
 const LECTURER_ACTIONS = [
   { label: "My courses",        icon: "nav-courses"    as const, path: "/(tenant)/(lecturer)/courses"     },
   { label: "Upload results",    icon: "action-upload"  as const, path: "/(tenant)/(lecturer)/results"     },
@@ -32,6 +36,8 @@ const LECTURER_ACTIONS = [
 ] as const;
 
 export default function LecturerDashboard() {
+  const { openDrawer } = useDrawer();
+  const insets         = useSafeAreaInsets();
   const router             = useRouter();
   const { user, signOut }  = useAuth();
   const { tenant, slug }   = useTenant();
@@ -113,8 +119,16 @@ export default function LecturerDashboard() {
   const firstName = lecturer?.full_name?.split(" ")[0] || "Lecturer";
 
   return (
-    <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Lecturer Portal"
+    <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""}
       onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      {/* Native top bar */}
+      <View style={[{ flexDirection:"row", alignItems:"center", justifyContent:"space-between", paddingHorizontal:spacing[4], paddingBottom:spacing[3], borderBottomWidth:1, backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
+        <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
+          <Icon name="ui-menu" size="md" color={colors.text.secondary} />
+        </TouchableOpacity>
+        <Image source={GMIS_LOGO} style={{ width:80, height:28 }} resizeMode="contain" />
+        <View style={{ width: spacing[10] }} />
+      </View>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}

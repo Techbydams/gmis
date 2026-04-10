@@ -135,7 +135,8 @@ Always verify before writing queries:
 - Parent: stored as `students.parent_supabase_uid` — no separate `parents` table
 - Admin role value: `'super_admin'` exists and must be mapped to `'admin'`
 - Features: `org_feature_toggles` join table → `features.key`
-- Master Supabase project ref: `lwcwfofplegdgdsvwbus`
+- **Platform** Supabase project ref: `arbgvtpjcvfcckepdhef` — `organizations`, platform auth, billing
+- **Tenant** (dev/test school) project ref: `lwcwfofplegdgdsvwbus` — `students`, `lecturers`, `admin_users`, school data
 - RLS is disabled on all tenant tables (replaced by application-level auth gate)
 
 ---
@@ -194,14 +195,22 @@ These files are considered finalized. Only modify for bug fixes or additions —
 
 ---
 
-## Environment Variables (`gmis-app/.env`)
+## Environment Variables
 
+**`gmis-app/.env`** — public, committed to git (anon keys only):
 ```
-EXPO_PUBLIC_SUPABASE_URL=        # Master Supabase project URL
-EXPO_PUBLIC_SUPABASE_ANON_KEY=   # Master Supabase anon key
+EXPO_PUBLIC_SUPABASE_URL=        # Platform Supabase URL  (arbgvtpjcvfcckepdhef)
+EXPO_PUBLIC_SUPABASE_ANON_KEY=   # Platform anon key
 ```
 
-Tenant credentials are loaded at runtime from the `organizations` table — not from env vars.
+**`gmis-app/.env.local`** — gitignored, secrets only:
+```
+SUPABASE_PLATFORM_SERVICE_ROLE_KEY=   # Platform service role key
+SUPABASE_TENANT_URL=                  # Dev/test tenant URL  (lwcwfofplegdgdsvwbus)
+SUPABASE_TENANT_SERVICE_ROLE_KEY=     # Dev/test tenant service role key
+```
+
+Tenant credentials for all schools are loaded at runtime from the `organizations` table — not from env vars. `.env.local` tenant vars are only for local dev/testing.
 
 ---
 

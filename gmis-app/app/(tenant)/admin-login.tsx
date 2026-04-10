@@ -18,7 +18,10 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
@@ -239,10 +242,13 @@ export default function AdminLogin() {
             </Text>
           </TouchableOpacity>
 
-          {/* DAMS credit */}
-          <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted, textAlign: "center", marginTop: spacing[4] }}>
-            GMIS · DAMS Technologies · {new Date().getFullYear()}
-          </Text>
+          {/* GMIS logo + DAMS credit */}
+          <View style={{ alignItems: "center", marginTop: spacing[4], gap: spacing[2] }}>
+            <Image source={GMIS_LOGO} style={{ width: 80, height: 28 }} resizeMode="contain" />
+            <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted, textAlign: "center" }}>
+              DAMS Technologies · {new Date().getFullYear()}
+            </Text>
+          </View>
 
         </View>
       </ScrollView>

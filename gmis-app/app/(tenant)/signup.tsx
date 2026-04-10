@@ -17,7 +17,10 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 import { useRouter } from "expo-router";
 import { useTenant }        from "@/context/TenantContext";
 import { getTenantClient }  from "@/lib/supabase";
@@ -369,6 +372,14 @@ export default function StudentSignup() {
 
           <View style={[layout.row, { justifyContent: "center", marginTop: spacing[4] }]}>
             <Text variant="caption" color="muted">Already have an account?{" "}<Text variant="caption" color="link" weight="bold" onPress={() => router.push("/(tenant)/login")}>Sign in →</Text></Text>
+          </View>
+
+          {/* GMIS footer logo */}
+          <View style={{ alignItems: "center", marginTop: spacing[5], marginBottom: spacing[2], gap: spacing[2] }}>
+            <Image source={GMIS_LOGO} style={{ width: 80, height: 28 }} resizeMode="contain" />
+            <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted, textAlign: "center" }}>
+              A product of DAMS Technologies
+            </Text>
           </View>
         </View>
       </ScrollView>

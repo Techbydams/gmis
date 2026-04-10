@@ -1,10 +1,12 @@
 // ============================================================
-// GMIS — App Shell (FIXED)
+// GMIS — App Shell (Native-first)
 //
-// FIX: DrawerOverlay is now an absolute-positioned overlay
-// rendered inside the same View tree (not a Modal).
-// This preserves Expo Router context so navigation works.
-// onNavigate passes router.push down to the drawer.
+// Mobile: No PageHeader. Each screen owns its own top bar.
+//         Drawer triggered via DrawerContext → useDrawer().
+// Desktop: Sidebar layout, no bottom nav.
+//
+// Context: DrawerContext.openDrawer() is provided to all
+//          children so any screen can open the nav drawer.
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
@@ -27,6 +29,7 @@ import {
 } from "./BottomNav";
 import { useTheme }      from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
+import { DrawerContext } from "@/context/DrawerContext";
 import { layout }        from "@/styles/shared";
 import type { NavItem, SidebarUser } from "./Sidebar";
 
@@ -38,12 +41,15 @@ interface AppShellProps {
   role:          AppRole;
   user:          AppShellUser;
   schoolName:    string;
+  /** Used only on desktop sidebar. Mobile screens own their top bar. */
   pageTitle?:    string;
   pageSubtitle?: string;
   showBack?:     boolean;
   onBack?:       () => void;
   headerRight?:  React.ReactNode;
   onLogout?:     () => void;
+  /** Show GMIS logo in desktop sidebar header */
+  showLogo?:     boolean;
   children:      React.ReactNode;
 }
 
@@ -71,6 +77,7 @@ export function AppShell({
   onBack,
   headerRight,
   onLogout,
+  showLogo     = false,
   children,
 }: AppShellProps) {
   const router                         = useRouter();
@@ -78,70 +85,70 @@ export function AppShell({
   const { showSidebar, showBottomNav } = useResponsive();
   const [drawerOpen, setDrawerOpen]    = useState(false);
 
-  // This is passed to DrawerOverlay so navigation works from within the overlay
   const handleNavigate = (path: string) => {
     router.push(path as any);
   };
 
   return (
-    <SafeAreaView
-      style={[styles.root, { backgroundColor: colors.bg.primary }]}
-      edges={showSidebar ? ["top", "bottom"] : ["bottom"]}
-    >
-      {/* Main layout row */}
-      <View style={[layout.fillRow, styles.inner]}>
+    <DrawerContext.Provider value={{ openDrawer: () => setDrawerOpen(true) }}>
+      <SafeAreaView
+        style={[styles.root, { backgroundColor: colors.bg.primary }]}
+        edges={showSidebar ? ["top", "bottom"] : ["bottom"]}
+      >
+        {/* Main layout row */}
+        <View style={[layout.fillRow, styles.inner]}>
 
-        {/* Desktop sidebar — only shown when showSidebar is true */}
-        {showSidebar && (
-          <Sidebar
+          {/* Desktop sidebar — only when showSidebar */}
+          {showSidebar && (
+            <Sidebar
+              items={sidebarNavMap[role]}
+              user={user}
+              schoolName={schoolName}
+              onLogout={onLogout}
+            />
+          )}
+
+          {/* Main content column */}
+          <View style={[layout.fillCol, styles.main]}>
+
+            {/* Desktop-only page header (mobile screens own their top bar) */}
+            {showSidebar && pageTitle ? (
+              <PageHeader
+                title={pageTitle}
+                subtitle={pageSubtitle}
+                showBack={showBack}
+                onBack={onBack}
+                rightSlot={headerRight}
+                showLogo={showLogo}
+              />
+            ) : null}
+
+            {/* Page content */}
+            <View style={layout.fillCol}>
+              {children}
+            </View>
+
+            {/* Mobile bottom nav */}
+            {showBottomNav && (
+              <BottomNav items={bottomNavMap[role]} />
+            )}
+          </View>
+        </View>
+
+        {/* Mobile drawer — absolute overlay, same tree */}
+        {!showSidebar && (
+          <DrawerOverlay
+            visible={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            onNavigate={handleNavigate}
             items={sidebarNavMap[role]}
             user={user}
             schoolName={schoolName}
             onLogout={onLogout}
           />
         )}
-
-        {/* Main content column */}
-        <View style={[layout.fillCol, styles.main]}>
-
-          {/* Mobile page header — only when no sidebar */}
-          {!showSidebar && (
-            <PageHeader
-              title={pageTitle}
-              subtitle={pageSubtitle}
-              showBack={showBack}
-              onBack={onBack}
-              showMenu={!showBack}
-              onMenuPress={() => setDrawerOpen(true)}
-              rightSlot={headerRight}
-            />
-          )}
-
-          {/* Page content */}
-          <View style={layout.fillCol}>
-            {children}
-          </View>
-
-          {/* Mobile bottom nav */}
-          {showBottomNav && (
-            <BottomNav items={bottomNavMap[role]} />
-          )}
-        </View>
-      </View>
-
-      {/* Mobile drawer — absolute overlay, SAME TREE as router/theme providers */}
-      {!showSidebar && (
-        <DrawerOverlay
-          visible={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          onNavigate={handleNavigate}    // ← router.push passed as prop
-          items={sidebarNavMap[role]}
-          user={user}
-          schoolName={schoolName}
-          onLogout={onLogout}
-        />
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </DrawerContext.Provider>
   );
 }
 

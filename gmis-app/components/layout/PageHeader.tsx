@@ -8,7 +8,9 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Image } from "react-native";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Text }  from "@/components/ui/Text";
@@ -26,6 +28,8 @@ interface PageHeaderProps {
   rightSlot?:   React.ReactNode;
   onMenuPress?: () => void;
   showMenu?:    boolean;
+  /** Show GMIS logo instead of text title — use on dashboard home screens */
+  showLogo?:    boolean;
 }
 
 export function PageHeader({
@@ -37,6 +41,7 @@ export function PageHeader({
   rightSlot,
   onMenuPress,
   showMenu    = false,
+  showLogo    = false,
 }: PageHeaderProps) {
   const colors = useThemeColors();
   const router = useRouter();
@@ -85,35 +90,42 @@ export function PageHeader({
 
       {/* Centre */}
       <View style={[layout.fill, layout.centredH]}>
-        {/* Breadcrumb trail */}
-        {breadcrumb && breadcrumb.length > 0 && (
-          <View style={[layout.row, { gap: spacing[1], marginBottom: 2 }]}>
-            {breadcrumb.map((crumb, idx) => (
-              <View key={idx} style={layout.row}>
-                {idx > 0 && (
-                  <Text style={styles.chevron}>›</Text>
-                )}
-                <Text
-                  style={[
-                    styles.breadcrumbItem,
-                    idx === breadcrumb.length - 1 && { color: brand.blue },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {crumb}
-                </Text>
+        {showLogo ? (
+          /* GMIS logo — used on dashboard home screens */
+          <Image source={GMIS_LOGO} style={styles.headerLogo} resizeMode="contain" />
+        ) : (
+          <>
+            {/* Breadcrumb trail */}
+            {breadcrumb && breadcrumb.length > 0 && (
+              <View style={[layout.row, { gap: spacing[1], marginBottom: 2 }]}>
+                {breadcrumb.map((crumb, idx) => (
+                  <View key={idx} style={layout.row}>
+                    {idx > 0 && (
+                      <Text style={styles.chevron}>›</Text>
+                    )}
+                    <Text
+                      style={[
+                        styles.breadcrumbItem,
+                        idx === breadcrumb.length - 1 && { color: brand.blue },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {crumb}
+                    </Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-        )}
+            )}
 
-        <Text variant="subtitle" color="primary" align="center" numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle && (
-          <Text variant="caption" color="muted" align="center" numberOfLines={1}>
-            {subtitle}
-          </Text>
+            <Text variant="subtitle" color="primary" align="center" numberOfLines={1}>
+              {title}
+            </Text>
+            {subtitle && (
+              <Text variant="caption" color="muted" align="center" numberOfLines={1}>
+                {subtitle}
+              </Text>
+            )}
+          </>
         )}
       </View>
 
@@ -145,5 +157,9 @@ const styles = StyleSheet.create({
     fontSize:    fontSize["2xs"],
     color:       "#94a3b8",
     marginRight: spacing[1],
+  },
+  headerLogo: {
+    width:  88,
+    height: 30,
   },
 });

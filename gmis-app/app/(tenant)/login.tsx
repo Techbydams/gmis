@@ -24,6 +24,8 @@ import {
   Platform,
   Image,
 } from "react-native";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter }  from "expo-router";
 import { useAuth }    from "@/context/AuthContext";
@@ -324,11 +326,12 @@ export default function SchoolLogin() {
             </TouchableOpacity>
 
             {/* Footer */}
-            <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted, textAlign: "center", marginTop: spacing[4], marginBottom: spacing[4] }}>
-              Powered by{" "}
-              <Text style={{ fontSize: fontSize["2xs"], color: brand.gold, fontWeight: fontWeight.bold }}>GMIS</Text>
-              {" "}· A product of DAMS Technologies
-            </Text>
+            <View style={{ alignItems: "center", marginTop: spacing[4], marginBottom: spacing[4], gap: spacing[2] }}>
+              <Image source={GMIS_LOGO} style={styles.logoFooter} resizeMode="contain" />
+              <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted, textAlign: "center" }}>
+                A product of DAMS Technologies
+              </Text>
+            </View>
 
           </View>
         </ScrollView>
@@ -378,4 +381,8 @@ const styles = StyleSheet.create({
   infoBanner: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: spacing[3], paddingVertical: spacing[2] + spacing[1], borderRadius: radius.lg, borderWidth: 1, marginBottom: spacing[4] },
   checkbox: { width: spacing[4], height: spacing[4], borderRadius: radius.xs, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
   secNote: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: spacing[3], paddingVertical: spacing[2], borderRadius: radius.lg, borderWidth: 1, marginTop: spacing[4] },
+  logoFooter: {
+    width:  90,
+    height: 32,
+  },
 });

@@ -15,8 +15,10 @@ import { useEffect, useRef } from "react";
 import {
   Animated,
   View, TouchableOpacity, ScrollView,
-  StyleSheet, useWindowDimensions,
+  StyleSheet, useWindowDimensions, Image,
 } from "react-native";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePathname } from "expo-router";
 import { Text, Avatar, Badge } from "@/components/ui";
@@ -125,7 +127,10 @@ export function DrawerOverlay({
             </View>
             <View style={layout.fill}>
               <Text variant="label" weight="bold" color="primary" numberOfLines={1}>{schoolName}</Text>
-              <Text variant="micro" color="muted">Powered by GMIS</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing[1], marginTop: 2 }}>
+                <Text variant="micro" color="muted">Powered by</Text>
+                <Image source={GMIS_LOGO} style={styles.logoSmall} resizeMode="contain" />
+              </View>
             </View>
             <TouchableOpacity
               onPress={onClose}
@@ -284,5 +289,9 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: spacing[4], paddingVertical: spacing[3],
     borderRadius: radius.lg,
+  },
+  logoSmall: {
+    width:  40,
+    height: 15,
   },
 });

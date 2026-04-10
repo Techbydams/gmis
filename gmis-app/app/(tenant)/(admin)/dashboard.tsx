@@ -10,10 +10,12 @@
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
 import { useState, useEffect, useMemo } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
+import { useDrawer } from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { Text, Card, StatCard, Badge, SkeletonDashboard } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
@@ -22,6 +24,8 @@ import { useTheme }      from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 
 const ADMIN_ACTIONS = [
   { label: "Student approvals",    icon: "nav-approvals"  as const, path: "/(tenant)/(admin)/approvals"    },
@@ -41,6 +45,8 @@ export default function AdminDashboard() {
   const { tenant, slug }   = useTenant();
   const { colors }         = useTheme();
   const { pagePadding }    = useResponsive();
+  const { openDrawer }     = useDrawer();
+  const insets             = useSafeAreaInsets();
 
   const [adminUser,  setAdminUser]  = useState<any>(null);
   const [stats,      setStats]      = useState({ students: 0, pending: 0, lecturers: 0, courses: 0, unpaidCount: 0 });
@@ -111,8 +117,18 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AppShell role="admin" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Admin Dashboard"
+    <AppShell role="admin" user={shellUser} schoolName={tenant?.name || ""}
       onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      {/* Native top bar */}
+      <View style={[{ flexDirection:"row", alignItems:"center", justifyContent:"space-between", paddingHorizontal:spacing[4], paddingBottom:spacing[3], borderBottomWidth:1, backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
+        <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
+          <Icon name="ui-menu" size="md" color={colors.text.secondary} />
+        </TouchableOpacity>
+        <Image source={GMIS_LOGO} style={{ width:80, height:28 }} resizeMode="contain" />
+        <TouchableOpacity onPress={() => router.push("/(tenant)/(admin)/settings" as any)} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
+          <Icon name="nav-settings" size="md" color={colors.text.secondary} />
+        </TouchableOpacity>
+      </View>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}

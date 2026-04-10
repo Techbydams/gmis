@@ -142,7 +142,7 @@ export default function ParentDashboard() {
   const ws = activeWard ? wardStats[activeWard.id] : null;
 
   return (
-    <AppShell role="parent" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Parent Portal"
+    <AppShell role="parent" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Parent Portal" showLogo
       onLogout={async () => { await signOut(); router.replace("/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}

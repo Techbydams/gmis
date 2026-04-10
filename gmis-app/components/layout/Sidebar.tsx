@@ -7,7 +7,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { View, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { View, TouchableOpacity, ScrollView, StyleSheet, Image } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { Text }    from "@/components/ui/Text";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -17,6 +17,8 @@ import { useTheme } from "@/context/ThemeContext";
 import {
   brand, spacing, radius, fontSize, fontWeight, sizes,
 } from "@/theme/tokens";
+
+const GMIS_LOGO = require("@/assets/gmis_logo.png");
 import { layout, iconBtn } from "@/styles/shared";
 
 // ── Types ──────────────────────────────────────────────────
@@ -166,7 +168,10 @@ export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
           <Text variant="label" weight="bold" color="primary" numberOfLines={1}>
             {schoolName}
           </Text>
-          <Text variant="micro" color="muted">Powered by GMIS</Text>
+          <View style={[{ flexDirection: "row", alignItems: "center", gap: spacing[1], marginTop: 2 }]}>
+            <Text variant="micro" color="muted">Powered by</Text>
+            <Image source={GMIS_LOGO} style={styles.logoSmall} resizeMode="contain" />
+          </View>
         </View>
       </View>
 
@@ -266,15 +271,13 @@ export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
           </Text>
         </TouchableOpacity>
 
-        {/* DAMS credit */}
-        <Text
-          variant="micro"
-          color="muted"
-          align="center"
-          style={{ marginTop: spacing[3] }}
-        >
-          DAMS Technologies © {new Date().getFullYear()}
-        </Text>
+        {/* GMIS logo + DAMS credit */}
+        <View style={[{ alignItems: "center", marginTop: spacing[3], gap: spacing[1] }]}>
+          <Image source={GMIS_LOGO} style={styles.logoFooter} resizeMode="contain" />
+          <Text variant="micro" color="muted" align="center">
+            DAMS Technologies © {new Date().getFullYear()}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -329,5 +332,14 @@ const styles = StyleSheet.create({
     paddingVertical:   spacing[2],
     borderRadius:      radius.md,
     gap:               spacing[2],
+  },
+  // GMIS logo sizes
+  logoSmall: {
+    width:  36,
+    height: 14,
+  },
+  logoFooter: {
+    width:  64,
+    height: 22,
   },
 });

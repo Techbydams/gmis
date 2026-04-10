@@ -10,12 +10,12 @@
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
 import { useState, useEffect, useMemo } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Platform } from "react-native";
+import { View, ScrollView, StyleSheet, RefreshControl, Platform } from "react-native";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
 import { formatNaira, formatDate } from "@/lib/helpers";
-import { Text, Card, Badge, Button, Spinner, StatCard } from "@/components/ui";
+import { Text, Card, Badge, Button, StatCard, SkeletonDashboard, useToast } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }    from "@/context/ThemeContext";
@@ -48,16 +48,11 @@ export default function StudentPayments() {
   const [refreshing,  setRefreshing]  = useState(false);
   const [paying,      setPaying]      = useState<string|null>(null);
   const [totals,      setTotals]      = useState({ total: 0, paid: 0, outstanding: 0 });
-  const [toast,       setToast]       = useState<{ msg: string; type: "error"|"success" } | null>(null);
+  const { showToast } = useToast();
 
   const db = useMemo(() => tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null, [tenant, slug]);
 
   useEffect(() => { if (db && user) loadAll(); }, [db, user]);
-
-  const showToast = (msg: string, type: "error"|"success" = "error") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   const loadAll = async (isRefresh = false) => {
     if (!db || !user) return;
@@ -91,10 +86,10 @@ export default function StudentPayments() {
   // Web-only Paystack integration
   const pay = async (fee: FeeItem) => {
     if (Platform.OS !== "web") {
-      showToast("Online payment via the app is coming soon. Please use the web portal to pay.");
+      showToast({ message: "Online payment via the app is coming soon. Please use the web portal to pay.", variant: "info" });
       return;
     }
-    if (!paystackKey) { showToast("Payment gateway not configured. Contact your admin."); return; }
+    if (!paystackKey) { showToast({ message: "Payment gateway not configured. Contact your admin.", variant: "warning" }); return; }
     if (!studentId || !user) return;
     setPaying(fee.fee_types.id);
 
@@ -118,12 +113,12 @@ export default function StudentPayments() {
         ...(fee.paystack_subaccount ? { subaccount: fee.paystack_subaccount } : {}),
         callback: async (res: { reference: string }) => {
           await db!.from("student_payments").update({ status: "success", paystack_ref: res.reference, paid_at: new Date().toISOString() } as any).eq("reference", ref);
-          showToast(`${formatNaira(fee.amount)} payment successful!`, "success");
+          showToast({ message: `${formatNaira(fee.amount)} payment successful!`, variant: "success" });
           setPaying(null); loadAll(true);
         },
         onClose: async () => {
           await db!.from("student_payments").update({ status: "failed" } as any).eq("reference", ref);
-          showToast("Payment cancelled.");
+          showToast({ message: "Payment cancelled.", variant: "warning" });
           setPaying(null);
         },
       });
@@ -135,104 +130,161 @@ export default function StudentPayments() {
 
   const shellUser = { name: user?.email?.split("@")[0] || "Student", role: "student" as const };
 
+  if (loading) {
+    return (
+      <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Payments">
+        <SkeletonDashboard />
+      </AppShell>
+    );
+  }
+
+  // Payment progress (0–100%)
+  const progress = totals.total > 0 ? Math.min(100, (totals.paid / totals.total) * 100) : 0;
+  const hasOutstanding = totals.outstanding > 0;
+
   return (
     <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Payments" onLogout={async () => signOut()}>
-      {toast && (
-        <View style={[styles.toast, { backgroundColor: toast.type === "error" ? colors.status.errorBg : colors.status.successBg, borderColor: toast.type === "error" ? colors.status.errorBorder : colors.status.successBorder }]}>
-          <Icon name={toast.type === "error" ? "status-error" : "status-success"} size="sm" color={toast.type === "error" ? colors.status.error : colors.status.success} />
-          <Text style={{ flex: 1, fontSize: fontSize.sm, color: toast.type === "error" ? colors.status.error : colors.status.success, marginLeft: spacing[2] }}>{toast.msg}</Text>
-        </View>
-      )}
-
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadAll(true); }} tintColor={brand.blue} />}
       >
-        <View>
-          <Text variant="heading" color="primary">Fee Payments</Text>
-          <Text variant="caption" color="muted">Secured by Paystack · Payments go directly to {tenant?.name}</Text>
-        </View>
 
-        {/* Summary stats */}
-        <View style={[layout.rowWrap, { gap: spacing[3] }]}>
-          <StatCard icon="nav-payments" label="Total fees"   value={formatNaira(totals.total)}       color="primary" />
-          <StatCard icon="status-success" label="Amount paid" value={formatNaira(totals.paid)}        color="success" />
-          <StatCard icon="status-warning" label="Outstanding" value={formatNaira(totals.outstanding)} color={totals.outstanding > 0 ? "error" : "success"} />
-        </View>
+        {/* ── Outstanding balance hero ─────────────────────── */}
+        {totals.total > 0 && (
+          <View
+            style={[
+              styles.heroCard,
+              {
+                backgroundColor: hasOutstanding ? colors.status.errorBg  : colors.status.successBg,
+                borderColor:     hasOutstanding ? colors.status.errorBorder : colors.status.successBorder,
+              },
+            ]}
+          >
+            {/* Left accent bar */}
+            <View
+              style={[
+                styles.heroAccent,
+                { backgroundColor: hasOutstanding ? colors.status.error : colors.status.success },
+              ]}
+            />
+            <View style={[layout.fill, { paddingLeft: spacing[4] }]}>
+              <Text style={{ fontSize: fontSize.sm, color: hasOutstanding ? colors.status.error : colors.status.success, fontWeight: fontWeight.semibold }}>
+                {hasOutstanding ? "Outstanding balance" : "All fees cleared"}
+              </Text>
+              <Text style={{ fontSize: fontSize["3xl"], fontWeight: fontWeight.black, color: colors.text.primary, marginTop: spacing[1] }}>
+                {formatNaira(hasOutstanding ? totals.outstanding : totals.paid)}
+              </Text>
+              {/* Progress bar */}
+              {totals.total > 0 && (
+                <View style={[styles.progressTrack, { backgroundColor: colors.border.DEFAULT, marginTop: spacing[3] }]}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width:           `${progress}%` as any,
+                        backgroundColor: hasOutstanding ? colors.status.success : colors.status.success,
+                      },
+                    ]}
+                  />
+                </View>
+              )}
+              <View style={[layout.rowBetween, { marginTop: spacing[1] }]}>
+                <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted }}>
+                  Paid {formatNaira(totals.paid)} of {formatNaira(totals.total)}
+                </Text>
+                <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted, fontWeight: fontWeight.semibold }}>
+                  {Math.round(progress)}%
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
-        {/* Paystack not configured warning */}
-        {!paystackKey && !loading && (
+        {/* ── Notices ──────────────────────────────────────── */}
+        {!paystackKey && (
           <Card variant="warning">
             <View style={[layout.row, { gap: spacing[2] }]}>
               <Icon name="status-warning" size="md" color={colors.status.warning} />
               <Text style={{ flex: 1, fontSize: fontSize.sm, color: colors.status.warning, lineHeight: 20 }}>
-                Your school admin has not configured the payment gateway yet. Contact your registrar to enable online payments.
+                Payment gateway not configured. Contact your registrar.
               </Text>
             </View>
           </Card>
         )}
-
-        {/* Mobile notice */}
         {Platform.OS !== "web" && paystackKey && (
           <Card variant="info">
             <View style={[layout.row, { gap: spacing[2] }]}>
-              <Icon name="status-info" size="md" color={colors.status.info} filled />
+              <Icon name="status-info" size="md" color={colors.status.info} />
               <Text style={{ flex: 1, fontSize: fontSize.sm, color: colors.status.info, lineHeight: 20 }}>
-                To make payments, please use the GMIS web portal at {slug}.gmis.app. In-app payment is coming in the next update.
+                Visit <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold }}>{slug}.gmis.app</Text> to pay online. In-app payments coming soon.
               </Text>
             </View>
           </Card>
         )}
 
-        {/* Fee structure */}
-        {loading ? (
-          <View style={[layout.centred, { paddingVertical: spacing[10] }]}><Spinner size="lg" /></View>
-        ) : (
-          <Card>
-            <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[4] }}>
-              Fee structure — {new Date().getFullYear()}/{new Date().getFullYear() + 1}
-            </Text>
-            {feeItems.length === 0 ? (
-              <Text variant="caption" color="muted" align="center">No fee items configured yet. Check back later.</Text>
-            ) : (
-              feeItems.map((fee) => {
-                const paid = isPaid(fee.fee_types?.id);
-                const busy = paying === fee.fee_types?.id;
-                return (
-                  <View key={fee.id} style={[styles.feeRow, { borderBottomColor: colors.border.subtle }]}>
-                    <View style={layout.fill}>
-                      <Text variant="label" weight="semibold" color="primary">{fee.fee_types?.name}</Text>
-                      {fee.fee_types?.description && <Text variant="caption" color="muted">{fee.fee_types.description}</Text>}
-                    </View>
-                    <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text.primary, marginRight: spacing[3] }}>
-                      {formatNaira(fee.amount)}
-                    </Text>
-                    {paid ? (
-                      <Badge label="Paid" variant="green" dot />
-                    ) : (
-                      <Button label={busy ? "..." : "Pay now"} variant="primary" size="sm" loading={busy} disabled={!paystackKey} onPress={() => pay(fee)} />
+        {/* ── Fee structure ─────────────────────────────────── */}
+        <Card>
+          <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[4] }}>
+            Fee structure — {new Date().getFullYear()}/{new Date().getFullYear() + 1}
+          </Text>
+          {feeItems.length === 0 ? (
+            <Text variant="caption" color="muted" align="center">No fee items configured yet.</Text>
+          ) : (
+            feeItems.map((fee, idx) => {
+              const paid = isPaid(fee.fee_types?.id);
+              const busy = paying === fee.fee_types?.id;
+              return (
+                <View
+                  key={fee.id}
+                  style={[
+                    styles.feeRow,
+                    { borderBottomColor: colors.border.subtle },
+                    idx === feeItems.length - 1 && { borderBottomWidth: 0 },
+                  ]}
+                >
+                  <View style={layout.fill}>
+                    <Text variant="label" weight="semibold" color="primary">{fee.fee_types?.name}</Text>
+                    {fee.fee_types?.description && (
+                      <Text variant="caption" color="muted">{fee.fee_types.description}</Text>
                     )}
                   </View>
-                );
-              })
-            )}
-          </Card>
-        )}
+                  <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text.primary, marginRight: spacing[3] }}>
+                    {formatNaira(fee.amount)}
+                  </Text>
+                  {paid ? (
+                    <Badge label="Paid" variant="green" dot />
+                  ) : (
+                    <Button label={busy ? "..." : "Pay now"} variant="primary" size="sm" loading={busy} disabled={!paystackKey} onPress={() => pay(fee)} />
+                  )}
+                </View>
+              );
+            })
+          )}
+        </Card>
 
-        {/* Payment history */}
+        {/* ── Payment history ───────────────────────────────── */}
         {payments.length > 0 && (
           <Card>
             <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[4] }}>Payment history</Text>
-            {payments.map((p) => (
-              <View key={p.id} style={[styles.histRow, { borderBottomColor: colors.border.subtle }]}>
+            {payments.map((p, idx) => (
+              <View
+                key={p.id}
+                style={[
+                  styles.histRow,
+                  { borderBottomColor: colors.border.subtle },
+                  idx === payments.length - 1 && { borderBottomWidth: 0 },
+                ]}
+              >
                 <View style={layout.fill}>
                   <Text variant="label" color="primary">{p.fee_types?.name || "—"}</Text>
-                  <Text variant="mono" color="muted">{p.reference}</Text>
+                  <Text variant="mono" color="muted" style={{ fontSize: fontSize["2xs"] }}>{p.reference}</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" as any }}>
-                  <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text.primary }}>{formatNaira(p.amount)}</Text>
+                  <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text.primary }}>
+                    {formatNaira(p.amount)}
+                  </Text>
                   <Badge label={p.status} variant={SC[p.status] || "gray"} size="sm" />
                 </View>
               </View>
@@ -249,7 +301,27 @@ export default function StudentPayments() {
 }
 
 const styles = StyleSheet.create({
-  toast:   { position: "absolute", top: spacing[12], left: spacing[4], right: spacing[4], zIndex: 100, flexDirection: "row", alignItems: "center", paddingHorizontal: spacing[4], paddingVertical: spacing[3], borderRadius: radius.lg, borderWidth: 1 },
+  heroCard: {
+    flexDirection:    "row",
+    borderRadius:     radius.xl,
+    borderWidth:      1,
+    paddingVertical:  spacing[4],
+    paddingRight:     spacing[4],
+    overflow:         "hidden",
+  },
+  heroAccent: {
+    width: spacing[1],
+    borderRadius: radius.xs,
+  },
+  progressTrack: {
+    height:       spacing[1] + 2,
+    borderRadius: radius.full,
+    overflow:     "hidden",
+  },
+  progressFill: {
+    height:       "100%",
+    borderRadius: radius.full,
+  },
   feeRow:  { flexDirection: "row", alignItems: "center", paddingVertical: spacing[3], borderBottomWidth: 1 },
   histRow: { flexDirection: "row", alignItems: "center", paddingVertical: spacing[3], borderBottomWidth: 1 },
 });

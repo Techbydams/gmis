@@ -14,12 +14,13 @@ import { useRouter } from "expo-router";
 import { Text }  from "@/components/ui/Text";
 import { Icon }  from "@/components/ui/Icon";
 import { useThemeColors } from "@/context/ThemeContext";
-import { spacing, sizes, radius } from "@/theme/tokens";
+import { spacing, sizes, radius, brand, fontSize } from "@/theme/tokens";
 import { layout, iconBtn } from "@/styles/shared";
 
 interface PageHeaderProps {
   title:        string;
   subtitle?:    string;
+  breadcrumb?:  string[];        // e.g. ["Academic", "Results"] renders "Academic › Results" above title
   showBack?:    boolean;
   onBack?:      () => void;
   rightSlot?:   React.ReactNode;
@@ -30,6 +31,7 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   subtitle,
+  breadcrumb,
   showBack    = false,
   onBack,
   rightSlot,
@@ -83,6 +85,28 @@ export function PageHeader({
 
       {/* Centre */}
       <View style={[layout.fill, layout.centredH]}>
+        {/* Breadcrumb trail */}
+        {breadcrumb && breadcrumb.length > 0 && (
+          <View style={[layout.row, { gap: spacing[1], marginBottom: 2 }]}>
+            {breadcrumb.map((crumb, idx) => (
+              <View key={idx} style={layout.row}>
+                {idx > 0 && (
+                  <Text style={styles.chevron}>›</Text>
+                )}
+                <Text
+                  style={[
+                    styles.breadcrumbItem,
+                    idx === breadcrumb.length - 1 && { color: brand.blue },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {crumb}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         <Text variant="subtitle" color="primary" align="center" numberOfLines={1}>
           {title}
         </Text>
@@ -112,5 +136,14 @@ const styles = StyleSheet.create({
     width:          sizes.iconGridCell,
     alignItems:     "center",
     justifyContent: "center",
+  },
+  breadcrumbItem: {
+    fontSize:  fontSize["2xs"],
+    color:     "#64748b",   // muted, below title
+  },
+  chevron: {
+    fontSize:    fontSize["2xs"],
+    color:       "#94a3b8",
+    marginRight: spacing[1],
   },
 });

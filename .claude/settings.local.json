@@ -5,7 +5,17 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(npm --version)",
       "Bash(npm install:*)",
-      "Bash(uipro init:*)"
+      "Bash(uipro init:*)",
+      "Bash(python3 skills/ui-ux-pro-max/scripts/search.py \"education SaaS multi-tenant academic portal dashboard mobile-first\" --design-system -p \"GMIS\")",
+      "Bash(py -3 skills/ui-ux-pro-max/scripts/search.py \"education SaaS multi-tenant academic portal dashboard mobile-first\" --design-system -p \"GMIS\")",
+      "Bash(py -3 \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"dashboard admin role-based dark mode professional\" --design-system)",
+      "Bash(py -3 \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"animation loading states mobile navigation\" --domain ux)",
+      "Bash(py:*)",
+      "Bash(npx tsc:*)",
+      "Read(//c/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/**)",
+      "Bash(python3 scripts/search.py \"education mobile dashboard results payments fintech\" --domain ux -n 5)",
+      "Bash(python scripts/search.py \"mobile dashboard data visualization results\" --domain chart -n 4)",
+      "Bash(python scripts/search.py \"progress bar grade distribution comparison\" --domain chart -n 3)"
     ]
   }
 }

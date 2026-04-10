@@ -13,6 +13,7 @@ import { StatusBar }  from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { TenantProvider }          from "@/context/TenantContext";
+import { ToastProvider }           from "@/components/ui";
 
 function AppContent() {
   const { isDark } = useTheme();
@@ -32,7 +33,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <TenantProvider>
-          <AppContent />
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </TenantProvider>
       </ThemeProvider>
     </SafeAreaProvider>

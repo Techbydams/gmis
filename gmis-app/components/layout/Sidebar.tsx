@@ -89,8 +89,6 @@ function NavRow({
   active,
   onPress,
 }: { item: NavItem; active: boolean; onPress: () => void }) {
-  const { isDark } = useTheme();
-
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -98,10 +96,7 @@ function NavRow({
       style={[
         styles.navRow,
         layout.row,
-        active && {
-          backgroundColor: isDark ? brand.blueAlpha15 : brand.blueAlpha10,
-          borderLeftColor: brand.blue,
-        },
+        active && styles.navRowActive,
       ]}
     >
       <Icon
@@ -197,7 +192,7 @@ export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
           variant={
             user.role === "student"  ? "blue"   :
             user.role === "lecturer" ? "green"  :
-            user.role === "admin"    ? "gold"   : "purple"
+            user.role === "admin"    ? "gold"   : "indigo"
           }
           size="sm"
         />
@@ -313,10 +308,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical:   spacing[3],
     marginHorizontal:  spacing[2],
-    borderRadius:      radius.md,
-    borderLeftWidth:   3,
-    borderLeftColor:   "transparent",
+    borderRadius:      radius.lg,
     gap:               spacing[2],
+  },
+  navRowActive: {
+    backgroundColor: brand.blueAlpha15,
   },
   navLabel: {
     flex: 1,

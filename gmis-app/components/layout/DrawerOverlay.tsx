@@ -11,7 +11,9 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
+import { useEffect, useRef } from "react";
 import {
+  Animated,
   View, TouchableOpacity, ScrollView,
   StyleSheet, useWindowDimensions,
 } from "react-native";
@@ -46,10 +48,41 @@ export function DrawerOverlay({
   visible, onClose, onNavigate, items, user, schoolName, onLogout,
 }: DrawerOverlayProps) {
   const { colors, toggleTheme, isDark } = useTheme();
-  const pathname  = usePathname();
-  const { width } = useWindowDimensions();
+  const pathname    = usePathname();
+  const { width }   = useWindowDimensions();
 
   const drawerWidth = Math.min(280, Math.floor(width * 0.80));
+
+  // Animated values — panel slides in from left, backdrop fades in
+  const translateX      = useRef(new Animated.Value(-drawerWidth)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!visible) {
+      // Reset to off-screen so the next open starts fresh
+      translateX.setValue(-drawerWidth);
+      backdropOpacity.setValue(0);
+      return;
+    }
+    // Slide in + fade backdrop together
+    Animated.parallel([
+      Animated.spring(translateX, {
+        toValue:         0,
+        damping:         22,
+        stiffness:       260,
+        mass:            0.9,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue:         1,
+        duration:        250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [visible, drawerWidth]);
+
+  const panelStyle    = { transform: [{ translateX }] };
+  const backdropStyle = { opacity: backdropOpacity };
 
   if (!visible) return null;
 
@@ -57,18 +90,23 @@ export function DrawerOverlay({
     // Sits in same React tree as AppShell → all contexts intact
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
 
-      {/* Backdrop — full screen, tap to close */}
-      <TouchableOpacity
-        style={[StyleSheet.absoluteFill, styles.backdrop]}
-        onPress={onClose}
-        activeOpacity={1}
+      {/* Backdrop — animated fade, full screen, tap to close */}
+      <Animated.View
+        style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
         pointerEvents="auto"
-      />
+      >
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          activeOpacity={1}
+        />
+      </Animated.View>
 
-      {/* Drawer panel — on top of backdrop */}
-      <View
+      {/* Drawer panel — animated slide from left */}
+      <Animated.View
         style={[
           styles.panel,
+          panelStyle,
           {
             width:            drawerWidth,
             backgroundColor:  colors.bg.elevated,
@@ -101,7 +139,7 @@ export function DrawerOverlay({
 
           {/* User info */}
           <View style={[styles.userRow, { borderBottomColor: colors.border.subtle }]}>
-            <Avatar name={user.name} role={user.role as any} size="md" uri={user.photoUrl} />
+            <Avatar name={user.name} role={user.role as any} size="md" src={user.avatarUrl} />
             <View style={layout.fill}>
               <Text variant="label" weight="semibold" color="primary" numberOfLines={1}>
                 {user.name}
@@ -121,13 +159,13 @@ export function DrawerOverlay({
           <ScrollView style={layout.fill} showsVerticalScrollIndicator={false}>
             <View style={{ padding: spacing[3] }}>
               {items.map((item) => {
-                if (!item.path) return null;  // safety guard
-                const strippedItemPath = stripGroups(item.path);
+                if (!item.href) return null;  // safety guard
+                const strippedItemPath = stripGroups(item.href);
                 const isActive = pathname === strippedItemPath;
                 return (
                   <TouchableOpacity
-                    key={item.path}
-                    onPress={() => { onClose(); onNavigate(item.path); }}
+                    key={item.href}
+                    onPress={() => { onClose(); onNavigate(item.href); }}
                     activeOpacity={0.75}
                     style={[
                       styles.navItem,
@@ -152,7 +190,7 @@ export function DrawerOverlay({
                       {item.label}
                     </Text>
                     {item.badge && (
-                      <Badge label={item.badge} variant={(item.badgeVariant as any) || "brand"} size="xs" />
+                      <Badge label={item.badge} variant="brand" size="xs" />
                     )}
                   </TouchableOpacity>
                 );
@@ -187,7 +225,7 @@ export function DrawerOverlay({
           </View>
 
         </SafeAreaView>
-      </View>
+      </Animated.View>
     </View>
   );
 }

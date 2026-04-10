@@ -9,7 +9,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -64,11 +64,59 @@ const SLIDES: OnboardingSlide[] = [
   },
 ];
 
+// Dot inactive/active widths
+const DOT_INACTIVE = spacing[2];  // 8px
+const DOT_ACTIVE   = spacing[6];  // 24px
+
 export default function Onboarding() {
   const router        = useRouter();
   const { colors }    = useTheme();
   const [page, setPage] = useState(0);
   const scrollRef     = useRef<ScrollView>(null);
+
+  // ── Dot animations ────────────────────────────────────────
+  // One Animated.Value per dot, tracking its width
+  const dotAnims = useRef(
+    SLIDES.map((_, i) => new Animated.Value(i === 0 ? DOT_ACTIVE : DOT_INACTIVE)),
+  ).current;
+
+  // ── Icon entrance animations ──────────────────────────────
+  const iconScale   = useRef(new Animated.Value(1)).current;
+  const iconOpacity = useRef(new Animated.Value(1)).current;
+
+  // Animate dots + icon whenever page changes
+  useEffect(() => {
+    // Dots: each collapses/expands to target width
+    const dotAnimations = dotAnims.map((anim, i) =>
+      Animated.spring(anim, {
+        toValue:         i === page ? DOT_ACTIVE : DOT_INACTIVE,
+        damping:         20,
+        stiffness:       300,
+        mass:            0.6,
+        useNativeDriver: false,  // width cannot use native driver
+      }),
+    );
+
+    // Icon: scale from 0.75→1 and fade from 0→1
+    iconScale.setValue(0.75);
+    iconOpacity.setValue(0);
+    const iconAnimation = Animated.parallel([
+      Animated.spring(iconScale, {
+        toValue:         1,
+        damping:         18,
+        stiffness:       280,
+        mass:            0.7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(iconOpacity, {
+        toValue:         1,
+        duration:        220,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    Animated.parallel([...dotAnimations, iconAnimation]).start();
+  }, [page]);
 
   const goTo = (index: number) => {
     setPage(index);
@@ -83,9 +131,10 @@ export default function Onboarding() {
     }
   };
 
-  const skip = () => router.replace("/find-school");
-
+  const skip  = () => router.replace("/find-school");
   const isLast = page === SLIDES.length - 1;
+
+  const currentSlide = SLIDES[page];
 
   return (
     <SafeAreaView style={[{ flex: 1, backgroundColor: colors.bg.primary }]} edges={["top", "bottom"]}>
@@ -108,18 +157,25 @@ export default function Onboarding() {
         scrollEnabled={false}
         style={layout.fill}
         contentContainerStyle={{ width: SCREEN_WIDTH * SLIDES.length }}
+        onMomentumScrollEnd={(e) => {
+          const newPage = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          if (newPage !== page) setPage(newPage);
+        }}
       >
         {SLIDES.map((slide, i) => (
           <View key={i} style={[styles.slide, { width: SCREEN_WIDTH }]}>
-            {/* Icon circle */}
-            <View
+            {/* Icon circle — animated on active slide */}
+            <Animated.View
               style={[
                 styles.iconCircle,
                 { backgroundColor: slide.iconColor + "18", borderColor: slide.iconColor + "30" },
+                i === page
+                  ? { transform: [{ scale: iconScale }], opacity: iconOpacity }
+                  : undefined,
               ]}
             >
               <Icon name={slide.icon} size="3xl" color={slide.iconColor} />
-            </View>
+            </Animated.View>
 
             <Text
               variant="heading"
@@ -144,15 +200,16 @@ export default function Onboarding() {
 
       {/* Bottom area */}
       <View style={[styles.bottom, { paddingBottom: spacing[8] }]}>
-        {/* Dots */}
+
+        {/* Animated dots */}
         <View style={[layout.row, { gap: spacing[2], marginBottom: spacing[6] }]}>
           {SLIDES.map((_, i) => (
             <TouchableOpacity key={i} onPress={() => goTo(i)} activeOpacity={0.7}>
-              <View
+              <Animated.View
                 style={[
                   styles.dot,
                   {
-                    width:           i === page ? spacing[6] : spacing[2],
+                    width:           dotAnims[i],
                     backgroundColor: i === page ? brand.blue : colors.border.strong,
                   },
                 ]}
@@ -197,19 +254,19 @@ const styles = StyleSheet.create({
     paddingVertical:   spacing[1],
   },
   slide: {
-    flex:           1,
-    alignItems:     "center",
-    justifyContent: "center",
+    flex:              1,
+    alignItems:        "center",
+    justifyContent:    "center",
     paddingHorizontal: spacing[6],
-    gap:            spacing[5],
+    gap:               spacing[5],
   },
   iconCircle: {
-    width:        120,
-    height:       120,
-    borderRadius: 60,
-    alignItems:   "center",
+    width:          120,
+    height:         120,
+    borderRadius:   60,
+    alignItems:     "center",
     justifyContent: "center",
-    borderWidth:  1,
+    borderWidth:    1,
   },
   bottom: {
     paddingHorizontal: spacing[6],
@@ -218,6 +275,5 @@ const styles = StyleSheet.create({
   dot: {
     height:       spacing[2],
     borderRadius: radius.full,
-    transition:   "width 0.3s" as any,
   },
 });

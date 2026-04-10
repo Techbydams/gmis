@@ -14,9 +14,10 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
+  Animated,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -28,7 +29,7 @@ import { useRouter }    from "expo-router";
 import { supabase }         from "@/lib/supabase";
 import { useTenant }        from "@/context/TenantContext";
 import { redirectToTenant } from "@/lib/helpers";
-import { Text, Input, Button, Card, Spinner } from "@/components/ui";
+import { Text, Input, Button, Card } from "@/components/ui";
 import { Icon }       from "@/components/ui/Icon";
 import { useTheme }   from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
@@ -60,6 +61,59 @@ export default function FindSchool() {
   const [notFound,    setNotFound]    = useState(false);
   const [action,      setAction]      = useState<FindAction>("login");
   const [error,       setError]       = useState<string | null>(null);
+
+  // ── Logo entrance animation ──────────────────────────────
+  const logoScale   = useRef(new Animated.Value(0.8)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(logoScale, { toValue: 1, damping: 16, stiffness: 220, mass: 0.8, useNativeDriver: true }),
+      Animated.timing(logoOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  // ── Connecting screen pulse animation ────────────────────
+  const pulseScale   = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(0.7)).current;
+
+  useEffect(() => {
+    if (!navigating) return;
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(pulseScale,   { toValue: 1.35, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseOpacity, { toValue: 0,    duration: 800, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(pulseScale,   { toValue: 1, duration: 0,   useNativeDriver: true }),
+          Animated.timing(pulseOpacity, { toValue: 0.7, duration: 0, useNativeDriver: true }),
+        ]),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [navigating]);
+
+  // ── Action tab sliding pill ───────────────────────────────
+  const [tabsWidth,    setTabsWidth]    = useState(0);
+  const actionPillX    = useRef(new Animated.Value(0)).current;
+  const actionInitRef  = useRef(false);
+
+  useEffect(() => {
+    if (tabsWidth === 0) return;
+    const idx    = action === "login" ? 0 : 1;
+    const tabW   = (tabsWidth - 8) / 2;
+    const target = idx * tabW + 4;
+    if (!actionInitRef.current) {
+      actionPillX.setValue(target);
+      actionInitRef.current = true;
+    } else {
+      Animated.spring(actionPillX, {
+        toValue: target, damping: 22, stiffness: 300, mass: 0.7, useNativeDriver: false,
+      }).start();
+    }
+  }, [action, tabsWidth]);
 
   // ── Search — includes credentials in one query ─────────
   const search = async () => {
@@ -123,7 +177,24 @@ export default function FindSchool() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg.primary }}>
         <View style={[layout.fill, layout.centred, { padding: spacing[6] }]}>
-          <Spinner size="lg" />
+          {/* Animated pulse ring */}
+          <View style={{ width: 88, height: 88, alignItems: "center", justifyContent: "center" }}>
+            <Animated.View
+              style={{
+                position:        "absolute",
+                width:           88,
+                height:          88,
+                borderRadius:    44,
+                backgroundColor: brand.blueAlpha15,
+                transform:       [{ scale: pulseScale }],
+                opacity:         pulseOpacity,
+              }}
+            />
+            <View style={[styles.logoBox, { width: 64, height: 64, borderRadius: radius.xl }]}>
+              <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize.xl, color: "#fff" }}>G</Text>
+            </View>
+          </View>
+
           <View style={{ marginTop: spacing[6], alignItems: "center" }}>
             <Text variant="caption" color="muted" style={{ marginBottom: spacing[2] }}>
               Connecting to
@@ -133,6 +204,7 @@ export default function FindSchool() {
                 fontSize:   isMobile ? fontSize["2xl"] : fontSize["3xl"],
                 fontWeight: fontWeight.black,
                 color:      brand.blue,
+                textAlign:  "center",
               }}
             >
               {selected.name}
@@ -163,8 +235,10 @@ export default function FindSchool() {
         >
           <View style={styles.inner}>
 
-            {/* Logo + title */}
-            <View style={[layout.centredH, { marginBottom: spacing[6] }]}>
+            {/* Logo + title — entrance animation */}
+            <Animated.View
+              style={[layout.centredH, { marginBottom: spacing[6], transform: [{ scale: logoScale }], opacity: logoOpacity }]}
+            >
               <TouchableOpacity
                 onPress={() => router.canGoBack() ? router.back() : null}
                 style={[styles.logoBox, { marginBottom: spacing[5] }]}
@@ -182,16 +256,28 @@ export default function FindSchool() {
               >
                 Search your school to access your portal
               </Text>
-            </View>
+            </Animated.View>
 
-            {/* Login / Signup toggle */}
-            <View style={[styles.actionTabs, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}>
+            {/* Login / Signup toggle — sliding pill */}
+            <View
+              style={[styles.actionTabs, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
+              onLayout={(e) => setTabsWidth(e.nativeEvent.layout.width)}
+            >
+              {tabsWidth > 0 && (
+                <Animated.View
+                  style={[
+                    styles.actionTabPill,
+                    { width: (tabsWidth - 8) / 2, transform: [{ translateX: actionPillX }] },
+                  ]}
+                  pointerEvents="none"
+                />
+              )}
               {(["login", "signup"] as FindAction[]).map((id) => (
                 <TouchableOpacity
                   key={id}
                   onPress={() => setAction(id)}
-                  style={[styles.actionTab, action === id && { backgroundColor: brand.blue }]}
-                  activeOpacity={0.75}
+                  style={[styles.actionTab]}
+                  activeOpacity={0.85}
                 >
                   <Icon name={id === "login" ? "status-locked" : "action-add"} size="xs" color={action === id ? "#fff" : colors.text.muted} />
                   <Text style={{ fontSize: fontSize.sm, fontWeight: action === id ? fontWeight.bold : fontWeight.normal, color: action === id ? "#fff" : colors.text.muted, marginLeft: spacing[1] }}>
@@ -351,7 +437,14 @@ const styles = StyleSheet.create({
     borderWidth:   1,
     padding:       spacing[1],
     marginBottom:  spacing[5],
-    gap:           spacing[1],
+    position:      "relative",
+  },
+  actionTabPill: {
+    position:        "absolute",
+    top:             spacing[1],
+    bottom:          spacing[1],
+    borderRadius:    radius.lg,
+    backgroundColor: brand.blue,
   },
   actionTab: {
     flex:            1,
@@ -361,6 +454,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[3],
     borderRadius:    radius.lg,
     gap:             spacing[1],
+    zIndex:          1,
   },
   resultsList: { borderRadius: radius.lg, borderWidth: 1, overflow: "hidden", marginBottom: spacing[3] },
   resultItem:  { flexDirection: "row", alignItems: "center", gap: spacing[3], paddingHorizontal: spacing[4], paddingVertical: spacing[3] },

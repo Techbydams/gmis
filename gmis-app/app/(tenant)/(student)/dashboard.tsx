@@ -20,7 +20,7 @@ import { useAuth }       from "@/context/AuthContext";
 import { useTenant }     from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
 import { formatGPA, getHonourClass, timeAgo, greeting } from "@/lib/helpers";
-import { Text, Card, Badge, StatCard, Spinner } from "@/components/ui";
+import { Text, Card, Badge, StatCard, SkeletonDashboard } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }      from "@/context/ThemeContext";
@@ -289,9 +289,12 @@ export default function StudentDashboard() {
   if (loading) {
     return (
       <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Dashboard">
-        <View style={[layout.fill, layout.centred]}>
-          <Spinner size="lg" label="Loading dashboard..." />
-        </View>
+        <ScrollView
+          style={[layout.fill, { backgroundColor: colors.bg.primary }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <SkeletonDashboard />
+        </ScrollView>
       </AppShell>
     );
   }
@@ -315,6 +318,14 @@ export default function StudentDashboard() {
     );
   }
 
+  // Find the next upcoming class today
+  const now        = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nextClass  = classes.find((c) => {
+    const [h, m] = (c.start_time || "00:00").split(":").map(Number);
+    return h * 60 + m > nowMinutes;
+  }) ?? classes[0] ?? null;
+
   return (
     <AppShell
       role="student"
@@ -325,7 +336,7 @@ export default function StudentDashboard() {
     >
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
-        contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
+        contentContainerStyle={{ padding: pagePadding, paddingBottom: spacing[12], gap: spacing[4] }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -335,17 +346,16 @@ export default function StudentDashboard() {
           />
         }
       >
-        {/* Greeting */}
-        <View style={[layout.rowBetween, { flexWrap: "wrap", gap: spacing[3] }]}>
+        {/* ── Header row ────────────────────────────────── */}
+        <View style={[layout.rowBetween, { alignItems: "flex-start" }]}>
           <View style={layout.fill}>
             <Text variant="heading" color="primary">
-              {greeting()}, {firstName} 👋
+              {greeting()}, {firstName}
             </Text>
             <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
               {student?.matric_number}
               {deptName ? ` · ${deptName}` : ""}
-              {student?.level ? ` · ${student.level} Level` : ""}
-              {tenant?.name ? ` · ${tenant.name}` : ""}
+              {student?.level ? ` · ${student.level}L` : ""}
             </Text>
           </View>
           <TouchableOpacity
@@ -357,162 +367,257 @@ export default function StudentDashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
-        <View style={[layout.rowWrap, { gap: spacing[3] }]}>
+        {/* ── Next class hero card ───────────────────────── */}
+        <TouchableOpacity
+          onPress={() => router.push("/(tenant)/(student)/timetable" as any)}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.heroCard, { backgroundColor: colors.bg.card, borderColor: colors.border.brand }]}>
+            {/* Accent left bar */}
+            <View style={[styles.heroAccent, { backgroundColor: brand.blue }]} />
+            <View style={styles.heroContent}>
+              <Text variant="micro" color="muted" style={{ textTransform: "uppercase", letterSpacing: 1 }}>
+                {nextClass ? "Next class today" : "Today's schedule"}
+              </Text>
+              {nextClass ? (
+                <>
+                  <Text variant="title" color="primary" style={{ marginTop: spacing[1] }} numberOfLines={1}>
+                    {nextClass.courses?.course_code} — {nextClass.courses?.course_name}
+                  </Text>
+                  <View style={[layout.row, { gap: spacing[3], marginTop: spacing[2] }]}>
+                    <View style={[layout.row, { gap: spacing[1] }]}>
+                      <Icon name="nav-timetable" size="sm" color={brand.blue} />
+                      <Text variant="caption" color="link">
+                        {nextClass.start_time?.slice(0, 5)} – {nextClass.end_time?.slice(0, 5)}
+                      </Text>
+                    </View>
+                    {nextClass.venue && (
+                      <View style={[layout.row, { gap: spacing[1] }]}>
+                        <Icon name="nav-academic" size="sm" color={colors.text.muted} />
+                        <Text variant="caption" color="muted">{nextClass.venue}</Text>
+                      </View>
+                    )}
+                  </View>
+                  {classes.length > 1 && (
+                    <Text variant="micro" color="muted" style={{ marginTop: spacing[2] }}>
+                      +{classes.length - 1} more class{classes.length - 1 > 1 ? "es" : ""} today
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Text variant="title" color="primary" style={{ marginTop: spacing[1] }}>
+                    No classes today
+                  </Text>
+                  <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
+                    {new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}
+                  </Text>
+                </>
+              )}
+            </View>
+            <Icon name="ui-forward" size="md" color={colors.text.muted} />
+          </View>
+        </TouchableOpacity>
+
+        {/* ── Primary stats — GPA + Attendance ─────────── */}
+        <View style={[layout.row, { gap: spacing[3] }]}>
           <StatCard
-            icon="academic-gpa" label="GPA" value={formatGPA(student?.gpa || 0)}
+            icon="academic-gpa"
+            label="GPA"
+            value={formatGPA(student?.gpa || 0)}
             sub={getHonourClass(student?.gpa || 0)}
             color={(student?.gpa || 0) >= 4.5 ? "success" : (student?.gpa || 0) >= 3.5 ? "info" : "warning"}
           />
-          <StatCard icon="nav-courses" label="Courses" value={String(stats.courses)} sub="Registered" color="brand" />
           <StatCard
-            icon="nav-payments" label="Fees" value={`${stats.paidFees}/${stats.totalFees}`} sub="Items paid"
-            color={stats.paidFees === stats.totalFees && stats.totalFees > 0 ? "success" : "warning"}
-          />
-          <StatCard
-            icon="nav-attendance" label="Attendance"
-            value={stats.attendance > 0 ? `${stats.attendance}%` : "—"} sub="This semester"
+            icon="nav-attendance"
+            label="Attendance"
+            value={stats.attendance > 0 ? `${stats.attendance}%` : "—"}
+            sub="This semester"
             color={stats.attendance >= 75 ? "success" : stats.attendance >= 50 ? "warning" : "error"}
           />
         </View>
 
-        {/* CGPA banner */}
+        {/* ── Secondary stats — Courses + Fees ─────────── */}
+        <View style={[layout.row, { gap: spacing[3] }]}>
+          <StatCard
+            icon="nav-courses"
+            label="Courses"
+            value={String(stats.courses)}
+            sub="Registered"
+            color="brand"
+          />
+          <StatCard
+            icon="nav-payments"
+            label="Fees"
+            value={`${stats.paidFees}/${stats.totalFees}`}
+            sub="Items paid"
+            color={stats.paidFees === stats.totalFees && stats.totalFees > 0 ? "success" : "warning"}
+          />
+        </View>
+
+        {/* ── CGPA banner ────────────────────────────────── */}
         {(student?.cgpa || 0) > 0 && (
-          <Card variant="brand">
-            <View style={layout.rowBetween}>
-              <View style={[layout.row, { gap: spacing[2] }]}>
-                <Icon name="academic-grade" size="md" color={brand.blue} />
-                <Text variant="label" color="brand">
-                  CGPA: <Text variant="label" weight="bold" color="brand">{formatGPA(student?.cgpa || 0)}</Text>
-                  {" "}— {getHonourClass(student?.cgpa || 0)}
-                </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(tenant)/(student)/results" as any)}
+            activeOpacity={0.8}
+          >
+            <Card variant="brand">
+              <View style={layout.rowBetween}>
+                <View style={[layout.row, { gap: spacing[2] }]}>
+                  <Icon name="academic-grade" size="md" color={brand.blue} />
+                  <Text variant="label" color="brand">
+                    CGPA:{" "}
+                    <Text variant="label" weight="extrabold" color="brand">
+                      {formatGPA(student?.cgpa || 0)}
+                    </Text>
+                    {" "}— {getHonourClass(student?.cgpa || 0)}
+                  </Text>
+                </View>
+                <Icon name="ui-forward" size="sm" color={brand.blue} />
               </View>
-              <TouchableOpacity onPress={() => router.push("/(tenant)/(student)/results" as any)}>
-                <Text variant="caption" color="link">View results →</Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
+            </Card>
+          </TouchableOpacity>
         )}
 
-        {/* Quick actions + Today's classes */}
-        <View style={[layout.rowWrap, { gap: spacing[4], alignItems: "flex-start" }]}>
-          <Card style={styles.halfCard}>
-            <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[3] }}>
-              Quick actions
-            </Text>
+        {/* ── Quick actions grid ─────────────────────────── */}
+        <View>
+          <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[3] }}>
+            Quick actions
+          </Text>
+          <View style={[layout.rowWrap, { gap: spacing[3] }]}>
             {QUICK_ACTIONS.map(({ label, icon, path }) => (
               <TouchableOpacity
                 key={path}
                 onPress={() => router.push(path as any)}
                 activeOpacity={0.75}
-                style={[styles.actionRow, { backgroundColor: colors.bg.hover, borderColor: colors.border.subtle }]}
+                style={[styles.actionTile, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
               >
-                <Icon name={icon} size="md" color={colors.text.secondary} />
-                <Text variant="label" color="primary" style={layout.fill}>{label}</Text>
-                <Icon name="ui-forward" size="sm" color={colors.text.muted} />
+                <View style={[styles.actionIcon, { backgroundColor: brand.blueAlpha10 }]}>
+                  <Icon name={icon} size="md" color={brand.blue} />
+                </View>
+                <Text
+                  variant="micro"
+                  color="secondary"
+                  align="center"
+                  numberOfLines={2}
+                  style={{ marginTop: spacing[2] }}
+                >
+                  {label}
+                </Text>
               </TouchableOpacity>
             ))}
-          </Card>
-
-          <Card style={styles.halfCard}>
-            <View style={[layout.rowBetween, { marginBottom: spacing[3] }]}>
-              <Text variant="label" weight="bold" color="primary">Today's classes</Text>
-              <Text variant="caption" color="muted">
-                {new Date().toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}
-              </Text>
-            </View>
-            {classes.length === 0 ? (
-              <View style={[layout.centredH, { paddingVertical: spacing[5] }]}>
-                <Icon name="nav-calendar" size="2xl" color={colors.text.muted} />
-                <Text variant="caption" color="muted" align="center" style={{ marginTop: spacing[2] }}>
-                  No classes today 🎉
-                </Text>
-              </View>
-            ) : (
-              classes.map((c, i) => {
-                const accent = [brand.blue, "#10b981", "#f59e0b", "#8b5cf6"][i % 4];
-                return (
-                  <View
-                    key={c.id}
-                    style={[styles.classRow, { borderLeftColor: accent, backgroundColor: accent + "15" }]}
-                  >
-                    <Text variant="label" weight="semibold" color="primary">
-                      {c.courses?.course_code} — {c.courses?.course_name}
-                    </Text>
-                    <Text variant="caption" color="muted" style={{ marginTop: 2 }}>
-                      {c.start_time?.slice(0, 5)} – {c.end_time?.slice(0, 5)}
-                      {c.venue ? ` · ${c.venue}` : ""}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
-          </Card>
+          </View>
         </View>
 
-        {/* Notifications */}
+        {/* ── Notifications ──────────────────────────────── */}
         <Card>
           <View style={[layout.rowBetween, { marginBottom: spacing[3] }]}>
             <View style={[layout.row, { gap: spacing[2] }]}>
+              <Icon name="ui-bell" size="md" color={colors.text.primary} />
               <Text variant="label" weight="bold" color="primary">Notifications</Text>
-              {unread > 0 && <Badge label={`${unread} new`} variant="red" size="sm" />}
+              {unread > 0 && <Badge label={`${unread}`} variant="red" size="xs" />}
             </View>
             {unread > 0 && (
               <TouchableOpacity onPress={markAllRead} activeOpacity={0.7}>
-                <Text variant="caption" color="link">Mark all read</Text>
+                <Text variant="caption" color="link">Mark read</Text>
               </TouchableOpacity>
             )}
           </View>
+
           {notifs.length === 0 ? (
             <View style={[layout.centredH, { paddingVertical: spacing[5] }]}>
-              <Text variant="body" color="muted">No notifications yet.</Text>
+              <Text variant="caption" color="muted">No notifications yet.</Text>
             </View>
           ) : (
-            notifs.map((n, i) => (
-              <View
-                key={n.id}
-                style={[
-                  styles.notifRow,
-                  i < notifs.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
-                  { opacity: n.is_read ? 0.55 : 1 },
-                ]}
-              >
-                <View style={[
-                  styles.notifDot,
-                  {
-                    backgroundColor:
-                      n.type === "result"  ? colors.status.success :
-                      n.type === "payment" ? colors.status.warning :
-                      n.type === "alert"   ? colors.status.error   :
-                      colors.status.info,
-                  },
-                ]} />
-                <View style={layout.fill}>
-                  <Text variant="label" weight="semibold" color="primary">{n.title}</Text>
-                  <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>{n.message}</Text>
+            notifs.map((n, i) => {
+              const dotColor =
+                n.type === "result"  ? colors.status.success :
+                n.type === "payment" ? colors.status.warning :
+                n.type === "alert"   ? colors.status.error   :
+                colors.status.info;
+              return (
+                <View
+                  key={n.id}
+                  style={[
+                    styles.notifRow,
+                    i < notifs.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
+                    !n.is_read && { backgroundColor: brand.blueAlpha5, marginHorizontal: -spacing[4], paddingHorizontal: spacing[4] },
+                  ]}
+                >
+                  <View style={[styles.notifDot, { backgroundColor: dotColor }]} />
+                  <View style={layout.fill}>
+                    <Text variant="label" weight={n.is_read ? "normal" : "semibold"} color="primary">
+                      {n.title}
+                    </Text>
+                    <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>{n.message}</Text>
+                  </View>
+                  <Text variant="micro" color="muted" style={{ marginLeft: spacing[2], flexShrink: 0 }}>
+                    {timeAgo(n.created_at)}
+                  </Text>
                 </View>
-                <Text variant="micro" color="muted" style={{ marginLeft: spacing[2] }}>
-                  {timeAgo(n.created_at)}
-                </Text>
-              </View>
-            ))
+              );
+            })
           )}
         </Card>
-
-        <Text variant="micro" color="muted" align="center" style={{ marginBottom: spacing[4] }}>
-          GMIS · A product of DAMS Technologies
-        </Text>
       </ScrollView>
     </AppShell>
   );
 }
 
 const styles = StyleSheet.create({
-  ghostBtn:   { paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.lg, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.05)" },
-  settingsBtn:{ width: spacing[10], height: spacing[10], borderRadius: radius.full, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  halfCard:   { flex: 1, minWidth: 280 },
-  actionRow:  { flexDirection: "row", alignItems: "center", gap: spacing[3], paddingHorizontal: spacing[3], paddingVertical: spacing[2] + spacing[1], borderRadius: radius.md, borderWidth: 1, marginBottom: spacing[2] },
-  classRow:   { borderLeftWidth: 3, borderTopRightRadius: radius.md, borderBottomRightRadius: radius.md, paddingLeft: spacing[3], paddingVertical: spacing[2], marginBottom: spacing[2] },
-  notifRow:   { flexDirection: "row", alignItems: "flex-start", gap: spacing[3], paddingVertical: spacing[3] },
-  notifDot:   { width: spacing[2], height: spacing[2], borderRadius: radius.full, marginTop: spacing[1], flexShrink: 0 },
+  ghostBtn: {
+    paddingHorizontal: spacing[4], paddingVertical: spacing[2],
+    borderRadius: radius.lg, borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  settingsBtn: {
+    width: spacing[10], height: spacing[10],
+    borderRadius: radius.full, borderWidth: 1,
+    alignItems: "center", justifyContent: "center",
+  },
+  // Hero next-class card
+  heroCard: {
+    flexDirection: "row", alignItems: "center",
+    borderRadius: radius.lg, borderWidth: 1,
+    overflow: "hidden",
+    paddingRight: spacing[4],
+  },
+  heroAccent: {
+    width: spacing[1],
+    alignSelf: "stretch",
+    minHeight: 72,
+  },
+  heroContent: {
+    flex: 1,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[4],
+  },
+  // Quick action tile
+  actionTile: {
+    width: "30%",
+    flexGrow: 1,
+    alignItems: "center",
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[2],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    minWidth: 90,
+    maxWidth: 120,
+  },
+  actionIcon: {
+    width: spacing[10], height: spacing[10],
+    borderRadius: radius.lg,
+    alignItems: "center", justifyContent: "center",
+  },
+  // Notification row
+  notifRow: {
+    flexDirection: "row", alignItems: "flex-start",
+    gap: spacing[3], paddingVertical: spacing[3],
+  },
+  notifDot: {
+    width: spacing[2], height: spacing[2],
+    borderRadius: radius.full,
+    marginTop: spacing[1] + 2,
+    flexShrink: 0,
+  },
 });

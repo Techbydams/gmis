@@ -15,7 +15,7 @@ import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
 import { calcGPA, formatGPA, getHonourClass, gradeColor } from "@/lib/grading";
-import { Text, Card, Badge, Spinner, EmptyState } from "@/components/ui";
+import { Text, Card, Badge, SkeletonDashboard, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }     from "@/context/ThemeContext";
@@ -94,9 +94,19 @@ export default function StudentResults() {
 
   const shellUser = { name: user?.email?.split("@")[0] || "Student", role: "student" as const };
 
+  // Grade distribution for active semester
+  const gradeDistribution = useMemo(() => {
+    const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
+    activeRows.forEach((r) => { if (r.grade in counts) counts[r.grade]++; });
+    const total = activeRows.length;
+    return Object.entries(counts)
+      .filter(([, count]) => count > 0)
+      .map(([grade, count]) => ({ grade, count, pct: total > 0 ? count / total : 0 }));
+  }, [activeRows]);
+
   if (loading) return (
     <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Results">
-      <View style={[layout.fill, layout.centred]}><Spinner size="lg" label="Loading results..." /></View>
+      <SkeletonDashboard />
     </AppShell>
   );
 
@@ -133,17 +143,57 @@ export default function StudentResults() {
           </Card>
         )}
 
-        {/* Grade scale reference */}
-        <Card padding="sm">
-          <View style={[layout.row, { flexWrap: "wrap", gap: spacing[3] }]}>
-            {Object.entries(GRADE_RANGES).map(([g, range]) => (
-              <View key={g} style={[layout.row, { gap: spacing[1] }]}>
-                <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: gradeColor(g, isDark) }}>{g}</Text>
-                <Text variant="micro" color="muted">({range})</Text>
+        {/* Grade distribution bar chart — shown when active semester has results */}
+        {gradeDistribution.length > 0 && (
+          <Card padding="md">
+            <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[3] }}>
+              Grade distribution
+            </Text>
+            {gradeDistribution.map(({ grade, count, pct }) => (
+              <View key={grade} style={[layout.row, { alignItems: "center", gap: spacing[3], marginBottom: spacing[2] }]}>
+                {/* Grade label */}
+                <Text style={{
+                  width:      spacing[5],
+                  fontSize:   fontSize.sm,
+                  fontWeight: fontWeight.black,
+                  color:      gradeColor(grade, isDark),
+                }}>
+                  {grade}
+                </Text>
+                {/* Bar track */}
+                <View style={[styles.barTrack, { backgroundColor: colors.bg.hover, flex: 1 }]}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      {
+                        width:           `${Math.max(pct * 100, 4)}%` as any,
+                        backgroundColor: gradeColor(grade, isDark),
+                      },
+                    ]}
+                  />
+                </View>
+                {/* Count */}
+                <Text style={{
+                  width:    spacing[6],
+                  fontSize: fontSize.xs,
+                  color:    colors.text.muted,
+                  textAlign: "right" as any,
+                }}>
+                  {count}
+                </Text>
               </View>
             ))}
-          </View>
-        </Card>
+            {/* Grade key */}
+            <View style={[layout.row, { flexWrap: "wrap", gap: spacing[3], marginTop: spacing[3], paddingTop: spacing[3], borderTopWidth: 1, borderTopColor: colors.border.subtle }]}>
+              {Object.entries(GRADE_RANGES).map(([g, range]) => (
+                <View key={g} style={[layout.row, { gap: spacing[1] }]}>
+                  <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: gradeColor(g, isDark) }}>{g}</Text>
+                  <Text variant="micro" color="muted">({range})</Text>
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
 
         {/* Semester tabs */}
         {groups.length > 0 && (
@@ -173,7 +223,13 @@ export default function StudentResults() {
 
         {/* Results table */}
         {error ? (
-          <Card variant="error"><Text color="error">{error}</Text></Card>
+          <EmptyState
+            variant="error"
+            title="Could not load results"
+            description={error}
+            actionLabel="Try again"
+            onAction={() => load()}
+          />
         ) : results.length === 0 ? (
           <EmptyState icon="nav-results" title="No results published" description="Results appear once your lecturer uploads them and admin releases them." />
         ) : activeRows.length > 0 ? (
@@ -248,4 +304,14 @@ const styles = StyleSheet.create({
   th:         { flex: 1, fontSize: fontSize["2xs"], fontWeight: fontWeight.bold, textTransform: "uppercase" as any, letterSpacing: 0.5 },
   td:         { flex: 1, fontSize: fontSize.sm, textAlign: "center" as any },
   courseCell: { flex: 3 },
+  barTrack: {
+    height:       spacing[2] + 2,
+    borderRadius: radius.full,
+    overflow:     "hidden",
+  },
+  barFill: {
+    height:       "100%",
+    borderRadius: radius.full,
+    opacity:      0.85,
+  },
 });

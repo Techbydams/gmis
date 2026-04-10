@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     left:         "50%",
     marginTop:    -350,
     marginLeft:   -350,
-    backgroundColor: brand.goldAlpha5,
+    backgroundColor: brand.goldAlpha10,
     pointerEvents: "none",
   } as any,
   toast: {

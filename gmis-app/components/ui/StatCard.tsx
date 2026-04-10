@@ -6,14 +6,20 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, type ViewStyle } from "react-native";
 import { Text }   from "./Text";
 import { Card }   from "./Card";
 import { Icon, type IconName } from "./Icon";
 import { useThemeColors } from "@/context/ThemeContext";
-import { brand, spacing, fontSize, fontWeight } from "@/theme/tokens";
+import { brand, spacing, fontSize, fontWeight, radius } from "@/theme/tokens";
+import { layout } from "@/styles/shared";
 
 type StatColor = "primary" | "success" | "warning" | "error" | "brand" | "info" | "gold";
+
+interface StatTrend {
+  value:     number;           // e.g. 4.2 (shown as "4.2%")
+  direction: "up" | "down" | "flat";
+}
 
 interface StatCardProps {
   icon?:  IconName;
@@ -21,6 +27,8 @@ interface StatCardProps {
   value:  string | number;
   sub?:   string;
   color?: StatColor;
+  trend?: StatTrend;           // optional — shows ▲/▼ + % change below value
+  style?: ViewStyle;           // passed to outer Card for layout overrides (e.g. flex: 1)
 }
 
 export function StatCard({
@@ -29,6 +37,8 @@ export function StatCard({
   value,
   sub,
   color = "primary",
+  trend,
+  style,
 }: StatCardProps) {
   const colors = useThemeColors();
 
@@ -45,7 +55,7 @@ export function StatCard({
   const accent = colorMap[color];
 
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, style]}>
       {icon && (
         <View style={styles.iconWrap}>
           <Icon name={icon} size="lg" color={accent} />
@@ -73,6 +83,37 @@ export function StatCard({
       >
         {String(value)}
       </Text>
+      {trend && (
+        <View style={[layout.row, styles.trendRow]}>
+          <View
+            style={[
+              styles.trendBadge,
+              {
+                backgroundColor:
+                  trend.direction === "up"   ? colors.status.successBg  :
+                  trend.direction === "down" ? colors.status.errorBg    :
+                  colors.bg.hover,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                fontSize:   fontSize.xs,
+                fontWeight: fontWeight.bold,
+                color:
+                  trend.direction === "up"   ? colors.status.success :
+                  trend.direction === "down" ? colors.status.error   :
+                  colors.text.muted,
+              }}
+            >
+              {trend.direction === "up"   ? "▲ " :
+               trend.direction === "down" ? "▼ " : "— "}
+              {trend.value.toFixed(1)}%
+            </Text>
+          </View>
+        </View>
+      )}
+
       {sub && (
         <Text variant="caption" color="muted" style={styles.sub}>{sub}</Text>
       )}
@@ -87,6 +128,15 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     marginBottom: spacing[2],
+  },
+  trendRow: {
+    marginTop: spacing[2],
+  },
+  trendBadge: {
+    borderRadius:      radius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical:   2,
+    alignSelf:         "flex-start",
   },
   sub: {
     marginTop: spacing[1],

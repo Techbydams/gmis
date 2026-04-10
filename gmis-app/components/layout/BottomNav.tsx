@@ -7,13 +7,17 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { useState, useRef, useEffect } from "react";
+import { Animated, View, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text }  from "@/components/ui/Text";
 import { useTheme } from "@/context/ThemeContext";
 import { brand, spacing, fontSize, fontWeight, radius, sizes } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
+
+const PILL_W  = spacing[10]; // 40px — matches active pill width
+const PILL_H  = spacing[8];  // 32px — matches active pill height
 
 export interface BottomNavItem {
   label:  string;
@@ -63,68 +67,103 @@ export function BottomNav({ items }: BottomNavProps) {
   const router     = useRouter();
   const pathname   = usePathname();
 
+  // Container width measured via onLayout — used to compute pill X position
+  const [tabsWidth, setTabsWidth] = useState(0);
+
+  // Animated.Value drives the sliding pill translateX
+  const pillX        = useRef(new Animated.Value(0)).current;
+  const initialised  = useRef(false);
+
+  const activeIndex = items.findIndex(
+    (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
+  );
+
+  // Animate pill to new position whenever active tab or container width changes
+  useEffect(() => {
+    if (tabsWidth === 0 || activeIndex < 0) return;
+    const tabW    = tabsWidth / items.length;
+    const targetX = activeIndex * tabW + (tabW - PILL_W) / 2;
+
+    if (!initialised.current) {
+      // First layout — jump straight to position, no animation
+      pillX.setValue(targetX);
+      initialised.current = true;
+    } else {
+      Animated.spring(pillX, {
+        toValue:         targetX,
+        damping:         22,
+        stiffness:       280,
+        mass:            0.8,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [pathname, tabsWidth, activeIndex, items.length]);
+
+  const pillStyle = { transform: [{ translateX: pillX }] };
+
   return (
     <View
       style={[
         styles.container,
-        layout.row,
         {
           backgroundColor: colors.bg.card,
           borderTopColor:  colors.border.DEFAULT,
           paddingBottom:   Platform.OS === "ios" ? spacing[5] : spacing[2],
         },
       ]}
+      onLayout={(e) => setTabsWidth(e.nativeEvent.layout.width)}
     >
-      {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(item.href + "/");
+      {/* Single animated pill — slides between tabs */}
+      {activeIndex >= 0 && (
+        <Animated.View
+          style={[styles.activePill, pillStyle, { backgroundColor: brand.blueAlpha15 }]}
+          pointerEvents="none"
+        />
+      )}
 
-        return (
-          <TouchableOpacity
-            key={item.href}
-            onPress={() => router.push(item.href as any)}
-            style={[styles.tab, layout.colCentre]}
-            activeOpacity={0.7}
-          >
-            {/* Active indicator */}
-            {active && (
-              <View
-                style={[
-                  styles.activePill,
-                  { backgroundColor: brand.blueAlpha15 },
-                ]}
-              />
-            )}
+      {/* Tab buttons — rendered in a row on top of the pill */}
+      <View style={[layout.row, { flex: 1 }]}>
+        {items.map((item) => {
+          const active = pathname === item.href || pathname.startsWith(item.href + "/");
 
-            <View style={styles.iconWrap}>
-              <Icon
-                name={item.icon}
-                size="lg"
-                color={active ? brand.blue : colors.text.muted}
-                filled={active}
-              />
-              {item.badge && (
-                <View
-                  style={[
-                    styles.badgeDot,
-                    { backgroundColor: colors.status.error },
-                  ]}
-                />
-              )}
-            </View>
-
-            <Text
-              style={{
-                fontSize:   fontSize["2xs"],   // 10
-                fontWeight: active ? fontWeight.bold : fontWeight.normal,
-                color:      active ? brand.blue : colors.text.muted,
-                marginTop:  spacing[1] - 2,    // 2
-              }}
+          return (
+            <TouchableOpacity
+              key={item.href}
+              onPress={() => router.push(item.href as any)}
+              style={[styles.tab, layout.colCentre]}
+              activeOpacity={0.7}
             >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+              <View style={styles.iconWrap}>
+                <Icon
+                  name={item.icon}
+                  size="lg"
+                  color={active ? brand.blue : colors.text.muted}
+                  filled={active}
+                />
+                {item.badge && (
+                  <View
+                    style={[
+                      styles.badgeDot,
+                      { backgroundColor: colors.status.error },
+                    ]}
+                  />
+                )}
+              </View>
+
+              <Text
+                style={{
+                  fontSize:   fontSize["2xs"],
+                  fontWeight: active ? fontWeight.bold : fontWeight.normal,
+                  color:      active ? brand.blue : colors.text.muted,
+                  marginTop:  spacing[1] - 2,
+                }}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -133,18 +172,20 @@ const styles = StyleSheet.create({
   container: {
     borderTopWidth: 1,
     paddingTop:     spacing[2],
+    position:       "relative",  // pill is absolute inside here
   },
   tab: {
     flex:            1,
     paddingVertical: spacing[1],
-    gap:             spacing[1] - 2,  // 2
-    position:        "relative",
+    gap:             spacing[1] - 2,
   },
+  // Single pill — absolute, driven by Reanimated translateX
   activePill: {
     position:     "absolute",
     top:          0,
-    width:        spacing[10],    // 40
-    height:       spacing[8],     // 32
+    left:         0,            // translateX offsets this
+    width:        PILL_W,
+    height:       PILL_H,
     borderRadius: radius.xl,
   },
   iconWrap: {
@@ -152,10 +193,10 @@ const styles = StyleSheet.create({
   },
   badgeDot: {
     position:     "absolute",
-    top:          -(spacing[1] - 2),   // -2
-    right:        -(spacing[1]),       // -4
-    width:        spacing[2],          // 8
-    height:       spacing[2],          // 8
+    top:          -(spacing[1] - 2),
+    right:        -(spacing[1]),
+    width:        spacing[2],
+    height:       spacing[2],
     borderRadius: radius.full,
   },
 });

@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
-import { Text, Card, StatCard, Badge, Spinner } from "@/components/ui";
+import { Text, Card, StatCard, Badge, SkeletonDashboard } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }      from "@/context/ThemeContext";
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <AppShell role="admin" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Dashboard">
-        <View style={[layout.fill, layout.centred]}><Spinner size="lg" label="Loading admin dashboard..." /></View>
+        <SkeletonDashboard />
       </AppShell>
     );
   }
@@ -121,16 +121,18 @@ export default function AdminDashboard() {
       >
         {/* Greeting */}
         <Text variant="heading" color="primary">
-          Welcome, {adminUser?.full_name?.split(" ")[0] || "Admin"} 👋
+          Welcome, {adminUser?.full_name?.split(" ")[0] || "Admin"}
         </Text>
         <Text variant="caption" color="muted">{tenant?.name} · Admin Portal</Text>
 
-        {/* Stats */}
-        <View style={[layout.rowWrap, { gap: spacing[3] }]}>
-          <StatCard icon="user-student"   label="Active students"  value={String(stats.students)}  color="brand" />
-          <StatCard icon="status-pending" label="Pending approval" value={String(stats.pending)}   color={stats.pending > 0 ? "warning" : "success"} />
-          <StatCard icon="user-lecturer"  label="Lecturers"        value={String(stats.lecturers)} color="info" />
-          <StatCard icon="nav-courses"    label="Active courses"   value={String(stats.courses)}   color="success" />
+        {/* Stats — 2×2 grid */}
+        <View style={[layout.row, { gap: spacing[3] }]}>
+          <StatCard icon="user-student"   label="Active students"  value={String(stats.students)}  color="brand"   style={{ flex: 1 }} />
+          <StatCard icon="status-pending" label="Pending approval" value={String(stats.pending)}   color={stats.pending > 0 ? "warning" : "success"} style={{ flex: 1 }} />
+        </View>
+        <View style={[layout.row, { gap: spacing[3] }]}>
+          <StatCard icon="user-lecturer"  label="Lecturers"        value={String(stats.lecturers)} color="info"    style={{ flex: 1 }} />
+          <StatCard icon="nav-courses"    label="Active courses"   value={String(stats.courses)}   color="success" style={{ flex: 1 }} />
         </View>
 
         {/* Pending approvals */}
@@ -172,10 +174,12 @@ export default function AdminDashboard() {
               key={path}
               onPress={() => router.push(path as any)}
               activeOpacity={0.75}
-              style={[styles.actionCard, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
+              style={[styles.actionTile, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
             >
-              <Icon name={icon} size="lg" color={brand.gold} />
-              <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.text.primary, marginTop: spacing[2], textAlign: "center" }}>
+              <View style={[styles.actionIcon, { backgroundColor: brand.goldAlpha10 }]}>
+                <Icon name={icon} size="md" color={brand.gold} />
+              </View>
+              <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.text.primary, textAlign: "center" }}>
                 {label}
               </Text>
             </TouchableOpacity>
@@ -191,6 +195,22 @@ export default function AdminDashboard() {
 }
 
 const styles = StyleSheet.create({
-  approveBtn: { flexDirection: "row", alignItems: "center", gap: spacing[1], paddingHorizontal: spacing[3], paddingVertical: spacing[1], borderRadius: radius.full, borderWidth: 1 },
-  actionCard: { width: "30%", minWidth: 100, aspectRatio: 1, borderRadius: radius.xl, borderWidth: 1, alignItems: "center", justifyContent: "center", padding: spacing[3] },
+  approveBtn: {
+    flexDirection: "row", alignItems: "center", gap: spacing[1],
+    paddingHorizontal: spacing[3], paddingVertical: spacing[1],
+    borderRadius: radius.full, borderWidth: 1,
+  },
+  actionTile: {
+    width: "30%", minWidth: 100,
+    borderRadius: radius.xl, borderWidth: 1,
+    alignItems: "center", justifyContent: "center",
+    padding: spacing[3], gap: spacing[2],
+  },
+  actionIcon: {
+    width:          spacing[10],
+    height:         spacing[10],
+    borderRadius:   radius.lg,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
 });

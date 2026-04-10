@@ -13,9 +13,10 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
+  Animated,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -28,7 +29,7 @@ import { useRouter }  from "expo-router";
 import { useAuth }    from "@/context/AuthContext";
 import { useTenant }  from "@/context/TenantContext";
 import { isValidEmail } from "@/lib/helpers";
-import { Text, Input, Button, Card } from "@/components/ui";
+import { Text, Input, Button, Card, useToast } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { useTheme }     from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
@@ -50,6 +51,8 @@ export default function SchoolLogin() {
   const { colors }                   = useTheme();
   const { pagePadding }              = useResponsive();
 
+  const { showToast } = useToast();
+
   const [role,     setRole]     = useState<LoginRole>("student");
   const [id_,      setId]       = useState("");
   const [password, setPassword] = useState("");
@@ -58,9 +61,41 @@ export default function SchoolLogin() {
   const [loading,  setLoading]  = useState(false);
   const [errId,    setErrId]    = useState("");
   const [errPass,  setErrPass]  = useState("");
-  const [toast,    setToast]    = useState<string | null>(null);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000); };
+  // ── Entrance animation — banner scales + fades in ────────
+  const bannerScale   = useRef(new Animated.Value(0.92)).current;
+  const bannerOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(bannerScale, {
+        toValue: 1, damping: 18, stiffness: 250, mass: 0.8, useNativeDriver: true,
+      }),
+      Animated.timing(bannerOpacity, {
+        toValue: 1, duration: 350, useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // ── Role tab sliding pill ─────────────────────────────────
+  const [tabsWidth, setTabsWidth] = useState(0);
+  const tabPillX   = useRef(new Animated.Value(0)).current;
+  const tabInitRef = useRef(false);
+
+  useEffect(() => {
+    if (tabsWidth === 0) return;
+    const idx    = ROLES.findIndex((r) => r.id === role);
+    const tabW   = (tabsWidth - 8) / ROLES.length; // 8 = 2×padding(4)
+    const target = idx * tabW + 4;                  // 4 = container padding
+    if (!tabInitRef.current) {
+      tabPillX.setValue(target);
+      tabInitRef.current = true;
+    } else {
+      Animated.spring(tabPillX, {
+        toValue: target, damping: 22, stiffness: 300, mass: 0.7, useNativeDriver: false,
+      }).start();
+    }
+  }, [role, tabsWidth]);
 
   const validate = (): boolean => {
     let ok = true;
@@ -83,23 +118,15 @@ export default function SchoolLogin() {
       } else {
         error = (await signIn(id_.trim(), password)).error;
       }
-      if (error) { showToast(error); }
+      if (error) { showToast({ message: error, variant: "error" }); }
       // Redirect handled by AuthGate in _layout
-    } catch { showToast("Something went wrong. Please try again."); }
+    } catch { showToast({ message: "Something went wrong. Please try again.", variant: "error" }); }
     finally { setLoading(false); }
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg.primary }} edges={["top", "bottom"]}>
       <KeyboardAvoidingView style={layout.fill} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-
-        {/* Toast */}
-        {toast && (
-          <View style={[styles.toast, { backgroundColor: colors.status.errorBg, borderColor: colors.status.errorBorder }]}>
-            <Icon name="status-error" size="sm" color={colors.status.error} />
-            <Text style={{ flex: 1, fontSize: fontSize.sm, color: colors.status.error, marginLeft: spacing[2] }}>{toast}</Text>
-          </View>
-        )}
 
         <ScrollView
           contentContainerStyle={[styles.scroll, { paddingHorizontal: pagePadding }]}
@@ -108,8 +135,13 @@ export default function SchoolLogin() {
         >
           <View style={styles.inner}>
 
-            {/* School banner */}
-            <View style={styles.schoolBanner}>
+            {/* School banner — entrance animation */}
+            <Animated.View
+              style={[
+                styles.schoolBanner,
+                { transform: [{ scale: bannerScale }], opacity: bannerOpacity },
+              ]}
+            >
               <View style={styles.schoolLogo}>
                 {tenant?.logo_url ? (
                   <Image source={{ uri: tenant.logo_url }} style={{ width: "100%", height: "100%", borderRadius: radius.md }} />
@@ -134,7 +166,7 @@ export default function SchoolLogin() {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={{ fontSize: fontSize["2xs"], color: "rgba(255,255,255,0.4)" }}>← Change</Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
 
             {/* Login card */}
             <Card padding="none" style={styles.card}>
@@ -143,18 +175,44 @@ export default function SchoolLogin() {
                 Sign in to your {tenant?.name || "school"} portal
               </Text>
 
-              {/* Role tabs */}
-              <View style={[styles.roleTabs, { backgroundColor: colors.bg.hover, borderColor: colors.border.DEFAULT }]}>
+              {/* Role tabs — animated sliding pill */}
+              <View
+                style={[styles.roleTabs, { backgroundColor: colors.bg.hover, borderColor: colors.border.DEFAULT }]}
+                onLayout={(e) => setTabsWidth(e.nativeEvent.layout.width)}
+              >
+                {/* Sliding pill — behind the labels */}
+                {tabsWidth > 0 && (
+                  <Animated.View
+                    style={[
+                      styles.roleTabPill,
+                      {
+                        width:     (tabsWidth - 8) / ROLES.length,
+                        transform: [{ translateX: tabPillX }],
+                      },
+                    ]}
+                    pointerEvents="none"
+                  />
+                )}
+
                 {ROLES.map((r) => (
                   <TouchableOpacity
                     key={r.id}
                     onPress={() => { setRole(r.id); setErrId(""); setId(""); }}
-                    activeOpacity={0.75}
-                    style={[styles.roleTab, role === r.id && { backgroundColor: brand.blue }]}
+                    activeOpacity={0.85}
+                    style={styles.roleTab}
                   >
-                    <Icon name={r.id === "student" ? "user-student" : r.id === "lecturer" ? "user-lecturer" : "user-parent"} size="xs"
-                      color={role === r.id ? "#fff" : colors.text.muted} filled={role === r.id} />
-                    <Text style={{ fontSize: fontSize.sm, fontWeight: role === r.id ? fontWeight.bold : fontWeight.normal, color: role === r.id ? "#fff" : colors.text.muted, marginLeft: spacing[1] }}>
+                    <Icon
+                      name={r.id === "student" ? "user-student" : r.id === "lecturer" ? "user-lecturer" : "user-parent"}
+                      size="xs"
+                      color={role === r.id ? "#fff" : colors.text.muted}
+                      filled={role === r.id}
+                    />
+                    <Text style={{
+                      fontSize:   fontSize.sm,
+                      fontWeight: role === r.id ? fontWeight.bold : fontWeight.normal,
+                      color:      role === r.id ? "#fff" : colors.text.muted,
+                      marginLeft: spacing[1],
+                    }}>
                       {r.label}
                     </Text>
                   </TouchableOpacity>
@@ -290,11 +348,6 @@ const styles = StyleSheet.create({
     maxWidth:  440,
     alignSelf: "center",
   },
-  toast: {
-    position: "absolute", top: spacing[3], left: spacing[4], right: spacing[4], zIndex: 100,
-    flexDirection: "row", alignItems: "center", paddingHorizontal: spacing[4], paddingVertical: spacing[3],
-    borderRadius: radius.lg, borderWidth: 1,
-  },
   schoolBanner: {
     flexDirection: "row", alignItems: "center", gap: spacing[3],
     paddingHorizontal: spacing[4], paddingVertical: spacing[3],
@@ -308,8 +361,20 @@ const styles = StyleSheet.create({
   },
   activeDot: { width: spacing[1] + 1, height: spacing[1] + 1, borderRadius: radius.full, backgroundColor: "#4ade80" },
   card:   { paddingHorizontal: spacing[5], paddingVertical: spacing[5] },
-  roleTabs: { flexDirection: "row", borderRadius: radius.lg, borderWidth: 1, padding: spacing[1], marginBottom: spacing[4], gap: spacing[1] },
-  roleTab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: spacing[2] + spacing[1], borderRadius: radius.md, gap: spacing[1] },
+  roleTabs: {
+    flexDirection: "row", borderRadius: radius.lg, borderWidth: 1,
+    padding: spacing[1], marginBottom: spacing[4], position: "relative",
+  },
+  // Animated sliding pill — absolute, behind tabs
+  roleTabPill: {
+    position: "absolute", top: spacing[1], bottom: spacing[1],
+    borderRadius: radius.md, backgroundColor: brand.blue,
+  },
+  roleTab: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    paddingVertical: spacing[2] + spacing[1], borderRadius: radius.md, gap: spacing[1],
+    zIndex: 1,   // above the pill
+  },
   infoBanner: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: spacing[3], paddingVertical: spacing[2] + spacing[1], borderRadius: radius.lg, borderWidth: 1, marginBottom: spacing[4] },
   checkbox: { width: spacing[4], height: spacing[4], borderRadius: radius.xs, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
   secNote: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: spacing[3], paddingVertical: spacing[2], borderRadius: radius.lg, borderWidth: 1, marginTop: spacing[4] },

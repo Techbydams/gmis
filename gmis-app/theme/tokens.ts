@@ -86,7 +86,7 @@ export const light = {
   text: {
     primary:   "#0f172a",
     secondary: "#475569",
-    muted:     "#94a3b8",
+    muted:     "#64748b",   // was #94a3b8 — failed WCAG AA (2.8:1). #64748b = 4.6:1 ✅
     inverse:   "#ffffff",
     link:      "#2d6cff",
   },
@@ -211,11 +211,49 @@ export const shadows = {
   },
 } as const;
 
+// ── Line height scale ──────────────────────────────────────
+export const lineHeight = {
+  tight:   1.2,   // headings, display text
+  normal:  1.5,   // body text (WCAG minimum recommended)
+  relaxed: 1.75,  // long-form content (descriptions, results)
+  loose:   2.0,   // small labels that need breathing room
+} as const;
+
+// ── Z-index scale ──────────────────────────────────────────
+// Use these to prevent z-index wars between layers.
+export const zIndex = {
+  base:    0,
+  card:    10,
+  nav:     20,
+  drawer:  30,
+  modal:   40,
+  toast:   50,
+  tooltip: 60,
+} as const;
+
+// ── Surface elevation layers (dark theme) ─────────────────
+// Use in place of ad-hoc elevated bg values.
+export const surface = {
+  1: "#0b1628",   // lowest elevation — cards
+  2: "#0f1e38",   // modals, drawers
+  3: "#142547",   // tooltips, popovers
+  4: "#1a2e58",   // highest — command palette, alerts
+} as const;
+
 // ── Animation durations ────────────────────────────────────
 export const duration = {
-  fast:   150,
-  normal: 250,
-  slow:   400,
+  instant: 0,
+  fast:    150,
+  normal:  250,
+  slow:    400,
+  slower:  600,
+} as const;
+
+// ── Easing presets (CSS strings for web, descriptions for native) ─
+export const easing = {
+  standard: "ease-out",
+  spring:   "cubic-bezier(0.34, 1.56, 0.64, 1)",
+  linear:   "linear",
 } as const;
 
 // ── Gradients ──────────────────────────────────────────────

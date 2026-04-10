@@ -6,8 +6,10 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
+import { useRef, useCallback } from "react";
 import {
   View,
+  Animated,
   type ViewProps,
   TouchableOpacity,
   type TouchableOpacityProps,
@@ -68,16 +70,43 @@ export function Card({
     style,
   ];
 
+  // ── Press scale animation ──────────────────────────────
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.spring(scale, {
+      toValue:         0.97,
+      damping:         20,
+      stiffness:       400,
+      mass:            0.8,
+      useNativeDriver: true,
+    }).start();
+  }, [scale]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scale, {
+      toValue:         1,
+      damping:         15,
+      stiffness:       250,
+      mass:            0.8,
+      useNativeDriver: true,
+    }).start();
+  }, [scale]);
+
   if (pressable || onPress) {
     return (
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onPress}
-        style={cardStyle as any}
-        {...(props as any)}
-      >
-        {children}
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale }], borderRadius: radius.xl }}>
+        <TouchableOpacity
+          activeOpacity={0.92}
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={cardStyle as any}
+          {...(props as any)}
+        >
+          {children}
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 

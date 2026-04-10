@@ -6,17 +6,25 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
+import { useCallback } from "react";
 import {
   TouchableOpacity,
   type TouchableOpacityProps,
   ActivityIndicator,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { Text } from "./Text";
 import { Icon, type IconName, type IconSize } from "./Icon";
 import { useThemeColors } from "@/context/ThemeContext";
 import { brand, radius, fontSize, fontWeight, spacing } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
+
+// Optional haptic feedback — install with: npx expo install expo-haptics
+// Gracefully no-ops if the package is not yet installed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Haptics: any = null;
+try { Haptics = require("expo-haptics"); } catch {}
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "success" | "gold";
 type ButtonSize    = "xs" | "sm" | "md" | "lg";
@@ -58,10 +66,26 @@ export function Button({
   iconRight,
   disabled,
   style,
+  onPress,
   ...props
 }: ButtonProps) {
   const colors     = useThemeColors();
   const isDisabled = disabled || loading;
+
+  // Haptic feedback on press
+  const handlePress = useCallback<NonNullable<TouchableOpacityProps["onPress"]>>(
+    (e) => {
+      if (Haptics && Platform.OS !== "web") {
+        if (variant === "danger") {
+          Haptics.notificationAsync?.(Haptics.NotificationFeedbackType?.Warning);
+        } else {
+          Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle?.Light);
+        }
+      }
+      onPress?.(e);
+    },
+    [variant, onPress],
+  );
   const sz         = sizeStyles[size];
   const iconSz     = iconSizeMap[size];
 
@@ -81,6 +105,7 @@ export function Button({
     <TouchableOpacity
       activeOpacity={0.75}
       disabled={isDisabled}
+      onPress={handlePress}
       style={[
         styles.base,
         layout.row,

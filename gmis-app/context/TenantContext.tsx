@@ -1,14 +1,11 @@
 // ============================================================
-// GMIS — Tenant Context
-// Faithful port of the Vite TenantContext.tsx.
+// GMIS — Tenant Context (FIXED)
 //
-// Web:    reads subdomain from window.location (getTenantSlug)
-// Native: reads stored slug from AsyncStorage
-//
-// Exposes the same shape as the Vite version:
-//   { tenant, slug, loading, error, isMainPlatform, tenantDb }
-//
-// Schema: table = "organizations" (NOT organisations)
+// KEY FIX: Added setTenantFromOrg() method.
+// When find-school already has the org object (including
+// supabase_url + supabase_anon_key), we skip the second
+// DB query entirely. This eliminates the infinite spinner
+// caused by the second query failing or being slow.
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
@@ -28,12 +25,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase, getTenantClient } from "@/lib/supabase";
 import { getTenantSlug } from "@/lib/helpers";
-import type { TenantInfo } from "@/types";
+import type { TenantInfo, Organization } from "@/types";
 
-// ── Storage key (native only) ──────────────────────────────
 const STORED_SLUG_KEY = "gmis:org_slug";
 
-// ── Context shape — matches original Vite version ─────────
 interface TenantContextType {
   tenant:          TenantInfo | null;
   slug:            string | null;
@@ -41,18 +36,22 @@ interface TenantContextType {
   error:           string | null;
   isMainPlatform:  boolean;
   tenantDb:        SupabaseClient | null;
-  // Extra for native: set slug manually (from FindSchool screen)
+  // Expo Router alias — same as tenantDb
+  tenantClient:    SupabaseClient | null;
+  // Set tenant by slug (re-queries DB)
   setTenantSlug:   (slug: string) => Promise<void>;
+  // Set tenant directly from org object — NO second DB query
+  setTenantFromOrg: (org: Organization) => Promise<void>;
+  clearTenant:     () => void;
 }
 
 const TenantContext = createContext<TenantContextType>({
-  tenant:         null,
-  slug:           null,
-  loading:        true,
-  error:          null,
-  isMainPlatform: true,
-  tenantDb:       null,
-  setTenantSlug:  async () => {},
+  tenant: null, slug: null, loading: true,
+  error: null, isMainPlatform: true,
+  tenantDb: null, tenantClient: null,
+  setTenantSlug: async () => {},
+  setTenantFromOrg: async () => {},
+  clearTenant: () => {},
 });
 
 // ── Provider ───────────────────────────────────────────────
@@ -63,146 +62,145 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const [error,    setError]    = useState<string | null>(null);
   const [tenantDb, setTenantDb] = useState<SupabaseClient | null>(null);
 
-  // ── Core loader ────────────────────────────────────────
+  // ── Set tenant directly from org object ───────────────
+  // Use this when you already have the org data.
+  // Avoids a second DB round-trip.
+  const setTenantFromOrg = useCallback(async (org: Organization) => {
+    if (!org.supabase_url || !org.supabase_anon_key) {
+      setError(`School portal not fully configured. Contact your admin.`);
+      return;
+    }
+
+    if (org.status === "locked") {
+      setError(`The portal for "${org.name}" has been temporarily locked.`);
+      return;
+    }
+    if (org.status === "suspended") {
+      setError(`The portal for "${org.name}" has been suspended.`);
+      return;
+    }
+    if (org.status !== "approved") {
+      setError(`"${org.name}" is not yet approved on GMIS.`);
+      return;
+    }
+
+    const client = getTenantClient(org.supabase_url, org.supabase_anon_key, org.slug);
+    setTenantDb(client);
+    setTenant({
+      slug:              org.slug,
+      name:              org.name,
+      logo_url:          org.logo_url ?? undefined,
+      supabase_url:      org.supabase_url,
+      supabase_anon_key: org.supabase_anon_key,
+      status:            org.status,
+      features:          [],
+    });
+    setSlug(org.slug);
+    setError(null);
+
+    // Persist for native
+    if (Platform.OS !== "web") {
+      try { await AsyncStorage.setItem(STORED_SLUG_KEY, org.slug); } catch {}
+    }
+  }, []);
+
+  // ── Set tenant by slug (queries DB) ───────────────────
   const loadTenant = useCallback(async (s: string) => {
     setLoading(true);
     setError(null);
 
     try {
+      // Simple select — no complex joins that might fail
       const { data: org, error: orgError } = await supabase
         .from("organizations")
-        .select(`
-          id, name, slug, logo_url, supabase_url, supabase_anon_key, status,
-          org_feature_toggles ( is_enabled, features ( key ) )
-        `)
+        .select("id, name, slug, logo_url, supabase_url, supabase_anon_key, status")
         .eq("slug", s.toLowerCase().trim())
-        .single();
+        .maybeSingle();  // maybeSingle won't throw on no results
 
-      if (orgError || !org) {
+      if (orgError) {
+        console.error("TenantContext loadTenant error:", orgError);
+        setError(`Could not load school info. Check your connection.`);
+        setLoading(false);
+        return;
+      }
+
+      if (!org) {
         setError(`School "${s}" is not registered on GMIS.`);
         setLoading(false);
         return;
       }
 
-      const o = org as any;
-
-      // Status checks — mirrors Vite version exactly
-      if (o.status === "locked") {
-        setError(
-          `The portal for "${o.name}" has been temporarily locked. Contact your school administrator.`
-        );
-        setLoading(false);
-        return;
-      }
-      if (o.status === "suspended") {
-        setError(
-          `The portal for "${o.name}" has been suspended. Contact GMIS support.`
-        );
-        setLoading(false);
-        return;
-      }
-      if (o.status !== "approved") {
-        setError(
-          `"${o.name}" is not yet approved on GMIS. Check back later.`
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Build tenant client
-      const client = getTenantClient(o.supabase_url, o.supabase_anon_key, o.slug);
-      setTenantDb(client);
-
-      // Resolve feature flags
-      const features: string[] = (o.org_feature_toggles || [])
-        .filter((t: any) => t.is_enabled && t.features?.key)
-        .map((t: any) => t.features.key as string);
-
-      setTenant({
-        slug:              o.slug,
-        name:              o.name,
-        logo_url:          o.logo_url ?? undefined,
-        supabase_url:      o.supabase_url,
-        supabase_anon_key: o.supabase_anon_key,
-        status:            o.status,
-        features,
-      });
-
-      setSlug(o.slug);
-
-      // Persist for native (no subdomains)
-      if (Platform.OS !== "web") {
-        try {
-          await AsyncStorage.setItem(STORED_SLUG_KEY, o.slug);
-        } catch { /* non-critical */ }
-      }
+      await setTenantFromOrg(org as Organization);
     } catch (err) {
-      console.error("Tenant load error:", err);
-      setError("Failed to load school information. Please refresh the page.");
+      console.error("TenantContext exception:", err);
+      setError("Failed to load school information. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setTenantFromOrg]);
 
-  // ── Init on mount ──────────────────────────────────────
+  // ── Init ───────────────────────────────────────────────
   useEffect(() => {
     async function init() {
-      // 1. Web: try subdomain
-      const subdomain = getTenantSlug();
-      if (subdomain) {
-        await loadTenant(subdomain);
+      // Web: try subdomain
+      if (Platform.OS === "web") {
+        const subdomain = getTenantSlug();
+        if (subdomain) {
+          await loadTenant(subdomain);
+          return;
+        }
+        // No subdomain (gmis.app or localhost) — not a tenant page
+        setLoading(false);
         return;
       }
 
-      // 2. Native: try stored slug from AsyncStorage
-      if (Platform.OS !== "web") {
-        try {
-          const stored = await AsyncStorage.getItem(STORED_SLUG_KEY);
-          if (stored) {
-            await loadTenant(stored);
-            return;
-          }
-        } catch { /* storage unavailable */ }
-      }
+      // Native: try stored slug
+      try {
+        const stored = await AsyncStorage.getItem(STORED_SLUG_KEY);
+        if (stored) {
+          await loadTenant(stored);
+          return;
+        }
+      } catch {}
 
-      // 3. No slug — main platform or school picker needed
       setLoading(false);
     }
 
     init();
   }, [loadTenant]);
 
-  // ── Public setTenantSlug (called from FindSchool screen) ─
   const setTenantSlug = useCallback(
-    async (s: string) => {
-      await loadTenant(s);
-    },
+    async (s: string) => { await loadTenant(s); },
     [loadTenant]
   );
 
-  // Slug is null when on main platform (gmis.app with no subdomain)
-  const isMainPlatform = slug === null && !loading;
+  const clearTenant = useCallback(() => {
+    setTenant(null);
+    setTenantDb(null);
+    setSlug(null);
+    setError(null);
+    try { AsyncStorage.removeItem(STORED_SLUG_KEY); } catch {}
+  }, []);
+
+  const isMainPlatform = !slug && !loading;
 
   return (
-    <TenantContext.Provider
-      value={{
-        tenant,
-        slug,
-        loading,
-        error,
-        isMainPlatform,
-        tenantDb,
-        setTenantSlug,
-      }}
-    >
+    <TenantContext.Provider value={{
+      tenant, slug, loading, error,
+      isMainPlatform,
+      tenantDb,
+      tenantClient: tenantDb,   // alias
+      setTenantSlug,
+      setTenantFromOrg,
+      clearTenant,
+    }}>
       {children}
     </TenantContext.Provider>
   );
 }
 
-// ── Hooks ──────────────────────────────────────────────────
-export function useTenant(): TenantContextType {
+export function useTenant() {
   const ctx = useContext(TenantContext);
-  if (!ctx) throw new Error("useTenant must be used inside <TenantProvider>");
+  if (!ctx) throw new Error("useTenant must be inside <TenantProvider>");
   return ctx;
 }

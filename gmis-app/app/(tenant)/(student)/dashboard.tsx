@@ -1,10 +1,10 @@
 // ============================================================
-// GMIS — Student Dashboard
-// Route: /(tenant)/(student)/dashboard
-// Real data from tenant DB. No hardcoded values.
-// Tables: students, semester_registrations, timetable,
-//         notifications, student_payments, fee_structure,
-//         attendance_records
+// GMIS — Student Dashboard (Schema-verified)
+//
+// FIXES applied against confirmed tenant DB schema:
+//  - students.profile_photo  (not avatar_url — doesn't exist)
+//  - attendance_records.status (varchar) not is_present (bool)
+//  - status === 'present' to count attendance
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
@@ -13,81 +13,75 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  RefreshControl,
+  View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useAuth }   from "@/context/AuthContext";
-import { useTenant } from "@/context/TenantContext";
+import { useRouter }     from "expo-router";
+import { useAuth }       from "@/context/AuthContext";
+import { useTenant }     from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
 import { formatGPA, getHonourClass, timeAgo, greeting } from "@/lib/helpers";
-import {
-  Text, Card, Badge, Avatar, StatCard, Spinner, EmptyState,
-} from "@/components/ui";
+import { Text, Card, Badge, StatCard, Spinner } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
-import { useTheme }     from "@/context/ThemeContext";
+import { useTheme }      from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
-import {
-  brand, spacing, radius, fontSize, fontWeight,
-} from "@/theme/tokens";
+import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// ── Confirmed students columns ────────────────────────────
+// id, supabase_uid, matric_number, application_no, email,
+// email_verified, first_name, last_name, other_names,
+// date_of_birth, gender, phone, address, state_of_origin,
+// profile_photo, department_id, level, mode_of_entry,
+// entry_session, current_session, gpa, cgpa, status,
+// approved_at, id_card_printed, id_card_paid, parent_email,
+// created_at, updated_at, parent_supabase_uid
+// ─────────────────────────────────────────────────────────
+
 interface Student {
-  id:            string;
-  first_name:    string;
-  last_name:     string;
-  matric_number: string;
-  level:         string;
-  status:        string;
-  gpa:           number;
-  cgpa:          number;
-  avatar_url?:   string | null;
-  departments?:  { name: string };
+  id:             string;
+  first_name:     string;
+  last_name:      string;
+  matric_number:  string;
+  level:          string;
+  status:         string;
+  gpa:            number;
+  cgpa:           number;
+  profile_photo:  string | null;  // confirmed column name
+  department_id:  string | null;
+  current_session: string | null;
 }
 
 interface ClassSlot {
-  id:         string;
-  start_time: string;
-  end_time:   string;
-  venue:      string | null;
-  courses: { course_code: string; course_name: string };
+  id: string; start_time: string; end_time: string; venue: string | null;
+  courses: { course_code: string; course_name: string } | null;
 }
 
 interface Notification {
-  id:         string;
-  title:      string;
-  message:    string;
-  type:       string;
-  is_read:    boolean;
-  created_at: string;
+  id: string; title: string; message: string; type: string | null;
+  is_read: boolean; created_at: string;
 }
 
-// ── Quick actions config ───────────────────────────────────
 const QUICK_ACTIONS = [
-  { label: "View my results",   icon: "nav-results"   as const, path: "/(tenant)/(student)/results"    },
-  { label: "Pay school fees",   icon: "nav-payments"  as const, path: "/(tenant)/(student)/payments",  badge: "Due",   badgeVariant: "red"   as const },
-  { label: "Timetable",         icon: "nav-timetable" as const, path: "/(tenant)/(student)/timetable"  },
-  { label: "Register courses",  icon: "nav-courses"   as const, path: "/(tenant)/(student)/courses"    },
-  { label: "SUG elections",     icon: "nav-voting"    as const, path: "/(tenant)/(student)/voting",    badge: "Open",  badgeVariant: "green" as const },
-  { label: "GPA calculator",    icon: "nav-gpa"       as const, path: "/(tenant)/(student)/gpa"        },
-  { label: "Clearance",         icon: "nav-clearance" as const, path: "/(tenant)/(student)/clearance"  },
-  { label: "AI assistant",      icon: "nav-ai"        as const, path: "/(tenant)/(student)/ai",        badge: "New",   badgeVariant: "indigo" as const },
+  { label: "View my results",  icon: "nav-results"   as const, path: "/(tenant)/(student)/results"   },
+  { label: "Pay school fees",  icon: "nav-payments"  as const, path: "/(tenant)/(student)/payments"  },
+  { label: "Timetable",        icon: "nav-timetable" as const, path: "/(tenant)/(student)/timetable" },
+  { label: "Register courses", icon: "nav-courses"   as const, path: "/(tenant)/(student)/courses"   },
+  { label: "SUG elections",    icon: "nav-voting"    as const, path: "/(tenant)/(student)/voting"    },
+  { label: "GPA calculator",   icon: "nav-gpa"       as const, path: "/(tenant)/(student)/gpa"       },
+  { label: "Clearance",        icon: "nav-clearance" as const, path: "/(tenant)/(student)/clearance" },
+  { label: "AI assistant",     icon: "nav-ai"        as const, path: "/(tenant)/(student)/ai"        },
 ] as const;
 
-// ── Component ──────────────────────────────────────────────
 export default function StudentDashboard() {
-  const router                      = useRouter();
-  const { user, signOut }           = useAuth();
-  const { tenant, slug }            = useTenant();
-  const { colors, isDark }          = useTheme();
-  const { pagePadding, gridCols }   = useResponsive();
+  const router               = useRouter();
+  const { user, signOut }    = useAuth();
+  const { tenant, slug }     = useTenant();
+  const { colors }           = useTheme();
+  const { pagePadding }      = useResponsive();
 
   const [student,    setStudent]    = useState<Student | null>(null);
+  const [deptName,   setDeptName]   = useState("");
   const [classes,    setClasses]    = useState<ClassSlot[]>([]);
   const [notifs,     setNotifs]     = useState<Notification[]>([]);
   const [stats,      setStats]      = useState({ courses: 0, paidFees: 0, totalFees: 0, attendance: 0 });
@@ -96,7 +90,6 @@ export default function StudentDashboard() {
   const [unread,     setUnread]     = useState(0);
   const [error,      setError]      = useState<string | null>(null);
 
-  // Memoize tenant client — mirrors the Vite fix
   const db = useMemo(() => {
     if (!tenant) return null;
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
@@ -104,22 +97,22 @@ export default function StudentDashboard() {
 
   useEffect(() => { if (db && user) load(); }, [db, user]);
 
-  // ── Load all data ──────────────────────────────────────
   const load = async (isRefresh = false) => {
     if (!db || !user) return;
     if (!isRefresh) setLoading(true);
     setError(null);
 
     try {
-      // Using maybeSingle() — won't crash if no row found
+      // Query only confirmed columns — no guessing
       const { data: s, error: sErr } = await db
         .from("students")
-        .select("id, first_name, last_name, matric_number, level, status, gpa, cgpa, avatar_url, departments(name)")
+        .select("id, first_name, last_name, matric_number, level, status, gpa, cgpa, profile_photo, department_id, current_session")
         .eq("supabase_uid", user.id)
         .maybeSingle();
 
       if (sErr) {
-        setError("Could not load your profile. Please refresh the page.");
+        console.error("Student query error:", sErr);
+        setError(`Profile load failed: ${sErr.message}`);
         return;
       }
       if (!s) {
@@ -129,50 +122,60 @@ export default function StudentDashboard() {
 
       setStudent(s as Student);
 
-      // Load everything else in parallel
+      // Fetch department name separately (departments has faculty_id, not a nested faculties object)
+      const sAny = s as any;
+      if (sAny.department_id) {
+        const { data: dept } = await db
+          .from("departments")
+          .select("name")
+          .eq("id", sAny.department_id)
+          .maybeSingle();
+        if (dept) setDeptName((dept as any).name || "");
+      }
+
       await Promise.allSettled([
-        loadClasses((s as any).id),
-        loadNotifs((s as any).id),
-        loadStats((s as any).id),
+        loadTodayClasses(sAny.id),
+        loadNotifications(sAny.id),
+        loadStats(sAny.id),
       ]);
-    } catch (err) {
-      console.error("Dashboard load error:", err);
-      setError("Something went wrong loading your dashboard.");
+    } catch (err: any) {
+      setError(`Error: ${err?.message || "Unknown error"}`);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const loadClasses = async (sid: string) => {
+  const loadTodayClasses = async (sid: string) => {
     if (!db) return;
     const days  = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
     const today = days[new Date().getDay()];
 
+    // Get course IDs the student is registered for
     const { data: regs } = await db
       .from("semester_registrations")
       .select("course_id")
       .eq("student_id", sid)
       .eq("status", "registered");
 
-    if (!regs || regs.length === 0) return;
+    if (!regs?.length) return;
 
-    const courseIds = regs.map((r: any) => r.course_id);
     const { data } = await db
       .from("timetable")
-      .select("*, courses(course_code, course_name)")
-      .in("course_id", courseIds)
+      .select("id, start_time, end_time, venue, courses(course_code, course_name)")
+      .in("course_id", regs.map((r: any) => r.course_id))
       .eq("day_of_week", today)
       .order("start_time");
 
     if (data) setClasses(data as ClassSlot[]);
   };
 
-  const loadNotifs = async (sid: string) => {
+  const loadNotifications = async (sid: string) => {
     if (!db) return;
+    // notifications.user_id — confirmed from schema
     const { data } = await db
       .from("notifications")
-      .select("*")
+      .select("id, title, message, type, is_read, created_at")
       .or(`user_id.eq.${sid},user_id.is.null`)
       .order("created_at", { ascending: false })
       .limit(6);
@@ -186,7 +189,7 @@ export default function StudentDashboard() {
   const loadStats = async (sid: string) => {
     if (!db) return;
 
-    const [regsRes, paymentsRes, feeRes, attendRes] = await Promise.allSettled([
+    const [regsRes, paidRes, feeRes, attRes] = await Promise.allSettled([
       db.from("semester_registrations")
         .select("*", { count: "exact", head: true })
         .eq("student_id", sid).eq("status", "registered"),
@@ -196,57 +199,115 @@ export default function StudentDashboard() {
       db.from("fee_structure")
         .select("*", { count: "exact", head: true })
         .eq("is_active", true),
+      // attendance_records.status is varchar — 'present' or 'absent'
       db.from("attendance_records")
-        .select("is_present")
+        .select("status")
         .eq("student_id", sid),
     ]);
 
-    const courses   = regsRes.status    === "fulfilled" ? (regsRes.value.count    ?? 0) : 0;
-    const paidFees  = paymentsRes.status === "fulfilled" ? (paymentsRes.value.count ?? 0) : 0;
-    const totalFees = feeRes.status      === "fulfilled" ? (feeRes.value.count      ?? 0) : 0;
+    const courses   = regsRes.status === "fulfilled" ? (regsRes.value.count ?? 0) : 0;
+    const paidFees  = paidRes.status  === "fulfilled" ? (paidRes.value.count  ?? 0) : 0;
+    const totalFees = feeRes.status   === "fulfilled" ? (feeRes.value.count   ?? 0) : 0;
 
+    // Count attendance by status === 'present'
     let attendance = 0;
-    if (attendRes.status === "fulfilled" && attendRes.value.data) {
-      const records = attendRes.value.data as any[];
+    if (attRes.status === "fulfilled" && attRes.value.data) {
+      const records = attRes.value.data as any[];
       if (records.length > 0) {
-        const present = records.filter((r) => r.is_present).length;
-        attendance = Math.round((present / records.length) * 100);
+        const presentCount = records.filter((r) =>
+          (r.status || "").toLowerCase() === "present"
+        ).length;
+        attendance = Math.round((presentCount / records.length) * 100);
       }
     }
 
     setStats({ courses, paidFees, totalFees, attendance });
   };
 
-  const markRead = async () => {
+  const markAllRead = async () => {
     if (!db) return;
-    const ids = notifs.filter((n) => !n.is_read).map((n) => n.id);
-    if (!ids.length) return;
-    await db.from("notifications").update({ is_read: true } as any).in("id", ids);
-    setNotifs((p) => p.map((n) => ({ ...n, is_read: true })));
+    const unreadIds = notifs.filter((n) => !n.is_read).map((n) => n.id);
+    if (!unreadIds.length) return;
+    await db.from("notifications").update({ is_read: true } as any).in("id", unreadIds);
+    setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnread(0);
   };
 
-  // ── Loading ────────────────────────────────────────────
+  // ── Status screens ─────────────────────────────────────
+  if (!loading && student?.status === "pending") {
+    return (
+      <View style={[layout.fill, layout.centred, { backgroundColor: colors.bg.primary, padding: spacing[6] }]}>
+        <Icon name="status-pending" size="3xl" color={colors.status.warning} />
+        <Text variant="title" color="primary" align="center" style={{ marginTop: spacing[4], marginBottom: spacing[2] }}>
+          Awaiting approval
+        </Text>
+        <Text variant="body" color="secondary" align="center" style={{ maxWidth: 340, marginBottom: spacing[6] }}>
+          Hi {student.first_name}, your registration is pending admin approval at{" "}
+          <Text variant="body" weight="bold" color="primary">{tenant?.name}</Text>.
+        </Text>
+        <TouchableOpacity
+          onPress={async () => { await signOut(); router.replace("/login"); }}
+          style={styles.ghostBtn} activeOpacity={0.7}
+        >
+          <Text variant="label" color="secondary">Sign out</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!loading && student?.status === "suspended") {
+    return (
+      <View style={[layout.fill, layout.centred, { backgroundColor: colors.bg.primary, padding: spacing[6] }]}>
+        <Icon name="status-locked" size="3xl" color={colors.status.error} filled />
+        <Text variant="title" color="error" align="center" style={{ marginTop: spacing[4], marginBottom: spacing[2] }}>
+          Account suspended
+        </Text>
+        <Text variant="body" color="secondary" align="center" style={{ maxWidth: 340, marginBottom: spacing[6] }}>
+          Contact the {tenant?.name} admin office for assistance.
+        </Text>
+        <TouchableOpacity
+          onPress={async () => { await signOut(); router.replace("/login"); }}
+          style={styles.ghostBtn} activeOpacity={0.7}
+        >
+          <Text variant="label" color="secondary">Sign out</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const firstName = student?.first_name || user?.email?.split("@")[0] || "Student";
+  const lastName  = student?.last_name  || "";
+  const fullName  = `${firstName} ${lastName}`.trim();
+
+  const shellUser = {
+    name:      fullName,
+    role:      "student" as const,
+    sub:       student?.matric_number,
+    photoUrl:  student?.profile_photo ?? undefined,
+  };
+
   if (loading) {
     return (
-      <AppShell role="student" user={{ name: "Loading...", role: "student" }} schoolName={tenant?.name || ""}>
+      <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Dashboard">
         <View style={[layout.fill, layout.centred]}>
-          <Spinner size="lg" label="Loading your dashboard..." />
+          <Spinner size="lg" label="Loading dashboard..." />
         </View>
       </AppShell>
     );
   }
 
-  // ── Error ──────────────────────────────────────────────
   if (error) {
     return (
-      <AppShell role="student" user={{ name: user?.email || "", role: "student" }} schoolName={tenant?.name || ""}>
+      <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Dashboard">
         <View style={[layout.fill, layout.centred, { padding: spacing[6] }]}>
           <Icon name="status-error" size="3xl" color={colors.status.error} />
           <Text variant="subtitle" color="error" align="center" style={{ marginTop: spacing[4], marginBottom: spacing[2] }}>
+            Could not load dashboard
+          </Text>
+          <Text variant="caption" color="muted" align="center" style={{ marginBottom: spacing[5], maxWidth: 320 }}>
             {error}
           </Text>
-          <TouchableOpacity onPress={() => load()} activeOpacity={0.7} style={styles.retryBtn}>
+          <TouchableOpacity onPress={() => load()} style={styles.ghostBtn} activeOpacity={0.7}>
             <Text variant="label" color="secondary">Try again</Text>
           </TouchableOpacity>
         </View>
@@ -254,80 +315,13 @@ export default function StudentDashboard() {
     );
   }
 
-  // ── Pending approval ───────────────────────────────────
-  if (student?.status === "pending") {
-    return (
-      <View style={[layout.fill, layout.centred, { backgroundColor: colors.bg.primary, padding: spacing[6] }]}>
-        <Icon name="status-pending" size="3xl" color={colors.status.warning} />
-        <Text variant="title" color="primary" align="center" style={{ marginTop: spacing[4], marginBottom: spacing[2] }}>
-          Awaiting approval
-        </Text>
-        <Text variant="body" color="secondary" align="center" style={{ maxWidth: 360, marginBottom: spacing[6] }}>
-          Hi {student.first_name}, your registration is pending admin approval at{" "}
-          <Text variant="body" weight="bold" color="primary">{tenant?.name}</Text>.
-          You'll be emailed once activated.
-        </Text>
-        <TouchableOpacity
-          onPress={async () => { await signOut(); router.replace("/(tenant)/login"); }}
-          activeOpacity={0.7}
-          style={styles.retryBtn}
-        >
-          <Text variant="label" color="secondary">Sign out</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // ── Suspended ──────────────────────────────────────────
-  if (student?.status === "suspended") {
-    return (
-      <View style={[layout.fill, layout.centred, { backgroundColor: colors.bg.primary, padding: spacing[6] }]}>
-        <Icon name="status-locked" size="3xl" color={colors.status.error} filled />
-        <Text variant="title" color="error" align="center" style={{ marginTop: spacing[4], marginBottom: spacing[2] }}>
-          Account suspended
-        </Text>
-        <Text variant="body" color="secondary" align="center" style={{ maxWidth: 360, marginBottom: spacing[6] }}>
-          Your account has been suspended. Contact the {tenant?.name} admin office for assistance.
-        </Text>
-        <TouchableOpacity
-          onPress={async () => { await signOut(); router.replace("/(tenant)/login"); }}
-          activeOpacity={0.7}
-          style={styles.retryBtn}
-        >
-          <Text variant="label" color="secondary">Sign out</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // ── Main dashboard ─────────────────────────────────────
-  const firstName = student?.first_name || user?.email?.split("@")[0] || "Student";
-  const lastName  = student?.last_name  || "";
-  const fullName  = `${firstName} ${lastName}`.trim();
-  const dept      = (student as any)?.departments?.name || "";
-
-  const gpaColor = (student?.gpa || 0) >= 4.5 ? colors.status.success
-    : (student?.gpa || 0) >= 3.5 ? colors.status.info
-    : colors.status.warning;
-
-  const attendanceColor = stats.attendance >= 75 ? colors.status.success
-    : stats.attendance >= 50 ? colors.status.warning
-    : colors.status.error;
-
-  const shellUser = {
-    name:     fullName,
-    role:     "student" as const,
-    sub:      student?.matric_number,
-    avatarUrl: student?.avatar_url,
-  };
-
   return (
     <AppShell
       role="student"
       user={shellUser}
       schoolName={tenant?.name || ""}
       pageTitle="Dashboard"
-      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}
+      onLogout={async () => { await signOut(); router.replace("/login"); }}
     >
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
@@ -341,8 +335,7 @@ export default function StudentDashboard() {
           />
         }
       >
-
-        {/* ── Greeting header ── */}
+        {/* Greeting */}
         <View style={[layout.rowBetween, { flexWrap: "wrap", gap: spacing[3] }]}>
           <View style={layout.fill}>
             <Text variant="heading" color="primary">
@@ -350,51 +343,35 @@ export default function StudentDashboard() {
             </Text>
             <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
               {student?.matric_number}
-              {dept ? ` · ${dept}` : ""}
+              {deptName ? ` · ${deptName}` : ""}
               {student?.level ? ` · ${student.level} Level` : ""}
               {tenant?.name ? ` · ${tenant.name}` : ""}
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push("/(tenant)/(student)/settings")}
-            activeOpacity={0.7}
+            onPress={() => router.push("/(tenant)/(student)/settings" as any)}
             style={[styles.settingsBtn, { backgroundColor: colors.bg.hover, borderColor: colors.border.DEFAULT }]}
+            activeOpacity={0.7}
           >
             <Icon name="nav-settings" size="md" color={colors.text.secondary} />
           </TouchableOpacity>
         </View>
 
-        {/* ── Stats row ── */}
+        {/* Stats */}
         <View style={[layout.rowWrap, { gap: spacing[3] }]}>
           <StatCard
-            icon="academic-gpa"
-            label="GPA"
-            value={formatGPA(student?.gpa || 0)}
+            icon="academic-gpa" label="GPA" value={formatGPA(student?.gpa || 0)}
             sub={getHonourClass(student?.gpa || 0)}
-            color={
-              (student?.gpa || 0) >= 4.5 ? "success" :
-              (student?.gpa || 0) >= 3.5 ? "info"    : "warning"
-            }
+            color={(student?.gpa || 0) >= 4.5 ? "success" : (student?.gpa || 0) >= 3.5 ? "info" : "warning"}
           />
+          <StatCard icon="nav-courses" label="Courses" value={String(stats.courses)} sub="Registered" color="brand" />
           <StatCard
-            icon="nav-courses"
-            label="Courses"
-            value={String(stats.courses)}
-            sub="This semester"
-            color="brand"
-          />
-          <StatCard
-            icon="nav-payments"
-            label="Fees"
-            value={`${stats.paidFees}/${stats.totalFees}`}
-            sub="Items cleared"
+            icon="nav-payments" label="Fees" value={`${stats.paidFees}/${stats.totalFees}`} sub="Items paid"
             color={stats.paidFees === stats.totalFees && stats.totalFees > 0 ? "success" : "warning"}
           />
           <StatCard
-            icon="nav-attendance"
-            label="Attendance"
-            value={stats.attendance > 0 ? `${stats.attendance}%` : "—"}
-            sub="This semester"
+            icon="nav-attendance" label="Attendance"
+            value={stats.attendance > 0 ? `${stats.attendance}%` : "—"} sub="This semester"
             color={stats.attendance >= 75 ? "success" : stats.attendance >= 50 ? "warning" : "error"}
           />
         </View>
@@ -402,52 +379,41 @@ export default function StudentDashboard() {
         {/* CGPA banner */}
         {(student?.cgpa || 0) > 0 && (
           <Card variant="brand">
-            <View style={[layout.rowBetween, { flexWrap: "wrap", gap: spacing[3] }]}>
+            <View style={layout.rowBetween}>
               <View style={[layout.row, { gap: spacing[2] }]}>
                 <Icon name="academic-grade" size="md" color={brand.blue} />
                 <Text variant="label" color="brand">
                   CGPA: <Text variant="label" weight="bold" color="brand">{formatGPA(student?.cgpa || 0)}</Text>
-                  {" "}—{" "}
-                  <Text variant="label" color="brand">{getHonourClass(student?.cgpa || 0)}</Text>
+                  {" "}— {getHonourClass(student?.cgpa || 0)}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => router.push("/(tenant)/(student)/results")} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => router.push("/(tenant)/(student)/results" as any)}>
                 <Text variant="caption" color="link">View results →</Text>
               </TouchableOpacity>
             </View>
           </Card>
         )}
 
-        {/* ── Two column grid ── */}
+        {/* Quick actions + Today's classes */}
         <View style={[layout.rowWrap, { gap: spacing[4], alignItems: "flex-start" }]}>
-
-          {/* Quick actions */}
           <Card style={styles.halfCard}>
             <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[3] }}>
               Quick actions
             </Text>
-            {QUICK_ACTIONS.map(({ label, icon, path, badge, badgeVariant }) => (
+            {QUICK_ACTIONS.map(({ label, icon, path }) => (
               <TouchableOpacity
                 key={path}
                 onPress={() => router.push(path as any)}
                 activeOpacity={0.75}
-                style={[
-                  styles.actionRow,
-                  { backgroundColor: colors.bg.hover, borderColor: colors.border.subtle },
-                ]}
+                style={[styles.actionRow, { backgroundColor: colors.bg.hover, borderColor: colors.border.subtle }]}
               >
                 <Icon name={icon} size="md" color={colors.text.secondary} />
                 <Text variant="label" color="primary" style={layout.fill}>{label}</Text>
-                {badge ? (
-                  <Badge label={badge} variant={badgeVariant} size="sm" />
-                ) : (
-                  <Icon name="ui-forward" size="sm" color={colors.text.muted} />
-                )}
+                <Icon name="ui-forward" size="sm" color={colors.text.muted} />
               </TouchableOpacity>
             ))}
           </Card>
 
-          {/* Today's classes */}
           <Card style={styles.halfCard}>
             <View style={[layout.rowBetween, { marginBottom: spacing[3] }]}>
               <Text variant="label" weight="bold" color="primary">Today's classes</Text>
@@ -455,27 +421,20 @@ export default function StudentDashboard() {
                 {new Date().toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short" })}
               </Text>
             </View>
-
             {classes.length === 0 ? (
-              <View style={[layout.centredH, { paddingVertical: spacing[6] }]}>
+              <View style={[layout.centredH, { paddingVertical: spacing[5] }]}>
                 <Icon name="nav-calendar" size="2xl" color={colors.text.muted} />
-                <Text variant="body" color="muted" align="center" style={{ marginTop: spacing[2] }}>
-                  No classes today!
-                </Text>
-                <Text variant="caption" color="muted" align="center">
-                  Enjoy your free time, {firstName}.
+                <Text variant="caption" color="muted" align="center" style={{ marginTop: spacing[2] }}>
+                  No classes today 🎉
                 </Text>
               </View>
             ) : (
               classes.map((c, i) => {
-                const accent = [brand.blue, "#10b981", "#f59e0b", "#8b5cf6", "#ef4444"][i % 5];
+                const accent = [brand.blue, "#10b981", "#f59e0b", "#8b5cf6"][i % 4];
                 return (
                   <View
                     key={c.id}
-                    style={[
-                      styles.classRow,
-                      { borderLeftColor: accent, backgroundColor: accent + "15" },
-                    ]}
+                    style={[styles.classRow, { borderLeftColor: accent, backgroundColor: accent + "15" }]}
                   >
                     <Text variant="label" weight="semibold" color="primary">
                       {c.courses?.course_code} — {c.courses?.course_name}
@@ -491,125 +450,69 @@ export default function StudentDashboard() {
           </Card>
         </View>
 
-        {/* ── Notifications ── */}
+        {/* Notifications */}
         <Card>
           <View style={[layout.rowBetween, { marginBottom: spacing[3] }]}>
             <View style={[layout.row, { gap: spacing[2] }]}>
               <Text variant="label" weight="bold" color="primary">Notifications</Text>
-              {unread > 0 && <Badge label={`${unread} new`} variant="red" size="sm" dot />}
+              {unread > 0 && <Badge label={`${unread} new`} variant="red" size="sm" />}
             </View>
             {unread > 0 && (
-              <TouchableOpacity onPress={markRead} activeOpacity={0.7}>
+              <TouchableOpacity onPress={markAllRead} activeOpacity={0.7}>
                 <Text variant="caption" color="link">Mark all read</Text>
               </TouchableOpacity>
             )}
           </View>
-
           {notifs.length === 0 ? (
-            <View style={[layout.centredH, { paddingVertical: spacing[6] }]}>
-              <Icon name="ui-bell" size="2xl" color={colors.text.muted} />
-              <Text variant="body" color="muted" style={{ marginTop: spacing[2] }}>
-                No notifications yet.
-              </Text>
+            <View style={[layout.centredH, { paddingVertical: spacing[5] }]}>
+              <Text variant="body" color="muted">No notifications yet.</Text>
             </View>
           ) : (
-            notifs.map((n, i) => {
-              const dotColor: Record<string, string> = {
-                result: colors.status.success, payment: colors.status.warning,
-                info:   colors.status.info,    alert:   colors.status.error,
-                success: colors.status.success,
-              };
-              return (
-                <View
-                  key={n.id}
-                  style={[
-                    styles.notifRow,
-                    i < notifs.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
-                    { opacity: n.is_read ? 0.55 : 1 },
-                  ]}
-                >
-                  <View style={[styles.notifDot, { backgroundColor: dotColor[n.type] || colors.status.info }]} />
-                  <View style={layout.fill}>
-                    <Text variant="label" weight="semibold" color="primary">{n.title}</Text>
-                    <Text variant="caption" color="secondary" style={{ marginTop: 2, lineHeight: 18 }}>
-                      {n.message}
-                    </Text>
-                  </View>
-                  <Text variant="micro" color="muted" style={{ marginLeft: spacing[2] }}>
-                    {timeAgo(n.created_at)}
-                  </Text>
+            notifs.map((n, i) => (
+              <View
+                key={n.id}
+                style={[
+                  styles.notifRow,
+                  i < notifs.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border.subtle },
+                  { opacity: n.is_read ? 0.55 : 1 },
+                ]}
+              >
+                <View style={[
+                  styles.notifDot,
+                  {
+                    backgroundColor:
+                      n.type === "result"  ? colors.status.success :
+                      n.type === "payment" ? colors.status.warning :
+                      n.type === "alert"   ? colors.status.error   :
+                      colors.status.info,
+                  },
+                ]} />
+                <View style={layout.fill}>
+                  <Text variant="label" weight="semibold" color="primary">{n.title}</Text>
+                  <Text variant="caption" color="secondary" style={{ marginTop: 2 }}>{n.message}</Text>
                 </View>
-              );
-            })
+                <Text variant="micro" color="muted" style={{ marginLeft: spacing[2] }}>
+                  {timeAgo(n.created_at)}
+                </Text>
+              </View>
+            ))
           )}
         </Card>
 
-        {/* Footer */}
-        <Text
-          variant="micro"
-          color="muted"
-          align="center"
-          style={{ marginTop: spacing[2], marginBottom: spacing[4] }}
-        >
+        <Text variant="micro" color="muted" align="center" style={{ marginBottom: spacing[4] }}>
           GMIS · A product of DAMS Technologies
         </Text>
-
       </ScrollView>
     </AppShell>
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  retryBtn: {
-    paddingHorizontal: spacing[4],
-    paddingVertical:   spacing[2],
-    borderRadius:      radius.lg,
-    borderWidth:       1,
-    borderColor:       "rgba(255,255,255,0.12)",
-    backgroundColor:   "rgba(255,255,255,0.05)",
-  },
-  settingsBtn: {
-    width:        spacing[10],   // 40
-    height:       spacing[10],
-    borderRadius: radius.full,
-    borderWidth:  1,
-    alignItems:   "center",
-    justifyContent: "center",
-  },
-  halfCard: {
-    flex:     1,
-    minWidth: 280,
-  },
-  actionRow: {
-    flexDirection:     "row",
-    alignItems:        "center",
-    gap:               spacing[3],
-    paddingHorizontal: spacing[3],
-    paddingVertical:   spacing[2] + spacing[1],
-    borderRadius:      radius.md,
-    borderWidth:       1,
-    marginBottom:      spacing[1] + spacing[1],
-  },
-  classRow: {
-    borderLeftWidth:         3,
-    borderTopRightRadius:    radius.md,
-    borderBottomRightRadius: radius.md,
-    paddingLeft:             spacing[3],
-    paddingVertical:         spacing[2],
-    marginBottom:            spacing[2],
-  },
-  notifRow: {
-    flexDirection:  "row",
-    alignItems:     "flex-start",
-    gap:            spacing[3],
-    paddingVertical: spacing[3],
-  },
-  notifDot: {
-    width:        spacing[2],   // 8
-    height:       spacing[2],
-    borderRadius: radius.full,
-    marginTop:    spacing[1],
-    flexShrink:   0,
-  },
+  ghostBtn:   { paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.lg, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", backgroundColor: "rgba(255,255,255,0.05)" },
+  settingsBtn:{ width: spacing[10], height: spacing[10], borderRadius: radius.full, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  halfCard:   { flex: 1, minWidth: 280 },
+  actionRow:  { flexDirection: "row", alignItems: "center", gap: spacing[3], paddingHorizontal: spacing[3], paddingVertical: spacing[2] + spacing[1], borderRadius: radius.md, borderWidth: 1, marginBottom: spacing[2] },
+  classRow:   { borderLeftWidth: 3, borderTopRightRadius: radius.md, borderBottomRightRadius: radius.md, paddingLeft: spacing[3], paddingVertical: spacing[2], marginBottom: spacing[2] },
+  notifRow:   { flexDirection: "row", alignItems: "flex-start", gap: spacing[3], paddingVertical: spacing[3] },
+  notifDot:   { width: spacing[2], height: spacing[2], borderRadius: radius.full, marginTop: spacing[1], flexShrink: 0 },
 });

@@ -1,5 +1,7 @@
 // ============================================================
-// GMIS — Page Header
+// GMIS — Page Header (FIXED for mobile)
+// Uses useSafeAreaInsets() for dynamic top padding
+// so it works on all phones regardless of notch size.
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
@@ -7,11 +9,12 @@
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
 import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Text } from "@/components/ui/Text";
-import { Icon } from "@/components/ui/Icon";
+import { Text }  from "@/components/ui/Text";
+import { Icon }  from "@/components/ui/Icon";
 import { useThemeColors } from "@/context/ThemeContext";
-import { spacing, sizes } from "@/theme/tokens";
+import { spacing, sizes, radius } from "@/theme/tokens";
 import { layout, iconBtn } from "@/styles/shared";
 
 interface PageHeaderProps {
@@ -33,11 +36,14 @@ export function PageHeader({
   onMenuPress,
   showMenu    = false,
 }: PageHeaderProps) {
-  const { colors } = useThemeColors() as any;
-  const themeColors = useThemeColors();
-  const router      = useRouter();
+  const colors = useThemeColors();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleBack = onBack ?? (() => router.back());
+
+  // Dynamic top padding based on device safe area
+  const topPadding = Math.max(insets.top, spacing[3]);
 
   return (
     <View
@@ -45,8 +51,9 @@ export function PageHeader({
         styles.container,
         layout.rowBetween,
         {
-          backgroundColor:   themeColors.bg.card,
-          borderBottomColor: themeColors.border.DEFAULT,
+          backgroundColor:   colors.bg.card,
+          borderBottomColor: colors.border.DEFAULT,
+          paddingTop:        topPadding,
         },
       ]}
     >
@@ -55,19 +62,21 @@ export function PageHeader({
         {showBack && (
           <TouchableOpacity
             onPress={handleBack}
-            style={[iconBtn.md, { backgroundColor: themeColors.bg.hover }]}
+            style={[iconBtn.md, { backgroundColor: colors.bg.hover }]}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Icon name="ui-back" size="md" color={themeColors.text.secondary} />
+            <Icon name="ui-back" size="md" color={colors.text.secondary} />
           </TouchableOpacity>
         )}
         {showMenu && !showBack && (
           <TouchableOpacity
             onPress={onMenuPress}
-            style={[iconBtn.md, { backgroundColor: themeColors.bg.hover }]}
+            style={[iconBtn.md, { backgroundColor: colors.bg.hover }]}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Icon name="ui-menu" size="md" color={themeColors.text.secondary} />
+            <Icon name="ui-menu" size="md" color={colors.text.secondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -95,12 +104,12 @@ export function PageHeader({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing[4],
-    paddingVertical:   spacing[3],
+    paddingBottom:     spacing[3],
     borderBottomWidth: 1,
-    minHeight:         sizes.headerHeight,   // 60
+    minHeight:         sizes.headerHeight,
   },
   side: {
-    width:          sizes.iconGridCell,       // 52 — matches iconBtn.xl outer size
+    width:          sizes.iconGridCell,
     alignItems:     "center",
     justifyContent: "center",
   },

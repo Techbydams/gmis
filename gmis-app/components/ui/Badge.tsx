@@ -1,77 +1,86 @@
 // ============================================================
 // GMIS — Badge Component
+//
+// FIX: Uses static color constants instead of useThemeColors().
+// useThemeColors() crashes inside React Native <Modal> because
+// Modal renders in a separate React portal tree that doesn't
+// inherit context from the parent tree.
+// Static constants = zero context dependency = never crashes.
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, type ViewStyle } from "react-native";
 import { Text } from "./Text";
-import { useThemeColors } from "@/context/ThemeContext";
-import { brand, radius, spacing, fontSize, fontWeight } from "@/theme/tokens";
-import { layout } from "@/styles/shared";
+import { spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 
-type BadgeVariant =
-  | "blue" | "green" | "amber" | "red"
-  | "gray" | "indigo" | "gold" | "purple";
+export type BadgeVariant =
+  | "brand" | "green" | "red" | "amber" | "blue"
+  | "indigo" | "gold" | "gray" | "outline";
 
-type BadgeSize = "sm" | "md";
+export type BadgeSize = "xs" | "sm" | "md";
 
 interface BadgeProps {
   label:    string;
   variant?: BadgeVariant;
   size?:    BadgeSize;
   dot?:     boolean;
+  style?:   ViewStyle;
 }
+
+// Static colour map — no context, no crashes
+const C: Record<BadgeVariant, { bg: string; text: string; border: string }> = {
+  brand:   { bg: "rgba(45,108,255,0.15)",  text: "#60a5fa", border: "rgba(45,108,255,0.3)"  },
+  green:   { bg: "rgba(74,222,128,0.15)",  text: "#4ade80", border: "rgba(74,222,128,0.3)"  },
+  red:     { bg: "rgba(248,113,113,0.15)", text: "#f87171", border: "rgba(248,113,113,0.3)" },
+  amber:   { bg: "rgba(251,191,36,0.15)",  text: "#fbbf24", border: "rgba(251,191,36,0.3)"  },
+  blue:    { bg: "rgba(96,165,250,0.15)",  text: "#60a5fa", border: "rgba(96,165,250,0.3)"  },
+  indigo:  { bg: "rgba(168,85,247,0.15)",  text: "#a855f7", border: "rgba(168,85,247,0.3)"  },
+  gold:    { bg: "rgba(251,191,36,0.15)",  text: "#fbbf24", border: "rgba(251,191,36,0.3)"  },
+  gray:    { bg: "rgba(148,163,184,0.15)", text: "#94a3b8", border: "rgba(148,163,184,0.3)" },
+  outline: { bg: "transparent",            text: "#94a3b8", border: "rgba(148,163,184,0.4)" },
+};
+
+const SZ: Record<BadgeSize, { px: number; py: number; fs: number }> = {
+  xs: { px: spacing[2],     py: 2,           fs: fontSize["2xs"] },
+  sm: { px: spacing[2] + 2, py: spacing[1],  fs: fontSize["2xs"] },
+  md: { px: spacing[3],     py: spacing[1],  fs: fontSize.xs     },
+};
 
 export function Badge({
   label,
-  variant = "gray",
-  size    = "md",
+  variant = "brand",
+  size    = "sm",
   dot     = false,
+  style,
 }: BadgeProps) {
-  const colors = useThemeColors();
-
-  // All colours from theme tokens — no hardcoded hex
-  const variantMap: Record<BadgeVariant, { bg: string; text: string; dot: string }> = {
-    blue:   { bg: colors.status.infoBg,         text: colors.status.info,    dot: colors.status.info    },
-    green:  { bg: colors.status.successBg,      text: colors.status.success, dot: colors.status.success },
-    amber:  { bg: colors.status.warningBg,      text: colors.status.warning, dot: colors.status.warning },
-    red:    { bg: colors.status.errorBg,        text: colors.status.error,   dot: colors.status.error   },
-    gray:   { bg: colors.bg.hover,              text: colors.text.secondary, dot: colors.text.muted     },
-    indigo: { bg: brand.indigoAlpha10,          text: brand.indigo,          dot: brand.indigo          },
-    gold:   { bg: brand.goldAlpha10,            text: brand.gold,            dot: brand.gold            },
-    purple: { bg: "rgba(168,85,247,0.12)",      text: "#a855f7",             dot: "#a855f7"             },
-  };
-
-  const v = variantMap[variant];
-
-  // Padding from spacing tokens
-  const px = size === "sm" ? spacing[2]  : 10;
-  const py = size === "sm" ? spacing[0] + 2 : spacing[1];
+  const c  = C[variant] ?? C.brand;
+  const sz = SZ[size]   ?? SZ.sm;
 
   return (
     <View
       style={[
-        styles.base,
-        layout.row,
+        styles.badge,
         {
-          backgroundColor:   v.bg,
-          paddingHorizontal: px,
-          paddingVertical:   py,
+          backgroundColor:   c.bg,
+          borderColor:       c.border,
+          paddingHorizontal: sz.px,
+          paddingVertical:   sz.py,
         },
+        style,
       ]}
     >
-      {dot && <View style={[styles.dot, { backgroundColor: v.dot }]} />}
+      {dot && <View style={[styles.dot, { backgroundColor: c.text }]} />}
       <Text
         style={{
-          fontSize:      size === "sm" ? fontSize["2xs"] : fontSize.xs,
-          fontWeight:    fontWeight.bold,
-          color:         v.text,
-          textTransform: "uppercase",
-          letterSpacing: 0.6,
+          fontSize:   sz.fs,
+          fontWeight: fontWeight.bold,
+          color:      c.text,
+          lineHeight: sz.fs * 1.4,
         }}
+        numberOfLines={1}
       >
         {label}
       </Text>
@@ -80,14 +89,17 @@ export function Badge({
 }
 
 const styles = StyleSheet.create({
-  base: {
-    borderRadius: radius.full,
-    alignSelf:    "flex-start",
-    gap:          spacing[1] + 1,  // 5 — between dot and text
+  badge: {
+    flexDirection: "row",
+    alignItems:    "center",
+    borderRadius:  radius.full,
+    borderWidth:   1,
+    gap:           spacing[1],
+    alignSelf:     "flex-start",
   },
   dot: {
-    width:        spacing[1] + 2,  // 6
-    height:       spacing[1] + 2,  // 6
+    width:        spacing[1] + 2,
+    height:       spacing[1] + 2,
     borderRadius: radius.full,
   },
 });

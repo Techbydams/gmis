@@ -319,7 +319,7 @@ export default function AdminElections() {
                   <Card key={c.id} style={{ borderColor: isWinner ? brand.gold : colors.border.DEFAULT, borderWidth: isWinner ? 2 : 1 }}>
                     <View style={[layout.rowBetween, { marginBottom: isClosed ? spacing[3] : 0 }]}>
                       <View style={[layout.row, { gap: spacing[3] }]}>
-                        <View style={[styles.avatar, { backgroundColor: isWinner ? brand.gold + "20" : brand.blueAlpha15 }]}>
+                        <View style={[styles.avatar, { backgroundColor: isWinner ? brand.goldAlpha20 : brand.blueAlpha15 }]}>
                           <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: isWinner ? brand.gold : brand.blue }}>
                             {c.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                           </Text>

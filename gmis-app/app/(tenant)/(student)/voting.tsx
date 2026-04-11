@@ -8,9 +8,9 @@
 //                        end_date, department_id
 //   election_candidates — id, election_id, full_name, manifesto,
 //                         photo_url, nomination_status, student_id
-//   election_votes     — id, election_id, student_id, candidate_id
+//   election_votes     — id, election_id, voter_id, candidate_id
 //
-// scope values: "all" (school-wide) | "department"
+// scope values: "sug" (school-wide) | "department"
 // status values: "draft" | "active" | "closed"
 // nomination_status: "pending" | "approved" | "rejected"
 // ============================================================
@@ -132,7 +132,7 @@ function CandidateRow({
         },
       ]}
     >
-      <Avatar name={cand.full_name} size="md" role="student" />
+      <Avatar name={cand.full_name} src={cand.photo_url} size="md" role="student" />
 
       <View style={layout.fill}>
         <View style={[layout.row, { gap: spacing[2], alignItems: "center" }]}>
@@ -247,7 +247,7 @@ export default function Voting() {
 
       // Filter by scope in JS — avoids brittle PostgREST nested OR
       const elecList = ((allElecs || []) as Election[]).filter((el) =>
-        el.scope === "all" ||
+        el.scope === "sug" ||
         (el.scope === "department" && el.department_id === dept)
       );
       setElections(elecList);
@@ -285,7 +285,7 @@ export default function Voting() {
             ? db.from("election_votes")
                 .select("candidate_id")
                 .eq("election_id", el.id)
-                .eq("student_id", sid)
+                .eq("voter_id", sid)
                 .maybeSingle()
             : Promise.resolve({ data: null }),
         ]);
@@ -327,7 +327,7 @@ export default function Voting() {
     try {
       const { error } = await db.from("election_votes").insert({
         election_id:  electionId,
-        student_id:   profile.id,
+        voter_id:     profile.id,
         candidate_id: candidateId,
       } as any);
       if (error) {
@@ -465,7 +465,7 @@ export default function Voting() {
                     <View style={[layout.row, { gap: spacing[1] }]}>
                       <Icon name="nav-social" size="xs" color={colors.text.muted} />
                       <Text style={{ fontSize: fontSize.xs, color: colors.text.muted }}>
-                        {el.scope === "all" ? "School-wide" : "Departmental"}
+                        {el.scope === "sug" ? "School-wide" : "Departmental"}
                       </Text>
                     </View>
                     {el.end_date && (

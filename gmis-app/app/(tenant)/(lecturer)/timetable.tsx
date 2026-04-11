@@ -139,7 +139,7 @@ export default function LecturerTimetable() {
                     </View>
 
                     {/* Divider */}
-                    <View style={[styles.divider, { backgroundColor: brand.blue + "40" }]} />
+                    <View style={[styles.divider, { backgroundColor: brand.blueAlpha40 }]} />
 
                     {/* Content */}
                     <View style={layout.fill}>

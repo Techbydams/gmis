@@ -24,12 +24,19 @@ export const brand = {
   blueAlpha15:   "rgba(45,108,255,0.15)",
   blueAlpha20:   "rgba(45,108,255,0.20)",
   blueAlpha30:   "rgba(45,108,255,0.30)",
+  blueAlpha40:   "rgba(45,108,255,0.40)",
+  blueAlpha50:   "rgba(45,108,255,0.50)",
   goldAlpha10:   "rgba(240,180,41,0.10)",
   goldAlpha15:   "rgba(240,180,41,0.15)",
   goldAlpha20:   "rgba(240,180,41,0.20)",
   indigoAlpha10: "rgba(79,62,248,0.10)",
   indigoAlpha15: "rgba(79,62,248,0.15)",
   indigoAlpha20: "rgba(79,62,248,0.20)",
+  // Supplemental role colours — used in landing page persona cards
+  emerald:        "#10b981",
+  emeraldAlpha15: "rgba(16,185,129,0.15)",
+  purple:         "#a855f7",
+  purpleAlpha15:  "rgba(168,85,247,0.15)",
 } as const;
 
 // ── Dark theme ─────────────────────────────────────────────

@@ -81,7 +81,7 @@ function FieldRow({
             color: colors.text.primary,
             paddingVertical: spacing[1],
             borderBottomWidth: 1,
-            borderBottomColor: brand.blue + "50",
+            borderBottomColor: brand.blueAlpha50,
           }}
         />
       ) : (

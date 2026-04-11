@@ -68,7 +68,7 @@ export default function Settings() {
     try {
       const { data: s } = await db.from("students").select("id, first_name, last_name, phone, matric_number, level, departments(name)").eq("supabase_uid", user.id).maybeSingle();
       if (s) {
-        const p = s as StudentProfile;
+        const p = s as unknown as StudentProfile;
         setProfile(p);
         setFirstName(p.first_name || "");
         setLastName(p.last_name || "");

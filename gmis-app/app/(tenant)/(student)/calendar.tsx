@@ -9,7 +9,7 @@
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
 import { useState, useEffect, useMemo } from "react";
-import { View, ScrollView, StyleSheet, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
 import { useTenant } from "@/context/TenantContext";
 import { useAuth }   from "@/context/AuthContext";
 import { getTenantClient } from "@/lib/supabase";
@@ -92,13 +92,13 @@ export default function CalendarPage() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={[layout.row, { gap: spacing[2] }]}>
             {["all", ...Object.keys(EVENT_CONFIG)].map((type) => (
-              <Badge
-                key={type}
-                label={type === "all" ? "All" : EVENT_CONFIG[type]?.label || type}
-                variant={filter === type ? "blue" : "gray"}
-                size="md"
-                onPress={() => setFilter(type)} // Badge supports onPress natively via TouchableOpacity wrapper
-              />
+              <TouchableOpacity key={type} onPress={() => setFilter(type)} activeOpacity={0.75}>
+                <Badge
+                  label={type === "all" ? "All" : EVENT_CONFIG[type]?.label || type}
+                  variant={filter === type ? "blue" : "gray"}
+                  size="md"
+                />
+              </TouchableOpacity>
             ))}
           </View>
         </ScrollView>

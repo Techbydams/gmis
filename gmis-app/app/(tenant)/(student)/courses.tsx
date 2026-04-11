@@ -83,7 +83,7 @@ export default function CourseRegistration() {
           .eq("session", settings?.current_session || "2024/2025"),
       ]);
 
-      setCourses((coursesRes.data || []) as Course[]);
+      setCourses((coursesRes.data || []) as unknown as Course[]);
       setRegistrations((regsRes.data || []) as Registration[]);
     } finally { setLoading(false); setRefreshing(false); }
   };

@@ -131,10 +131,14 @@ export function BottomNav({ items }: BottomNavProps) {
     }
   }, [pathname, barWidth, activeIndex, items.length]);
 
-  // Add generous bottom padding — blend with home indicator on iOS, feel native on Android
-  const bottomPad = insets.bottom > 0
-    ? insets.bottom + spacing[1]           // iOS: safe area + 4px extra
-    : spacing[3];                          // Android: 12px baseline
+  // Bottom padding — iOS drops 6px below safe area so the bar blends naturally
+  // with the home-indicator area rather than floating above it.
+  // Android adds a small baseline so it doesn't feel cramped on gesture-nav devices.
+  const bottomPad = Platform.OS === "ios"
+    ? Math.max(0, insets.bottom - 6)       // iOS: sink 6px into safe area for natural blend
+    : insets.bottom > 0
+      ? insets.bottom + spacing[1]         // Android gesture-nav: safe area + 4px
+      : spacing[3];                        // Android button-nav: 12px baseline
 
   return (
     <View

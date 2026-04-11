@@ -29,7 +29,8 @@
       "mcp__claude_ai_Supabase__list_tables",
       "mcp__claude_ai_Supabase__execute_sql",
       "Bash(npx expo:*)",
-      "mcp__claude_ai_Supabase__apply_migration"
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(wc -l \"/c/Users/DAMS TECHNOLOGIES/Documents/GMIS/gmis-app/app/\\(tenant\\)/\\(student\\)/\"*.tsx)"
     ]
   }
 }

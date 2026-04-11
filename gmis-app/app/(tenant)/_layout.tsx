@@ -27,7 +27,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useEffect }                   from "react";
+import { useEffect, useRef }            from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { View }                         from "react-native";
 import { Spinner }                      from "@/components/ui";
@@ -37,6 +37,7 @@ import { AuthProvider, useAuth }        from "@/context/AuthContext";
 import { useTheme }                     from "@/context/ThemeContext";
 import { layout }                       from "@/styles/shared";
 import { spacing }                      from "@/theme/tokens";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 // ── Constants ──────────────────────────────────────────────
 // Pages inside /(tenant)/ that don't require auth
@@ -65,6 +66,18 @@ function AuthGate() {
   const router             = useRouter();
   const segments           = useSegments();
   const { colors }         = useTheme();
+  const registeredRef      = useRef(false);
+
+  // Register for push notifications once after login
+  useEffect(() => {
+    if (!user || registeredRef.current) return;
+    registeredRef.current = true;
+    registerForPushNotifications().then((token) => {
+      if (token) console.log("[GMIS] Push token:", token);
+      // TODO: Store token in tenant DB (students/lecturers.push_token)
+      // when that column is added to the schema.
+    });
+  }, [user]);
 
   useEffect(() => {
     if (loading) return;
@@ -157,7 +170,7 @@ export default function TenantLayout() {
 
   // Tenant found → wrap with AuthProvider then gate
   return (
-    <AuthProvider tenantClient={tenantClient}>
+    <AuthProvider>
       <AuthGate />
     </AuthProvider>
   );

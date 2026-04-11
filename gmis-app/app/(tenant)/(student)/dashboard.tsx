@@ -14,6 +14,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image,
+  Animated, Easing,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter }     from "expo-router";
@@ -23,7 +24,7 @@ import { useDrawer }     from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { formatGPA, getHonourClass, timeAgo, greeting } from "@/lib/helpers";
 import { Text, Card, Badge, StatCard, SkeletonDashboard } from "@/components/ui";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }      from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
@@ -67,16 +68,112 @@ interface Notification {
   is_read: boolean; created_at: string;
 }
 
-const QUICK_ACTIONS = [
-  { label: "View my results",  icon: "nav-results"   as const, path: "/(tenant)/(student)/results"   },
-  { label: "Pay school fees",  icon: "nav-payments"  as const, path: "/(tenant)/(student)/payments"  },
-  { label: "Timetable",        icon: "nav-timetable" as const, path: "/(tenant)/(student)/timetable" },
-  { label: "Register courses", icon: "nav-courses"   as const, path: "/(tenant)/(student)/courses"   },
-  { label: "SUG elections",    icon: "nav-voting"    as const, path: "/(tenant)/(student)/voting"    },
-  { label: "GPA calculator",   icon: "nav-gpa"       as const, path: "/(tenant)/(student)/gpa"       },
-  { label: "Clearance",        icon: "nav-clearance" as const, path: "/(tenant)/(student)/clearance" },
-  { label: "AI assistant",     icon: "nav-ai"        as const, path: "/(tenant)/(student)/ai"        },
-] as const;
+// ── Quick action animation types ──────────────────────────
+// "slide"  → card-swipe translation  (Pay school fees)
+// "wiggle" → rotation oscillation    (SUG elections megaphone)
+// "spin"   → 360° clock rotation     (Timetable)
+// "pulse"  → sequential scale depress (GPA calculator buttons)
+// Each animation fires on press only — no continuous loops (no "vampire animations").
+// When Lottie JSON assets are available, swap <Animated.View> for <LottieView> per tile.
+type AnimType = "slide" | "wiggle" | "spin" | "pulse";
+
+type QuickAction = { label: string; icon: IconName; path: string; animType?: AnimType };
+const QUICK_ACTIONS: QuickAction[] = [
+  { label: "View my results",  icon: "nav-results",   path: "/(tenant)/(student)/results"   },
+  { label: "Pay school fees",  icon: "nav-payments",  path: "/(tenant)/(student)/payments",  animType: "slide"  },
+  { label: "Timetable",        icon: "nav-timetable", path: "/(tenant)/(student)/timetable", animType: "spin"   },
+  { label: "Register courses", icon: "nav-courses",   path: "/(tenant)/(student)/courses"   },
+  { label: "SUG elections",    icon: "nav-voting",    path: "/(tenant)/(student)/voting",    animType: "wiggle" },
+  { label: "GPA calculator",   icon: "nav-gpa",       path: "/(tenant)/(student)/gpa",       animType: "pulse"  },
+  { label: "Clearance",        icon: "nav-clearance", path: "/(tenant)/(student)/clearance" },
+  { label: "AI assistant",     icon: "nav-ai",        path: "/(tenant)/(student)/ai"        },
+];
+
+// ── Animated quick-action tile ─────────────────────────────
+// Each animated tile fires its motion on press and then idles.
+// Non-animated tiles render a plain icon (no wasted CPU).
+function AnimatedActionTile({
+  label, icon, path, animType, colors,
+}: { label: string; icon: IconName; path: string; animType?: AnimType; colors: any }) {
+  const router = useRouter();
+  const anim   = useRef(new Animated.Value(0)).current;
+
+  const play = () => {
+    if (!animType) return;
+    anim.setValue(0);
+    switch (animType) {
+      case "slide":
+        // Card-swipe: shoots right then snaps back
+        Animated.sequence([
+          Animated.timing(anim, { toValue: 1,  duration: 160, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          Animated.timing(anim, { toValue: -0.4, duration: 80, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0,  duration: 120, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        ]).start();
+        break;
+      case "wiggle":
+        // Megaphone vibrate: rapid left–right oscillation, decaying
+        Animated.sequence([
+          Animated.timing(anim, { toValue:  1,    duration: 60, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: -1,    duration: 70, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(anim, { toValue:  0.65, duration: 55, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: -0.65, duration: 55, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(anim, { toValue:  0.3,  duration: 45, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(anim, { toValue:  0,    duration: 45, easing: Easing.linear, useNativeDriver: true }),
+        ]).start();
+        break;
+      case "spin":
+        // Clock hands: full 360° turn, ease-in-out
+        Animated.timing(anim, {
+          toValue: 1, duration: 420, easing: Easing.inOut(Easing.ease), useNativeDriver: true,
+        }).start(() => anim.setValue(0));
+        break;
+      case "pulse":
+        // Calculator key depress: compress then spring back
+        Animated.sequence([
+          Animated.timing(anim, { toValue: -1, duration: 90,  easing: Easing.in(Easing.ease),  useNativeDriver: true }),
+          Animated.timing(anim, { toValue:  1, duration: 130, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          Animated.timing(anim, { toValue: -0.4, duration: 70, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(anim, { toValue:  0, duration: 80,  easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        ]).start();
+        break;
+    }
+  };
+
+  const iconTransform = (() => {
+    if (!animType) return undefined;
+    switch (animType) {
+      case "slide":
+        return { transform: [{ translateX: anim.interpolate({ inputRange: [-0.4, 0, 1], outputRange: [-3, 0, 9] }) }] };
+      case "wiggle":
+        return { transform: [{ rotate: anim.interpolate({ inputRange: [-1, 0, 1], outputRange: ["-14deg", "0deg", "14deg"] }) }] };
+      case "spin":
+        return { transform: [{ rotate: anim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] }) }] };
+      case "pulse":
+        return { transform: [{ scale: anim.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.78, 1, 1.14] }) }] };
+    }
+  })();
+
+  return (
+    <TouchableOpacity
+      onPress={() => { play(); router.push(path as any); }}
+      activeOpacity={0.75}
+      style={[styles.actionTile, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
+    >
+      <View style={[styles.actionIcon, { backgroundColor: brand.blueAlpha10 }]}>
+        {animType ? (
+          <Animated.View style={iconTransform}>
+            <Icon name={icon} size="md" color={brand.blue} />
+          </Animated.View>
+        ) : (
+          <Icon name={icon} size="md" color={brand.blue} />
+        )}
+      </View>
+      <Text variant="micro" color="secondary" align="center" numberOfLines={2} style={{ marginTop: spacing[2] }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function StudentDashboard() {
   const router               = useRouter();
@@ -174,7 +271,7 @@ export default function StudentDashboard() {
       .eq("day_of_week", today)
       .order("start_time");
 
-    if (data) setClasses(data as ClassSlot[]);
+    if (data) setClasses(data as unknown as ClassSlot[]);
   };
 
   const loadNotifications = async (sid: string) => {
@@ -471,6 +568,12 @@ export default function StudentDashboard() {
                   <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
                     {new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}
                   </Text>
+                  <View style={[layout.row, { gap: spacing[1], marginTop: spacing[3] }]}>
+                    <Text style={{ fontSize: fontSize.xs, color: brand.blue, fontWeight: fontWeight.semibold }}>
+                      View full timetable
+                    </Text>
+                    <Icon name="ui-forward" size="xs" color={brand.blue} />
+                  </View>
                 </>
               )}
             </View>

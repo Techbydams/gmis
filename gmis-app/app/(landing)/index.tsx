@@ -20,6 +20,17 @@ import { Text, Button, Card } from "@/components/ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useTheme } from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
+
+const FAQ_ITEMS = [
+  ["How does the subdomain system work?",             "Each institution gets their own URL — e.g. yourschool.gmis.app. This is configured automatically via wildcard DNS when your institution is approved. No extra technical setup needed on your end."],
+  ["Does GMIS take a cut from student payments?",     "No. GMIS takes zero cut from student transactions. Institutions link their own Paystack account and all fee payments go 100% directly to the institution."],
+  ["How is each institution's data isolated?",         "Every institution gets its own dedicated Supabase database. There is zero shared data between institutions — authentication, files, and records are fully separate."],
+  ["Can students self-register?",                      "Yes. Students register on their institution's portal using their student ID. The admin reviews and approves each account before portal access is granted."],
+  ["How do parents link to their child's account?",    "During student registration, a parent email is optionally collected. The parent receives an invite, creates a GMIS account, and links via the student's matric number."],
+  ["What happens if an institution misses a payment?", "The system auto-detects overdue subscriptions and locks the portal. Only the platform admin can manually unlock it after renewal."],
+  ["Can we migrate our existing student data?",        "Yes. We provide CSV import tools for bulk student, lecturer, and course data. Our onboarding team assists with migration during setup."],
+  ["Is there a mobile app?",                           "Yes. GMIS is a cross-platform Expo app. Students and staff can use the native iOS or Android app, or access the web portal from any browser."],
+] as const;
 import { layout } from "@/styles/shared";
 
 // ── Section types ──────────────────────────────────────────
@@ -40,10 +51,11 @@ interface Plan {
 }
 
 interface Persona {
-  role:     string;
-  icon:     IconName;
-  color:    string;
-  features: string[];
+  role:       string;
+  icon:       IconName;
+  color:      string;
+  colorAlpha: string;
+  features:   string[];
 }
 
 // ── Data ──────────────────────────────────────────────────
@@ -64,9 +76,10 @@ const FEATURES: Feature[] = [
 
 const PERSONAS: Persona[] = [
   {
-    role:  "Students",
-    icon:  "user-student",
-    color: brand.blue,
+    role:       "Students",
+    icon:       "user-student",
+    color:      brand.blue,
+    colorAlpha: brand.blueAlpha15,
     features: [
       "Check results the moment they're released",
       "Pay school fees securely via Paystack",
@@ -79,9 +92,10 @@ const PERSONAS: Persona[] = [
     ],
   },
   {
-    role:  "Lecturers",
-    icon:  "user-lecturer",
-    color: "#10b981",
+    role:       "Lecturers",
+    icon:       "user-lecturer",
+    color:      brand.emerald,
+    colorAlpha: brand.emeraldAlpha15,
     features: [
       "Upload CA and exam scores by matric number",
       "View all students enrolled in your courses",
@@ -92,9 +106,10 @@ const PERSONAS: Persona[] = [
     ],
   },
   {
-    role:  "Administrators",
-    icon:  "user-admin",
-    color: brand.gold,
+    role:       "Administrators",
+    icon:       "user-admin",
+    color:      brand.gold,
+    colorAlpha: brand.goldAlpha15,
     features: [
       "Full academic setup: faculties, departments, courses",
       "Approve and manage student registrations",
@@ -107,9 +122,10 @@ const PERSONAS: Persona[] = [
     ],
   },
   {
-    role:  "Parents",
-    icon:  "user-parent",
-    color: "#a855f7",
+    role:       "Parents",
+    icon:       "user-parent",
+    color:      brand.purple,
+    colorAlpha: brand.purpleAlpha15,
     features: [
       "Monitor ward's academic results in real time",
       "View fee payment status and history",
@@ -186,6 +202,7 @@ export default function LandingPage() {
   const { colors, isDark, toggleTheme } = useTheme();
   const { width }           = useWindowDimensions();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openFaq,        setOpenFaq]        = useState<number | null>(null);
 
   const isNarrow = width < 768;
   const isMedium = width >= 768 && width < 1200;
@@ -342,7 +359,7 @@ export default function LandingPage() {
         </View>
 
         <View style={[styles.personaGrid, { gap: spacing[4] }]}>
-          {PERSONAS.map(({ role, icon, color, features }) => (
+          {PERSONAS.map(({ role, icon, color, colorAlpha, features }) => (
             <View
               key={role}
               style={[
@@ -356,7 +373,7 @@ export default function LandingPage() {
               ]}
             >
               <View style={[layout.row, { gap: spacing[3], marginBottom: spacing[3] }]}>
-                <View style={[styles.personaIcon, { backgroundColor: color + "15" }]}>
+                <View style={[styles.personaIcon, { backgroundColor: colorAlpha }]}>
                   <Icon name={icon} size="lg" color={color} />
                 </View>
                 <Text style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.text.primary, alignSelf: "center" }}>
@@ -469,6 +486,51 @@ export default function LandingPage() {
         <Text style={{ fontSize: fontSize.sm, color: colors.text.muted, textAlign: "center", marginTop: spacing[5] }}>
           All plans include: unlimited lecturers, unlimited admins, and 1 parent per student.
         </Text>
+      </View>
+
+      {/* ── FAQ ──────────────────────────────────────────── */}
+      <View style={[styles.section, { backgroundColor: bg2 }]}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionLabel, { color: brand.blue }]}>FAQ</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Frequently asked questions</Text>
+          <Text style={[styles.sectionSub, { color: colors.text.secondary }]}>
+            Everything you need to know about deploying GMIS for your institution.
+          </Text>
+        </View>
+
+        <View style={{ maxWidth: 720, alignSelf: "center", width: "100%", gap: spacing[3] }}>
+          {FAQ_ITEMS.map(([q, a], i) => {
+            const isOpen = openFaq === i;
+            return (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setOpenFaq(isOpen ? null : i)}
+                activeOpacity={0.85}
+                style={[
+                  styles.faqCard,
+                  {
+                    backgroundColor: colors.bg.card,
+                    borderColor:     isOpen ? brand.blue : colors.border.DEFAULT,
+                  },
+                ]}
+              >
+                <View style={[layout.rowBetween, { gap: spacing[3] }]}>
+                  <Text style={{ flex: 1, fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.text.primary, lineHeight: 24 }}>
+                    {q}
+                  </Text>
+                  <View style={[styles.faqChevron, { backgroundColor: isOpen ? brand.blueAlpha10 : colors.bg.hover, transform: [{ rotate: isOpen ? "45deg" : "0deg" }] }]}>
+                    <Icon name="ui-add" size="sm" color={isOpen ? brand.blue : colors.text.muted} />
+                  </View>
+                </View>
+                {isOpen && (
+                  <Text style={{ fontSize: fontSize.sm, color: colors.text.secondary, lineHeight: 22, marginTop: spacing[3], paddingTop: spacing[3], borderTopWidth: 1, borderTopColor: colors.border.subtle }}>
+                    {a}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       {/* ── CTA BANNER ────────────────────────────────────── */}
@@ -652,6 +714,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical:   spacing[1],
     marginBottom:      spacing[3],
+  },
+  faqCard: {
+    padding:      spacing[5],
+    borderRadius: radius.xl,
+    borderWidth:  1,
+  },
+  faqChevron: {
+    width:          spacing[8],
+    height:         spacing[8],
+    borderRadius:   radius.full,
+    alignItems:     "center",
+    justifyContent: "center",
+    flexShrink:     0,
   },
   ctaBanner: {
     alignItems:        "center",

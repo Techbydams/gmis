@@ -65,7 +65,7 @@ export default function StudentResults() {
         .order("session", { ascending: false });
 
       if (rErr) { setError("Could not load results."); return; }
-      const r = (data || []) as Result[];
+      const r = (data || []) as unknown as Result[];
       setResults(r);
       // Default to first tab
       const groups = groupResults(r);

@@ -111,12 +111,14 @@ export function AppShell({
           {/* Main content column */}
           <View style={[layout.fillCol, styles.main]}>
 
-            {/* Page header — desktop sidebar pages AND mobile inner pages */}
+            {/* Page header — desktop sidebar pages AND mobile inner pages.
+                On mobile, the back arrow is always shown so inner pages
+                never have a dead/empty left slot. */}
             {pageTitle ? (
               <PageHeader
                 title={pageTitle}
                 subtitle={pageSubtitle}
-                showBack={showBack}
+                showBack={showBack || !showSidebar}
                 onBack={onBack}
                 rightSlot={headerRight}
                 showLogo={showLogo}

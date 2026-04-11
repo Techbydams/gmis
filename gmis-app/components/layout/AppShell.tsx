@@ -111,8 +111,8 @@ export function AppShell({
           {/* Main content column */}
           <View style={[layout.fillCol, styles.main]}>
 
-            {/* Desktop-only page header (mobile screens own their top bar) */}
-            {showSidebar && pageTitle ? (
+            {/* Page header — desktop sidebar pages AND mobile inner pages */}
+            {pageTitle ? (
               <PageHeader
                 title={pageTitle}
                 subtitle={pageSubtitle}

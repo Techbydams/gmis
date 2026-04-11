@@ -26,7 +26,10 @@
       "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"social feed twitter mobile chat whatsapp\" --domain ux -n 3)",
       "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"mobile keyboard input chat\" --stack react-native -n 3)",
       "mcp__claude_ai_Supabase__list_projects",
-      "mcp__claude_ai_Supabase__list_tables"
+      "mcp__claude_ai_Supabase__list_tables",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(npx expo:*)",
+      "mcp__claude_ai_Supabase__apply_migration"
     ]
   }
 }

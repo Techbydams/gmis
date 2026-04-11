@@ -25,9 +25,9 @@ import {
   RefreshControl, Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
-import { useDrawer } from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { Text, Card, Badge, Button, Spinner, Avatar, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
@@ -37,7 +37,8 @@ import { useResponsive } from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 
 // ── Types ──────────────────────────────────────────────────
 interface Election {
@@ -70,9 +71,10 @@ interface StudentProfile {
 }
 
 // ── Top bar ────────────────────────────────────────────────
-function TopBar({ onMenu, schoolName }: { onMenu: () => void; schoolName: string }) {
-  const { colors } = useTheme();
-  const insets     = useSafeAreaInsets();
+function TopBar({ onBack, schoolName }: { onBack: () => void; schoolName: string }) {
+  const { colors, isDark } = useTheme();
+  const insets             = useSafeAreaInsets();
+  const GMIS_LOGO          = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   return (
     <View style={[styles.topBar, {
@@ -80,8 +82,8 @@ function TopBar({ onMenu, schoolName }: { onMenu: () => void; schoolName: string
       borderBottomColor: colors.border.DEFAULT,
       paddingTop:        insets.top + spacing[2],
     }]}>
-      <TouchableOpacity onPress={onMenu} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Icon name="ui-menu" size="md" color={colors.text.secondary} />
+      <TouchableOpacity onPress={onBack} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Icon name="ui-back" size="md" color={colors.text.secondary} />
       </TouchableOpacity>
       <View style={layout.fill}>
         <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text.primary }}>
@@ -138,6 +140,9 @@ function CandidateRow({
             {cand.full_name}
           </Text>
           {isMyVote && <Badge label="Your vote" variant="blue" size="sm" />}
+          {cand.nomination_status === "pending" && !isActive && !isVoting && (
+            <Badge label="Pending" variant="amber" size="sm" />
+          )}
         </View>
 
         {cand.manifesto ? (
@@ -183,9 +188,9 @@ function CandidateRow({
 export default function Voting() {
   const { user, signOut }  = useAuth();
   const { tenant, slug }   = useTenant();
+  const router             = useRouter();
   const { colors }         = useTheme();
   const { pagePadding }    = useResponsive();
-  const { openDrawer }     = useDrawer();
 
   const [profile,    setProfile]    = useState<StudentProfile | null>(null);
   const [elections,  setElections]  = useState<Election[]>([]);
@@ -196,6 +201,7 @@ export default function Voting() {
   const [voting,     setVoting]     = useState<string | null>(null);         // electionId being voted
   const [expanded,   setExpanded]   = useState<string | null>(null);
   const [toast,      setToast]      = useState<{ msg: string; type: "error" | "success" } | null>(null);
+  const [loadError,  setLoadError]  = useState<string | null>(null);
 
   const db = useMemo(() =>
     tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null,
@@ -211,73 +217,81 @@ export default function Voting() {
   const load = async (isRefresh = false) => {
     if (!db || !user) return;
     if (!isRefresh) setLoading(true);
+    setLoadError(null);
     try {
       // ── 1. Get student profile ──────────────────────────
-      const { data: s } = await db
+      const { data: s, error: sErr } = await db
         .from("students")
         .select("id, department_id, first_name, last_name")
         .eq("supabase_uid", user.id)
         .maybeSingle();
 
-      if (!s) { setLoading(false); setRefreshing(false); return; }
+      if (sErr) { setLoadError(`Profile error: ${sErr.message}`); return; }
+      if (!s)   { setLoadError("Student record not found."); return; }
       setProfile(s as StudentProfile);
       const sid  = (s as any).id;
       const dept = (s as any).department_id as string | null;
 
-      // ── 2. Load elections visible to this student ────────
-      //   scope="all"  → visible to everyone
-      //   scope="department" AND department_id matches → visible
-      let electionsQuery = db
+      // ── 2. Fetch all non-draft elections + nomination-open drafts ─
+      //  Scope filtering is done in JS to avoid complex PostgREST OR syntax.
+      const { data: allElecs, error: eErr } = await db
         .from("elections")
         .select("*")
-        .in("status", ["active", "closed"])
+        .or("status.in.(active,closed),nomination_open.eq.true")
         .order("created_at", { ascending: false });
 
-      // Build the OR filter
-      if (dept) {
-        electionsQuery = electionsQuery.or(
-          `scope.eq.all,and(scope.eq.department,department_id.eq.${dept})`
-        );
-      } else {
-        // No department — only see school-wide elections
-        electionsQuery = electionsQuery.eq("scope", "all");
+      if (eErr) {
+        setLoadError(`Elections error: ${eErr.message}`);
+        return;
       }
 
-      const { data: elecs, error: eErr } = await electionsQuery;
-      if (eErr) console.warn("Elections query error:", eErr.message);
-
-      const elecList = (elecs || []) as Election[];
+      // Filter by scope in JS — avoids brittle PostgREST nested OR
+      const elecList = ((allElecs || []) as Election[]).filter((el) =>
+        el.scope === "all" ||
+        (el.scope === "department" && el.department_id === dept)
+      );
       setElections(elecList);
 
-      // ── 3. Load approved candidates + vote counts + my votes ─
-      const candMap:  Record<string, Candidate[]> = {};
-      const voteMap:  Record<string, string>      = {};
+      // ── 3. Load candidates + vote counts + my votes ──────
+      const candMap: Record<string, Candidate[]> = {};
+      const voteMap: Record<string, string>      = {};
 
       await Promise.all(elecList.map(async (el) => {
-        const [candRes, voteCountRes, myVoteRes] = await Promise.all([
-          // Approved candidates
-          db.from("election_candidates")
-            .select("id, full_name, manifesto, photo_url, nomination_status")
-            .eq("election_id", el.id)
-            .eq("nomination_status", "approved"),
+        const isActive       = el.status === "active";
+        const isClosed       = el.status === "closed";
+        const isNomination   = el.nomination_open && el.status === "draft";
 
-          // Vote counts (only meaningful when closed)
-          el.status === "closed"
+        const [candRes, voteCountRes, myVoteRes] = await Promise.all([
+          // During nomination: show all candidates; during active/closed: approved only
+          isNomination
+            ? db.from("election_candidates")
+                .select("id, full_name, manifesto, photo_url, nomination_status")
+                .eq("election_id", el.id)
+                .in("nomination_status", ["pending", "approved"])
+            : db.from("election_candidates")
+                .select("id, full_name, manifesto, photo_url, nomination_status")
+                .eq("election_id", el.id)
+                .eq("nomination_status", "approved"),
+
+          // Vote counts — only for closed elections
+          isClosed
             ? db.from("election_votes")
                 .select("candidate_id")
                 .eq("election_id", el.id)
-            : Promise.resolve({ data: [] }),
+            : Promise.resolve({ data: [] as any }),
 
-          // My vote
-          db.from("election_votes")
-            .select("candidate_id")
-            .eq("election_id", el.id)
-            .eq("student_id", sid)
-            .maybeSingle(),
+          // My vote in this election
+          (isActive || isClosed)
+            ? db.from("election_votes")
+                .select("candidate_id")
+                .eq("election_id", el.id)
+                .eq("student_id", sid)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
         ]);
 
         // Count votes per candidate
-        const allVotes = (voteCountRes as any).data || [];
+        const allVotes     = (voteCountRes as any).data || [];
         const voteCountMap: Record<string, number> = {};
         allVotes.forEach((v: any) => {
           voteCountMap[v.candidate_id] = (voteCountMap[v.candidate_id] || 0) + 1;
@@ -295,6 +309,8 @@ export default function Voting() {
 
       setCandidates(candMap);
       setMyVotes(voteMap);
+    } catch (err: any) {
+      setLoadError(err?.message || "Failed to load elections. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -338,7 +354,7 @@ export default function Voting() {
     <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} onLogout={async () => signOut()}>
 
       {/* Native top bar */}
-      <TopBar onMenu={openDrawer} schoolName={tenant?.name || ""} />
+      <TopBar onBack={() => router.back()} schoolName={tenant?.name || ""} />
 
       {/* Toast */}
       {toast && (
@@ -384,11 +400,20 @@ export default function Voting() {
           <View style={[layout.centred, { paddingVertical: spacing[12] }]}>
             <Spinner size="lg" />
           </View>
+        ) : loadError ? (
+          <EmptyState
+            variant="error"
+            icon="nav-voting"
+            title="Could not load elections"
+            description={loadError}
+            actionLabel="Try again"
+            onAction={() => load()}
+          />
         ) : elections.length === 0 ? (
           <EmptyState
             icon="nav-voting"
-            title="No active elections"
-            description="Elections will appear here when opened by your school admin."
+            title="No elections at the moment"
+            description="Active and closed elections will appear here. Check back later or contact your admin."
           />
         ) : (
           elections.map((el) => {

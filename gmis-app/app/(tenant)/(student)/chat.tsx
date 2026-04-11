@@ -21,9 +21,9 @@ import {
   KeyboardAvoidingView, Platform, Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
-import { useDrawer } from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { timeAgo } from "@/lib/helpers";
 import { Text, Spinner, EmptyState } from "@/components/ui";
@@ -33,7 +33,9 @@ import { useTheme }   from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
+const GROUP_ICON      = require("@/assets/gmis_logo.png");  // group chat default avatar
 
 interface Message {
   id: string;
@@ -50,9 +52,10 @@ interface Course {
 }
 
 // ── Conversation list top bar ──────────────────────────────
-function ListTopBar({ onMenu }: { onMenu: () => void }) {
-  const { colors } = useTheme();
-  const insets     = useSafeAreaInsets();
+function ListTopBar({ onBack }: { onBack: () => void }) {
+  const { colors, isDark } = useTheme();
+  const insets             = useSafeAreaInsets();
+  const GMIS_LOGO          = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   return (
     <View style={[styles.listTopBar, {
@@ -60,8 +63,8 @@ function ListTopBar({ onMenu }: { onMenu: () => void }) {
       borderBottomColor: colors.border.DEFAULT,
       paddingTop:        insets.top + spacing[2],
     }]}>
-      <TouchableOpacity onPress={onMenu} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Icon name="ui-menu" size="md" color={colors.text.secondary} />
+      <TouchableOpacity onPress={onBack} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Icon name="ui-back" size="md" color={colors.text.secondary} />
       </TouchableOpacity>
       <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text.primary }}>
         Chats
@@ -75,25 +78,27 @@ function ListTopBar({ onMenu }: { onMenu: () => void }) {
 function ChatTopBar({
   course,
   onBack,
-}: { course: Course | null; onBack: () => void }) {
+  onLayout,
+}: { course: Course | null; onBack: () => void; onLayout?: (e: any) => void }) {
   const { colors } = useTheme();
   const insets     = useSafeAreaInsets();
 
   return (
-    <View style={[styles.chatTopBar, {
-      backgroundColor:   colors.bg.card,
-      borderBottomColor: colors.border.DEFAULT,
-      paddingTop:        insets.top + spacing[2],
-    }]}>
+    <View
+      onLayout={onLayout}
+      style={[styles.chatTopBar, {
+        backgroundColor:   colors.bg.card,
+        borderBottomColor: colors.border.DEFAULT,
+        paddingTop:        insets.top + spacing[2],
+      }]}
+    >
       <TouchableOpacity onPress={onBack} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
         <Icon name="ui-back" size="md" color={brand.blue} />
       </TouchableOpacity>
 
-      {/* Course avatar */}
-      <View style={[styles.chatAvatar, { backgroundColor: brand.blue }]}>
-        <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.black, color: "#fff" }}>
-          {course?.course_code?.slice(-3) ?? "?"}
-        </Text>
+      {/* Group avatar — GMIS logo until lecturer photo is available */}
+      <View style={[styles.chatAvatar, { backgroundColor: colors.bg.hover, borderWidth: 1, borderColor: colors.border.DEFAULT }]}>
+        <Image source={GROUP_ICON} style={{ width: 28, height: 28 }} resizeMode="contain" />
       </View>
 
       <View style={layout.fill}>
@@ -136,9 +141,9 @@ function Bubble({ msg, isMe, colors }: { msg: Message; isMe: boolean; colors: an
 // ── Main screen ────────────────────────────────────────────
 export default function Chat() {
   const { user, signOut }  = useAuth();
+  const router             = useRouter();
   const { tenant, slug }   = useTenant();
   const { colors }         = useTheme();
-  const { openDrawer }     = useDrawer();
   const insets             = useSafeAreaInsets();
 
   const [studentId,    setStudentId]    = useState<string | null>(null);
@@ -148,6 +153,7 @@ export default function Chat() {
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const [loading,      setLoading]      = useState(true);
   const [sending,      setSending]      = useState(false);
+  const [topBarHeight, setTopBarHeight] = useState(0);
   const flatRef = useRef<FlatList>(null);
 
   const db = useMemo(() =>
@@ -207,7 +213,7 @@ export default function Chat() {
   if (!activeCourse) {
     return (
       <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} onLogout={async () => signOut()}>
-        <ListTopBar onMenu={openDrawer} />
+        <ListTopBar onBack={() => router.back()} />
 
         {loading ? (
           <View style={[layout.fill, layout.centred]}><Spinner size="lg" /></View>
@@ -234,10 +240,9 @@ export default function Chat() {
                 activeOpacity={0.75}
                 style={[styles.convRow, { backgroundColor: colors.bg.primary }]}
               >
-                <View style={[styles.chatAvatar, { backgroundColor: brand.blue }]}>
-                  <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.black, color: "#fff" }}>
-                    {c.course_code.slice(-3)}
-                  </Text>
+                {/* Group avatar — GMIS logo until lecturer photo is available */}
+                <View style={[styles.chatAvatar, { backgroundColor: colors.bg.hover, borderWidth: 1, borderColor: colors.border.DEFAULT }]}>
+                  <Image source={GROUP_ICON} style={{ width: 28, height: 28 }} resizeMode="contain" />
                 </View>
                 <View style={layout.fill}>
                   <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.text.primary }} numberOfLines={1}>
@@ -257,17 +262,18 @@ export default function Chat() {
   }
 
   // ── Chat window ──────────────────────────────────────────
-  // keyboardVerticalOffset = top inset so content doesn't over-shift on iOS
-  const kvOffset = insets.top;
-
   return (
     <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} onLogout={async () => signOut()}>
-      <ChatTopBar course={activeCourse} onBack={() => { setActiveCourse(null); setMessages([]); }} />
+      <ChatTopBar
+        course={activeCourse}
+        onBack={() => { setActiveCourse(null); setMessages([]); }}
+        onLayout={(e: any) => setTopBarHeight(e.nativeEvent.layout.height)}
+      />
 
       <KeyboardAvoidingView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={kvOffset}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={topBarHeight}
       >
         {/* Messages */}
         <FlatList
@@ -298,7 +304,11 @@ export default function Chat() {
             {
               backgroundColor: colors.bg.card,
               borderTopColor:  colors.border.DEFAULT,
-              paddingBottom:   Math.max(insets.bottom, spacing[2]),
+              // On iOS with padding behavior, KAV handles bottom offset.
+              // On Android, add bottom inset manually.
+              paddingBottom: Platform.OS === "android"
+                ? Math.max(insets.bottom, spacing[2])
+                : spacing[2],
             },
           ]}
         >
@@ -311,7 +321,11 @@ export default function Chat() {
               style={[styles.textInput, { color: colors.text.primary }]}
               multiline
               maxLength={1000}
+              returnKeyType="default"
+              blurOnSubmit={false}
+              enablesReturnKeyAutomatically
               onSubmitEditing={Platform.OS === "web" ? send : undefined}
+              scrollEnabled
             />
           </View>
 

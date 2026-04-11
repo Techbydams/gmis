@@ -20,7 +20,8 @@ import {
   Image,
 } from "react-native";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 import { useRouter } from "expo-router";
 import { useTenant }        from "@/context/TenantContext";
 import { getTenantClient }  from "@/lib/supabase";
@@ -91,7 +92,8 @@ const GENDER_OPTIONS = [
 export default function StudentSignup() {
   const router                          = useRouter();
   const { tenant, slug, loading: tenantLoading } = useTenant();
-  const { colors }                      = useTheme();
+  const { colors, isDark }              = useTheme();
+  const GMIS_LOGO                       = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   const [step,         setStep]         = useState(1);
   const [form,         setForm]         = useState<FormData>(INIT);

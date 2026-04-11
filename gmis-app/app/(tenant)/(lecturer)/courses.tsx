@@ -97,7 +97,7 @@ export default function LecturerCourses() {
                     <Text variant="label" weight="semibold" color="primary">{c.course_name}</Text>
                     <Text variant="micro" color="muted">{c.level} Level · {c.semester} Semester · {c.credit_units} units</Text>
                   </View>
-                  <Badge label={c.is_active ? "Active" : "Inactive"} variant={c.is_active ? "green" : "neutral"} size="sm" />
+                  <Badge label={c.is_active ? "Active" : "Inactive"} variant={c.is_active ? "green" : "gray"} size="sm" />
                 </TouchableOpacity>
               ))
             )}

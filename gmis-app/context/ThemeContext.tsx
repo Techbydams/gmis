@@ -1,7 +1,7 @@
 // ============================================================
 // GMIS — Theme Context
-// Wraps NativeWind's color scheme system with persistence.
-// Use useTheme() anywhere in the app to get/set the theme.
+// Wraps NativeWind's color scheme system with AsyncStorage
+// persistence so the user's choice survives app restarts.
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
@@ -12,12 +12,16 @@ import {
   createContext,
   useContext,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import { useColorScheme } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { dark, light } from "@/theme/tokens";
 
 type ThemeMode = "dark" | "light";
+
+const STORAGE_KEY = "gmis:theme";
 
 // The full colour set available to any component
 export type ThemeColors = typeof dark | typeof light;
@@ -35,16 +39,34 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { colorScheme, setColorScheme } = useColorScheme();
 
+  // ── On mount: restore saved preference ─────────────────
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
+      if (saved === "light" || saved === "dark") {
+        setColorScheme(saved);
+      } else {
+        // Default to dark if nothing saved
+        setColorScheme("dark");
+        AsyncStorage.setItem(STORAGE_KEY, "dark");
+      }
+    });
+  }, []);
+
   const isDark  = colorScheme !== "light";
   const theme   = isDark ? "dark" : "light";
   const colors  = isDark ? dark : light;
 
   const toggleTheme = useCallback(() => {
-    setColorScheme(isDark ? "light" : "dark");
+    const next: ThemeMode = isDark ? "light" : "dark";
+    setColorScheme(next);
+    AsyncStorage.setItem(STORAGE_KEY, next);
   }, [isDark, setColorScheme]);
 
   const setTheme = useCallback(
-    (mode: ThemeMode) => { setColorScheme(mode); },
+    (mode: ThemeMode) => {
+      setColorScheme(mode);
+      AsyncStorage.setItem(STORAGE_KEY, mode);
+    },
     [setColorScheme]
   );
 

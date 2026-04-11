@@ -18,7 +18,8 @@ import {
   brand, spacing, radius, fontSize, fontWeight, sizes,
 } from "@/theme/tokens";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 import { layout, iconBtn } from "@/styles/shared";
 
 // ── Types ──────────────────────────────────────────────────
@@ -133,8 +134,9 @@ interface SidebarProps {
 
 export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
   const { colors, toggleTheme, isDark } = useTheme();
-  const router   = useRouter();
-  const pathname = usePathname();
+  const router    = useRouter();
+  const pathname  = usePathname();
+  const GMIS_LOGO = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   return (
     <View

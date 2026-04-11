@@ -19,9 +19,9 @@ import {
   Platform, Image, ActivityIndicator, Pressable,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
-import { useDrawer } from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { timeAgo } from "@/lib/helpers";
 import { Text, Avatar, Spinner, EmptyState } from "@/components/ui";
@@ -31,7 +31,8 @@ import { useTheme }   from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 
 // ── Types ──────────────────────────────────────────────────
 interface Post {
@@ -55,9 +56,10 @@ interface Comment {
 }
 
 // ── Top bar ────────────────────────────────────────────────
-function TopBar({ onMenu, onCompose }: { onMenu: () => void; onCompose: () => void }) {
-  const { colors } = useTheme();
-  const insets     = useSafeAreaInsets();
+function TopBar({ onBack, onCompose }: { onBack: () => void; onCompose: () => void }) {
+  const { colors, isDark } = useTheme();
+  const insets             = useSafeAreaInsets();
+  const GMIS_LOGO          = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   return (
     <View
@@ -70,8 +72,8 @@ function TopBar({ onMenu, onCompose }: { onMenu: () => void; onCompose: () => vo
         },
       ]}
     >
-      <TouchableOpacity onPress={onMenu} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Icon name="ui-menu" size="md" color={colors.text.secondary} />
+      <TouchableOpacity onPress={onBack} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Icon name="ui-back" size="md" color={colors.text.secondary} />
       </TouchableOpacity>
 
       <Image source={GMIS_LOGO} style={styles.topLogo} resizeMode="contain" />
@@ -338,10 +340,10 @@ function CommentsModal({
 
 // ── Main screen ────────────────────────────────────────────
 export default function StudentSocial() {
+  const router            = useRouter();
   const { user, signOut } = useAuth();
   const { tenant, slug }  = useTenant();
   const { colors }        = useTheme();
-  const { openDrawer }    = useDrawer();
 
   const [posts,         setPosts]         = useState<Post[]>([]);
   const [studentId,     setStudentId]     = useState<string | null>(null);
@@ -470,7 +472,7 @@ export default function StudentSocial() {
     <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} onLogout={async () => signOut()}>
 
       {/* Native top bar */}
-      <TopBar onMenu={openDrawer} onCompose={() => setShowCompose(true)} />
+      <TopBar onBack={() => router.back()} onCompose={() => setShowCompose(true)} />
 
       {/* Feed */}
       {loading ? (

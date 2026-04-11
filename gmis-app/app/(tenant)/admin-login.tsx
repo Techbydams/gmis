@@ -21,7 +21,8 @@ import {
   Image,
 } from "react-native";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
@@ -39,7 +40,8 @@ export default function AdminLogin() {
   const router              = useRouter();
   const { signIn, user, loading: authLoading } = useAuth();
   const { tenant, slug }    = useTenant();
-  const { colors }          = useTheme();
+  const { colors, isDark }  = useTheme();
+  const GMIS_LOGO           = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");

@@ -25,7 +25,8 @@ import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 import { greeting } from "@/lib/helpers";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 
 const LECTURER_ACTIONS = [
   { label: "My courses",        icon: "nav-courses"    as const, path: "/(tenant)/(lecturer)/courses"     },
@@ -41,7 +42,8 @@ export default function LecturerDashboard() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
   const { tenant, slug }   = useTenant();
-  const { colors }         = useTheme();
+  const { colors, isDark } = useTheme();
+  const GMIS_LOGO          = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
   const { pagePadding }    = useResponsive();
 
   const [lecturer,  setLecturer]  = useState<any>(null);

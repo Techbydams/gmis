@@ -25,7 +25,8 @@ import { useResponsive } from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 
 const ADMIN_ACTIONS = [
   { label: "Student approvals",    icon: "nav-approvals"  as const, path: "/(tenant)/(admin)/approvals"    },
@@ -43,7 +44,8 @@ export default function AdminDashboard() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
   const { tenant, slug }   = useTenant();
-  const { colors }         = useTheme();
+  const { colors, isDark } = useTheme();
+  const GMIS_LOGO          = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
   const { pagePadding }    = useResponsive();
   const { openDrawer }     = useDrawer();
   const insets             = useSafeAreaInsets();

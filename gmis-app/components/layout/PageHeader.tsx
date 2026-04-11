@@ -10,12 +10,13 @@
 
 import { View, TouchableOpacity, StyleSheet, Image } from "react-native";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Text }  from "@/components/ui/Text";
 import { Icon }  from "@/components/ui/Icon";
-import { useThemeColors } from "@/context/ThemeContext";
+import { useTheme, useThemeColors } from "@/context/ThemeContext";
 import { spacing, sizes, radius, brand, fontSize } from "@/theme/tokens";
 import { layout, iconBtn } from "@/styles/shared";
 
@@ -43,9 +44,11 @@ export function PageHeader({
   showMenu    = false,
   showLogo    = false,
 }: PageHeaderProps) {
-  const colors = useThemeColors();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const colors  = useThemeColors();
+  const { isDark } = useTheme();
+  const router  = useRouter();
+  const insets  = useSafeAreaInsets();
+  const GMIS_LOGO = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   const handleBack = onBack ?? (() => router.back());
 

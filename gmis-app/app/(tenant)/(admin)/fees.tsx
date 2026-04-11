@@ -104,7 +104,7 @@ export default function AdminFees() {
                     </View>
                     <View style={[layout.row, { gap: spacing[2] }]}>
                       <Text variant="label" weight="bold" color="primary">{formatNaira(f.amount)}</Text>
-                      <Badge label={f.is_active ? "Active" : "Inactive"} variant={f.is_active ? "green" : "neutral"} size="sm" />
+                      <Badge label={f.is_active ? "Active" : "Inactive"} variant={f.is_active ? "green" : "gray"} size="sm" />
                     </View>
                   </View>
                 ))

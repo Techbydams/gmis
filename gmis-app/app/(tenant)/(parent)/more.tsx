@@ -1,3 +1,8 @@
+// ============================================================
+// GMIS — Parent More Menu
+// Route: /(tenant)/(parent)/more
+// ============================================================
+
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
@@ -10,34 +15,27 @@ import { Text }      from "@/components/ui/Text";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { AppShell }  from "@/components/layout";
 import { useTheme }  from "@/context/ThemeContext";
-import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
+import { brand, spacing, radius } from "@/theme/tokens";
 import { layout }    from "@/styles/shared";
 
 const MORE_ITEMS: { label: string; icon: IconName; href: string; description: string }[] = [
-  { label: "My Profile",     icon: "user-student",  href: "/(tenant)/(student)/profile",       description: "View & edit your profile"          },
-  { label: "Notifications",  icon: "ui-bell",       href: "/(tenant)/(student)/notifications", description: "View all school notifications"     },
-  { label: "Timetable",      icon: "nav-timetable", href: "/(tenant)/(student)/timetable",     description: "View your class schedule"          },
-  { label: "Courses",        icon: "nav-courses",   href: "/(tenant)/(student)/courses",       description: "Register & manage courses"         },
-  { label: "GPA Calculator", icon: "nav-gpa",       href: "/(tenant)/(student)/gpa",           description: "Calculate your GPA/CGPA"           },
-  { label: "Clearance",      icon: "nav-clearance", href: "/(tenant)/(student)/clearance",     description: "Track your clearance status"       },
-  { label: "Social",         icon: "nav-social",    href: "/(tenant)/(student)/social",        description: "Campus community feed"             },
-  { label: "Voting",         icon: "nav-voting",    href: "/(tenant)/(student)/voting",        description: "SUG elections & polls"             },
-  { label: "Calendar",       icon: "nav-calendar",  href: "/(tenant)/(student)/calendar",      description: "Academic & events calendar"        },
-  { label: "AI Assistant",   icon: "nav-ai",        href: "/(tenant)/(student)/ai",            description: "Get help with academic tasks"      },
-  { label: "Settings",       icon: "nav-settings",  href: "/(tenant)/(student)/settings",      description: "Account & notification settings"   },
+  { label: "Results",           icon: "nav-results",    href: "/(tenant)/(parent)/results",    description: "View ward's academic results"     },
+  { label: "Fee Status",        icon: "nav-payments",   href: "/(tenant)/(parent)/payments",   description: "Check payment history & status"  },
+  { label: "Attendance",        icon: "nav-attendance", href: "/(tenant)/(parent)/attendance", description: "Track ward's attendance record"   },
+  { label: "Academic Calendar", icon: "nav-calendar",   href: "/(tenant)/(parent)/calendar",   description: "School events & exam timetable"  },
 ];
 
-export default function StudentMore() {
-  const router           = useRouter();
-  const { user, signOut }= useAuth();
-  const { tenant }       = useTenant();
-  const { colors }       = useTheme();
+export default function ParentMore() {
+  const router            = useRouter();
+  const { user, signOut } = useAuth();
+  const { tenant }        = useTenant();
+  const { colors }        = useTheme();
 
-  const shellUser = { name: user?.email || "Student", role: "student" as const };
+  const shellUser = { name: user?.email || "Parent", role: "parent" as const };
 
   return (
     <AppShell
-      role="student"
+      role="parent"
       user={shellUser}
       schoolName={tenant?.name || ""}
       pageTitle="More"
@@ -48,9 +46,6 @@ export default function StudentMore() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="heading" color="primary" style={{ marginBottom: spacing[1] }}>More</Text>
-        <Text variant="caption" color="muted" style={{ marginBottom: spacing[5] }}>All features at your fingertips</Text>
-
         {MORE_ITEMS.map((item) => (
           <TouchableOpacity
             key={item.href}
@@ -69,7 +64,6 @@ export default function StudentMore() {
           </TouchableOpacity>
         ))}
 
-        {/* Logout */}
         <TouchableOpacity
           onPress={async () => { await signOut(); router.replace("/login"); }}
           activeOpacity={0.75}

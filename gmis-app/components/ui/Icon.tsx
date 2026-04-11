@@ -42,12 +42,15 @@ const iconMap = {
   // Lecturer navigation
   "nav-handouts":      "receipt-outline",
   // Actions
+  "ui-add":            "add",
+  "ui-search":         "search",
   "action-add":        "add-circle-outline",
   "action-edit":       "pencil-outline",
   "action-delete":     "trash-outline",
   "action-save":       "checkmark-circle-outline",
   "action-cancel":     "close-circle-outline",
   "action-send":       "send",
+  "action-camera":     "camera-outline",
   "action-upload":     "cloud-upload-outline",
   "action-download":   "download-outline",
   "action-refresh":    "refresh-outline",

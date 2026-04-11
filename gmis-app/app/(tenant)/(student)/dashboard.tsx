@@ -30,7 +30,8 @@ import { useResponsive } from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 
 // ── Confirmed students columns ────────────────────────────
 // id, supabase_uid, matric_number, application_no, email,
@@ -81,7 +82,7 @@ export default function StudentDashboard() {
   const router               = useRouter();
   const { user, signOut }    = useAuth();
   const { tenant, slug }     = useTenant();
-  const { colors }           = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
   const { pagePadding }      = useResponsive();
   const { openDrawer }       = useDrawer();
   const insets               = useSafeAreaInsets();
@@ -339,23 +340,78 @@ export default function StudentDashboard() {
       schoolName={tenant?.name || ""}
       onLogout={async () => { await signOut(); router.replace("/login"); }}
     >
-      {/* Native mobile top bar */}
+      {/* Native mobile top bar — [avatar] [greeting+info] · · · [QR][bell] */}
       <View style={[styles.nativeTopBar, {
         backgroundColor:   colors.bg.card,
         borderBottomColor: colors.border.DEFAULT,
         paddingTop:        insets.top + spacing[2],
       }]}>
-        <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Icon name="ui-menu" size="md" color={colors.text.secondary} />
-        </TouchableOpacity>
-        <Image source={GMIS_LOGO} style={styles.topLogo} resizeMode="contain" />
+        {/* Avatar — taps to profile page */}
         <TouchableOpacity
-          onPress={() => router.push("/(tenant)/(student)/settings" as any)}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          onPress={() => router.push("/(tenant)/(student)/profile" as any)}
+          activeOpacity={0.8}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Icon name="nav-settings" size="md" color={colors.text.secondary} />
+          {student?.profile_photo ? (
+            <Image source={{ uri: student.profile_photo }} style={styles.topAvatar} />
+          ) : (
+            <View style={[styles.topAvatar, { backgroundColor: brand.blueAlpha10, alignItems: "center", justifyContent: "center" }]}>
+              <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: brand.blue }}>
+                {firstName.charAt(0)}{lastName.charAt(0)}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
+
+        {/* Greeting + student info */}
+        <View style={{ flex: 1, paddingHorizontal: spacing[2] }}>
+          <Text numberOfLines={1} style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.text.primary }}>
+            {greeting()}, {firstName}
+          </Text>
+          <Text numberOfLines={1} style={{ fontSize: fontSize.xs, color: colors.text.muted, marginTop: 1 }}>
+            {[student?.matric_number, deptName || null, student?.level ? `${student.level}L` : null]
+              .filter(Boolean).join(" · ")}
+          </Text>
+        </View>
+
+        {/* Theme toggle · QR scanner · Notification bell */}
+        <View style={[layout.row, { gap: spacing[1] }]}>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.topIconBtn}
+          >
+            <Icon name={isDark ? "ui-sun" : "ui-moon"} size="md" color={colors.text.secondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push("/(tenant)/(student)/qr-attendance" as any)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.topIconBtn}
+          >
+            <Icon name="content-qr" size="md" color={colors.text.secondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push("/(tenant)/(student)/notifications" as any)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.topIconBtn}
+          >
+            <View>
+              <Icon name="ui-bell" size="md" color={unread > 0 ? brand.blue : colors.text.secondary} />
+              {unread > 0 && (
+                <View style={[styles.bellBadge, { backgroundColor: colors.status.error }]}>
+                  <Text style={{ fontSize: 9, fontWeight: fontWeight.black, color: "#fff", lineHeight: 12 }}>
+                    {unread > 9 ? "9+" : unread}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -370,18 +426,6 @@ export default function StudentDashboard() {
           />
         }
       >
-        {/* ── Greeting header ────────────────────────────── */}
-        <View>
-          <Text variant="heading" color="primary">
-            {greeting()}, {firstName}
-          </Text>
-          <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
-            {student?.matric_number}
-            {deptName ? ` · ${deptName}` : ""}
-            {student?.level ? ` · ${student.level}L` : ""}
-          </Text>
-        </View>
-
         {/* ── Next class hero card ───────────────────────── */}
         <TouchableOpacity
           onPress={() => router.push("/(tenant)/(student)/timetable" as any)}
@@ -594,14 +638,34 @@ const styles = StyleSheet.create({
   nativeTopBar: {
     flexDirection:     "row",
     alignItems:        "center",
-    justifyContent:    "space-between",
     paddingHorizontal: spacing[4],
     paddingBottom:     spacing[3],
     borderBottomWidth: 1,
+    gap:               spacing[2],
   },
-  topLogo: {
-    width:  80,
-    height: 28,
+  topAvatar: {
+    width:        40,
+    height:       40,
+    borderRadius: radius.full,
+    flexShrink:   0,
+  },
+  topIconBtn: {
+    width:          40,
+    height:         40,
+    alignItems:     "center",
+    justifyContent: "center",
+    borderRadius:   radius.full,
+  },
+  bellBadge: {
+    position:       "absolute",
+    top:            -4,
+    right:          -4,
+    minWidth:       16,
+    height:         16,
+    borderRadius:   radius.full,
+    alignItems:     "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
   },
   // Hero next-class card
   heroCard: {

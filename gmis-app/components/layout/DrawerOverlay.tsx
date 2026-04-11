@@ -18,7 +18,8 @@ import {
   StyleSheet, useWindowDimensions, Image,
 } from "react-native";
 
-const GMIS_LOGO = require("@/assets/gmis_logo.png");
+const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePathname } from "expo-router";
 import { Text, Avatar, Badge } from "@/components/ui";
@@ -52,6 +53,7 @@ export function DrawerOverlay({
   const { colors, toggleTheme, isDark } = useTheme();
   const pathname    = usePathname();
   const { width }   = useWindowDimensions();
+  const GMIS_LOGO   = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
 
   const drawerWidth = Math.min(280, Math.floor(width * 0.80));
 

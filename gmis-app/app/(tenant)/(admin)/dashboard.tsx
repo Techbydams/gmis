@@ -29,15 +29,20 @@ const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
 const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 
 const ADMIN_ACTIONS = [
-  { label: "Student approvals",    icon: "nav-approvals"  as const, path: "/(tenant)/(admin)/approvals"    },
-  { label: "Manage students",      icon: "nav-students"   as const, path: "/(tenant)/(admin)/students"     },
-  { label: "Academic setup",       icon: "academic-grade" as const, path: "/(tenant)/(admin)/academic"     },
-  { label: "Results management",   icon: "nav-results"    as const, path: "/(tenant)/(admin)/results"      },
-  { label: "Fee structure",        icon: "nav-payments"   as const, path: "/(tenant)/(admin)/fees"         },
-  { label: "Timetable",            icon: "nav-timetable"  as const, path: "/(tenant)/(admin)/timetable"    },
-  { label: "SUG Elections",        icon: "nav-voting"     as const, path: "/(tenant)/(admin)/elections"    },
-  { label: "Notifications",        icon: "ui-bell"        as const, path: "/(tenant)/(admin)/notifications"},
-  { label: "Settings",             icon: "nav-settings"   as const, path: "/(tenant)/(admin)/settings"     },
+  { label: "Student Approvals",  icon: "nav-approvals"   as const, path: "/(tenant)/(admin)/approvals",       color: "#f0b429" },
+  { label: "Manage Students",    icon: "nav-students"    as const, path: "/(tenant)/(admin)/students",        color: "#2d6cff" },
+  { label: "Academic Setup",     icon: "academic-grade"  as const, path: "/(tenant)/(admin)/academic",        color: "#4f3ef8" },
+  { label: "Sessions & Semesters", icon: "academic-calendar" as const, path: "/(tenant)/(admin)/sessions",   color: "#10b981" },
+  { label: "Results",            icon: "nav-results"     as const, path: "/(tenant)/(admin)/results",         color: "#2d6cff" },
+  { label: "Grading System",     icon: "academic-gpa"    as const, path: "/(tenant)/(admin)/grading",         color: "#a855f7" },
+  { label: "Fee Structure",      icon: "nav-fees"        as const, path: "/(tenant)/(admin)/fees",            color: "#10b981" },
+  { label: "Payment Gateway",    icon: "nav-payments"    as const, path: "/(tenant)/(admin)/payment-gateway", color: "#f97316" },
+  { label: "Bulk Import",        icon: "nav-academic"    as const, path: "/(tenant)/(admin)/bulk-import",     color: "#06b6d4" },
+  { label: "Timetable",          icon: "nav-timetable"   as const, path: "/(tenant)/(admin)/timetable",       color: "#6b7280" },
+  { label: "Announcements",      icon: "nav-news"        as const, path: "/(tenant)/(admin)/news",            color: "#ef4444" },
+  { label: "SUG Elections",      icon: "nav-voting"      as const, path: "/(tenant)/(admin)/elections",       color: "#f0b429" },
+  { label: "Notifications",      icon: "ui-bell"         as const, path: "/(tenant)/(admin)/notifications",   color: "#2d6cff" },
+  { label: "Settings",           icon: "nav-settings"    as const, path: "/(tenant)/(admin)/settings",        color: "#6b7280" },
 ] as const;
 
 export default function AdminDashboard() {
@@ -187,15 +192,15 @@ export default function AdminDashboard() {
         {/* Quick actions grid */}
         <Text variant="label" weight="bold" color="primary">Admin actions</Text>
         <View style={[layout.rowWrap, { gap: spacing[3] }]}>
-          {ADMIN_ACTIONS.map(({ label, icon, path }) => (
+          {ADMIN_ACTIONS.map(({ label, icon, path, color }) => (
             <TouchableOpacity
               key={path}
               onPress={() => router.push(path as any)}
               activeOpacity={0.75}
               style={[styles.actionTile, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
             >
-              <View style={[styles.actionIcon, { backgroundColor: brand.goldAlpha10 }]}>
-                <Icon name={icon} size="md" color={brand.gold} />
+              <View style={[styles.actionIcon, { backgroundColor: `${color}18` }]}>
+                <Icon name={icon} size="md" color={color} />
               </View>
               <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.text.primary, textAlign: "center" }}>
                 {label}

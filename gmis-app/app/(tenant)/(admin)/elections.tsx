@@ -12,8 +12,9 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   View, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, RefreshControl, Alert, Modal,
+  StyleSheet, RefreshControl, Alert, Image, Platform,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useTenant }       from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
@@ -204,6 +205,29 @@ export default function AdminElections() {
     setShowCForm(true);
   };
 
+  // Pick candidate photo from device gallery → store as base64 data URI in photo_url
+  const pickCandidatePhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please allow photo access to upload a candidate photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"] as any,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    if (!asset.base64) { Alert.alert("Error", "Could not read image."); return; }
+    const ext    = asset.uri.split(".").pop()?.toLowerCase() || "jpg";
+    const mime   = ext === "png" ? "image/png" : "image/jpeg";
+    const dataUri = `data:${mime};base64,${asset.base64}`;
+    setCF("photo_url", dataUri);
+  };
+
   const saveCandidate = async () => {
     if (!cForm.full_name.trim()) { Alert.alert("Error", "Candidate name is required"); return; }
     setSaving(true);
@@ -289,7 +313,40 @@ export default function AdminElections() {
               </Text>
               <CFormInput label="Full name *" value={cForm.full_name} onChange={(v) => setCF("full_name", v)} placeholder="Student full name" colors={colors} />
               <CFormInput label="Manifesto" value={cForm.manifesto} onChange={(v) => setCF("manifesto", v)} placeholder="Campaign manifesto (optional)" multiline colors={colors} />
-              <CFormInput label="Photo URL" value={cForm.photo_url} onChange={(v) => setCF("photo_url", v)} placeholder="https://... (optional)" colors={colors} />
+
+              {/* ── Candidate photo picker ── */}
+              <Text variant="caption" color="secondary" weight="medium" style={{ marginBottom: spacing[2] }}>
+                Candidate photo
+              </Text>
+              <TouchableOpacity
+                onPress={pickCandidatePhoto}
+                activeOpacity={0.8}
+                style={[styles.photoPicker, {
+                  borderColor: cForm.photo_url ? brand.blue : colors.border.DEFAULT,
+                  backgroundColor: cForm.photo_url ? brand.blueAlpha5 : colors.bg.input,
+                }]}
+              >
+                {cForm.photo_url ? (
+                  <View style={[layout.row, { gap: spacing[3], alignItems: "center" }]}>
+                    <Image source={{ uri: cForm.photo_url }} style={styles.photoPreview} />
+                    <View style={layout.fill}>
+                      <Text variant="caption" color="primary" weight="semibold">Photo selected</Text>
+                      <Text variant="micro" color="muted">Tap to change</Text>
+                    </View>
+                    <Icon name="status-success" size="sm" color={brand.blue} />
+                  </View>
+                ) : (
+                  <View style={[layout.centredH, { gap: spacing[2], paddingVertical: spacing[2] }]}>
+                    <Icon name="action-camera" size="lg" color={colors.text.muted} />
+                    <Text variant="caption" color="muted">Tap to upload photo</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              {cForm.photo_url ? (
+                <TouchableOpacity onPress={() => setCF("photo_url", "")} style={{ marginTop: spacing[1], alignSelf: "flex-end" }}>
+                  <Text variant="micro" color="muted">Remove photo</Text>
+                </TouchableOpacity>
+              ) : null}
               <View style={[layout.row, { gap: spacing[3] }]}>
                 <Button label={saving ? "Saving..." : editCId ? "Update" : "Add"} variant="primary" size="md" loading={saving} onPress={saveCandidate} />
                 <Button label="Cancel" variant="secondary" size="md" onPress={() => { setShowCForm(false); setEditCId(null); }} />
@@ -319,11 +376,15 @@ export default function AdminElections() {
                   <Card key={c.id} style={{ borderColor: isWinner ? brand.gold : colors.border.DEFAULT, borderWidth: isWinner ? 2 : 1 }}>
                     <View style={[layout.rowBetween, { marginBottom: isClosed ? spacing[3] : 0 }]}>
                       <View style={[layout.row, { gap: spacing[3] }]}>
-                        <View style={[styles.avatar, { backgroundColor: isWinner ? brand.goldAlpha20 : brand.blueAlpha15 }]}>
-                          <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: isWinner ? brand.gold : brand.blue }}>
-                            {c.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                          </Text>
-                        </View>
+                        {c.photo_url ? (
+                          <Image source={{ uri: c.photo_url }} style={[styles.avatar, { borderWidth: isWinner ? 2 : 0, borderColor: brand.gold }]} />
+                        ) : (
+                          <View style={[styles.avatar, { backgroundColor: isWinner ? brand.goldAlpha20 : brand.blueAlpha15 }]}>
+                            <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: isWinner ? brand.gold : brand.blue }}>
+                              {c.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+                            </Text>
+                          </View>
+                        )}
                         <View>
                           <View style={[layout.row, { gap: spacing[2] }]}>
                             <Text variant="label" weight="bold" color="primary">{c.full_name}</Text>
@@ -496,4 +557,7 @@ const styles = StyleSheet.create({
   actionBtn:    { width: spacing[8], height: spacing[8], borderRadius: radius.md, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.05)" },
   voteBarBg:    { height: 8, borderRadius: 4, overflow: "hidden", marginBottom: spacing[1] },
   voteBarFill:  { height: "100%", borderRadius: 4 },
+  // Candidate photo picker
+  photoPicker:  { borderWidth: 1, borderRadius: radius.lg, padding: spacing[3], marginBottom: spacing[3] },
+  photoPreview: { width: 48, height: 48, borderRadius: radius.full },
 });

@@ -30,6 +30,7 @@ import { Text }    from "./Text";
 import { Icon }    from "./Icon";
 import { useTheme } from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight, zIndex } from "@/theme/tokens";
+import { platformShadow } from "@/styles/shared";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -260,18 +261,8 @@ const styles = StyleSheet.create({
     paddingVertical:   spacing[3],
     borderRadius:      radius.xl,
     borderWidth:       1,
-    // Shadow
-    ...Platform.select({
-      ios: {
-        shadowColor:   "#000",
-        shadowOffset:  { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius:  12,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    // Shadow — cross-platform via platformShadow utility
+    ...platformShadow("#000", 4, 12, 0.15, 8),
   },
   messageCol: {
     flex: 1,

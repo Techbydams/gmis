@@ -26,7 +26,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Text } from "@/components/ui/Text";
 import { useTheme } from "@/context/ThemeContext";
 import { brand, spacing, fontSize, fontWeight, radius } from "@/theme/tokens";
-import { layout } from "@/styles/shared";
+import { layout, platformShadow } from "@/styles/shared";
 
 // ── Pill geometry (Material 3 spec) ───────────────────────
 const PILL_W = 64;   // width of the active indicator pill
@@ -148,12 +148,7 @@ export function BottomNav({ items }: BottomNavProps) {
           backgroundColor: colors.bg.card,
           borderTopColor:  colors.border.DEFAULT,
           paddingBottom:   bottomPad,
-          // Elevation shadow — standard across Android & iOS
-          shadowColor:     "#000",
-          shadowOffset:    { width: 0, height: -2 },
-          shadowOpacity:   isDark ? 0.35 : 0.08,
-          shadowRadius:    8,
-          elevation:       12,
+          ...platformShadow("#000", -2, 8, isDark ? 0.35 : 0.08, 12),
         },
       ]}
       onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}

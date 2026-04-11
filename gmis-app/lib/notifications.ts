@@ -10,15 +10,18 @@
 
 import * as Notifications from "expo-notifications";
 import * as Device        from "expo-device";
+import Constants          from "expo-constants";
 import { Platform }       from "react-native";
 
 // ── Foreground notification behaviour ─────────────────────
 // Show alerts, play sound and update badge even when app is open
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge:  true,
+    shouldShowAlert:  true,
+    shouldPlaySound:  true,
+    shouldSetBadge:   true,
+    shouldShowBanner: true,   // iOS 14+
+    shouldShowList:   true,   // iOS 14+
   }),
 });
 
@@ -90,15 +93,22 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
+  // Push tokens require a real EAS project ID (a UUID from `eas init`).
+  // Until the project is registered, local scheduled notifications still work.
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
+  const isPlaceholder = !projectId || projectId === "YOUR_EAS_PROJECT_ID" || projectId.length < 10;
+  if (isPlaceholder) {
+    // Dev / pre-EAS environment — skip silently. Local reminders still work.
+    return null;
+  }
+
   try {
-    // You must replace this with your real EAS project ID from app.json
-    // once you run `eas init`. Until then, local notifications still work.
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     return tokenData.data;
   } catch (err) {
-    // getExpoPushTokenAsync fails without a valid projectId — local
-    // scheduled notifications still work perfectly fine.
-    console.log("[GMIS] Could not obtain Expo push token:", err);
+    // Token fetch failed (e.g. simulator, no network, APNs not configured).
+    // Local scheduled notifications are unaffected.
+    console.warn("[GMIS] Push token unavailable:", (err as Error).message ?? err);
     return null;
   }
 }

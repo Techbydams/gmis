@@ -30,7 +30,10 @@
       "mcp__claude_ai_Supabase__execute_sql",
       "Bash(npx expo:*)",
       "mcp__claude_ai_Supabase__apply_migration",
-      "Bash(wc -l \"/c/Users/DAMS TECHNOLOGIES/Documents/GMIS/gmis-app/app/\\(tenant\\)/\\(student\\)/\"*.tsx)"
+      "Bash(wc -l \"/c/Users/DAMS TECHNOLOGIES/Documents/GMIS/gmis-app/app/\\(tenant\\)/\\(student\\)/\"*.tsx)",
+      "Bash(node -e \"require\\('expo-constants'\\)\")",
+      "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"academic SaaS admin dashboard education management\" --design-system -p \"GMIS Admin\" -f markdown)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

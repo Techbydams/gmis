@@ -11,7 +11,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image,
   Animated, Easing,
@@ -568,7 +568,9 @@ export default function StudentDashboard() {
                   <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
                     {new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}
                   </Text>
-                  <View style={[layout.row, { gap: spacing[1], marginTop: spacing[3] }]}>
+                  {/* Pill button — plan ahead for tomorrow */}
+                  <View style={[styles.timetableBtn, { backgroundColor: brand.blueAlpha10, borderColor: brand.blueAlpha30 }]}>
+                    <Icon name="nav-timetable" size="xs" color={brand.blue} />
                     <Text style={{ fontSize: fontSize.xs, color: brand.blue, fontWeight: fontWeight.semibold }}>
                       View full timetable
                     </Text>
@@ -647,26 +649,15 @@ export default function StudentDashboard() {
             Quick actions
           </Text>
           <View style={[layout.rowWrap, { gap: spacing[3] }]}>
-            {QUICK_ACTIONS.map(({ label, icon, path }) => (
-              <TouchableOpacity
+            {QUICK_ACTIONS.map(({ label, icon, path, animType }) => (
+              <AnimatedActionTile
                 key={path}
-                onPress={() => router.push(path as any)}
-                activeOpacity={0.75}
-                style={[styles.actionTile, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: brand.blueAlpha10 }]}>
-                  <Icon name={icon} size="md" color={brand.blue} />
-                </View>
-                <Text
-                  variant="micro"
-                  color="secondary"
-                  align="center"
-                  numberOfLines={2}
-                  style={{ marginTop: spacing[2] }}
-                >
-                  {label}
-                </Text>
-              </TouchableOpacity>
+                label={label}
+                icon={icon}
+                path={path}
+                animType={animType}
+                colors={colors}
+              />
             ))}
           </View>
         </View>
@@ -786,6 +777,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing[4],
     paddingHorizontal: spacing[4],
+  },
+  // "View full timetable" pill button inside the no-classes hero card
+  timetableBtn: {
+    flexDirection:   "row",
+    alignItems:      "center",
+    alignSelf:       "flex-start",
+    gap:             spacing[1],
+    paddingHorizontal: spacing[3],
+    paddingVertical:   spacing[2],
+    borderRadius:    radius.full,
+    borderWidth:     1,
+    marginTop:       spacing[3],
   },
   // Quick action tile
   actionTile: {

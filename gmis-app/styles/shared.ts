@@ -8,8 +8,49 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform, type ViewStyle } from "react-native";
 import { spacing, radius } from "@/theme/tokens";
+
+// ── Cross-platform shadow helper ───────────────────────────
+// React Native Web deprecated shadow* props in favour of boxShadow.
+// Always use this helper instead of raw shadow* props so both
+// native (iOS/Android) and web receive the correct styles.
+//
+//   color     — hex string e.g. "#000" or "#2d6cff"
+//   offsetY   — vertical offset in px (positive = below)
+//   blur      — blur radius in px
+//   opacity   — alpha channel (0–1) applied to color on native
+//   elevation — Android elevation
+//   offsetX   — horizontal offset (default 0)
+//
+export function platformShadow(
+  color:     string,
+  offsetY:   number,
+  blur:      number,
+  opacity:   number,
+  elevation: number,
+  offsetX = 0,
+): ViewStyle {
+  if (Platform.OS === "web") {
+    // Build an rgba string from hex + opacity for web boxShadow
+    const hex = color.replace("#", "");
+    if (hex.length === 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return { boxShadow: `${offsetX}px ${offsetY}px ${blur}px rgba(${r},${g},${b},${opacity})` } as ViewStyle;
+    }
+    // Colour is already rgba/named — use as-is
+    return { boxShadow: `${offsetX}px ${offsetY}px ${blur}px ${color}` } as ViewStyle;
+  }
+  return {
+    shadowColor:   color,
+    shadowOffset:  { width: offsetX, height: offsetY },
+    shadowOpacity: opacity,
+    shadowRadius:  blur,
+    elevation,
+  };
+}
 
 // ── Layout patterns ────────────────────────────────────────
 export const layout = StyleSheet.create({

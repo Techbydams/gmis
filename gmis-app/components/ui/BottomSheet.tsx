@@ -27,6 +27,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/context/ThemeContext";
 import { spacing, radius, zIndex } from "@/theme/tokens";
+import { platformShadow } from "@/styles/shared";
 
 interface BottomSheetProps {
   visible:     boolean;
@@ -159,11 +160,7 @@ const styles = StyleSheet.create({
     zIndex:            zIndex.modal,
     borderTopLeftRadius:  radius["3xl"],
     borderTopRightRadius: radius["3xl"],
-    elevation:         20,
-    shadowColor:       "#000",
-    shadowOffset:      { width: 0, height: -4 },
-    shadowOpacity:     0.2,
-    shadowRadius:      16,
+    ...platformShadow("#000", -4, 16, 0.2, 20),
   },
   handleWrap: {
     alignItems:     "center",

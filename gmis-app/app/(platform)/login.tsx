@@ -21,7 +21,7 @@ import { Text, Input, Button, Card } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { useTheme } from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
-import { layout } from "@/styles/shared";
+import { layout, platformShadow } from "@/styles/shared";
 
 export default function PlatformLogin() {
   const router     = useRouter();
@@ -183,11 +183,7 @@ const styles = StyleSheet.create({
     backgroundColor: brand.blue,
     alignItems:      "center",
     justifyContent:  "center",
-    shadowColor:     brand.blue,
-    shadowOffset:    { width: 0, height: 8 },
-    shadowOpacity:   0.4,
-    shadowRadius:    20,
-    elevation:       12,
+    ...platformShadow(brand.blue, 8, 20, 0.4, 12),
   },
   card: { paddingHorizontal: spacing[5], paddingVertical: spacing[5] },
   errorBox: {

@@ -10,11 +10,14 @@
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
+import { scheduleClassReminder, cancelClassReminder } from "@/lib/notifications";
 import { Text, Card, Badge, Spinner, EmptyState } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }    from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
@@ -44,10 +47,22 @@ export default function StudentTimetable() {
   );
   const [now, setNow] = useState(new Date());
   const timerRef = useRef<any>(null);
+  // Map of timetable entry id → scheduled notification id (persisted in AsyncStorage)
+  const [reminders, setReminders] = useState<Record<string, string>>({});
+  const STORAGE_KEY = "gmis:timetable_reminders";
 
   const db = useMemo(() => tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null, [tenant, slug]);
 
   useEffect(() => { if (db && user) load(); }, [db, user]);
+
+  // Load persisted reminder map from storage
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
+      if (raw) {
+        try { setReminders(JSON.parse(raw)); } catch { /* corrupt — ignore */ }
+      }
+    });
+  }, []);
 
   // Update "now" every 30s for live status
   useEffect(() => {
@@ -72,6 +87,63 @@ export default function StudentTimetable() {
       const { data } = await query.order("start_time");
       setTimetable((data || []) as TTEntry[]);
     } finally { setLoading(false); setRefreshing(false); }
+  };
+
+  // ── Reminder toggle ───────────────────────────────────
+  const toggleReminder = async (entry: TTEntry) => {
+    // Web: notifications aren't supported the same way
+    if (Platform.OS === "web") {
+      Alert.alert("Not available", "Class reminders require the mobile app.");
+      return;
+    }
+
+    const existingId = reminders[entry.id];
+
+    if (existingId) {
+      // Cancel existing reminder
+      await cancelClassReminder(existingId);
+      const next = { ...reminders };
+      delete next[entry.id];
+      setReminders(next);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      Alert.alert("Reminder removed", `No longer reminding you about ${entry.courses?.course_code}.`);
+    } else {
+      // Schedule new reminder 10 minutes before class
+      const notifId = await scheduleClassReminder({
+        entryId:    entry.id,
+        courseCode: entry.courses?.course_code || "Class",
+        courseName: entry.courses?.course_name || "",
+        venue:      entry.venue,
+        dayOfWeek:  entry.day_of_week,
+        startTime:  entry.start_time,
+        minutesBefore: 10,
+      });
+
+      if (!notifId) {
+        Alert.alert(
+          "Reminder not set",
+          "Could not schedule reminder. Make sure notification permission is granted in Settings.",
+        );
+        return;
+      }
+
+      const next = { ...reminders, [entry.id]: notifId };
+      setReminders(next);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+
+      // Figure out next occurrence for user feedback
+      const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+      const targetDay = days.indexOf(entry.day_of_week);
+      const today     = new Date().getDay();
+      let   daysAhead = targetDay - today;
+      if (daysAhead < 0) daysAhead += 7;
+      const when = daysAhead === 0 ? "today" : daysAhead === 1 ? "tomorrow" : entry.day_of_week;
+
+      Alert.alert(
+        "Reminder set",
+        `You'll be notified 10 minutes before ${entry.courses?.course_code} ${when} at ${entry.start_time.slice(0,5)}.`,
+      );
+    }
   };
 
   const dayEntries = timetable.filter((e) => e.day_of_week === activeDay);
@@ -134,23 +206,50 @@ export default function StudentTimetable() {
           <EmptyState icon="nav-calendar" title="No classes" description={`No classes on ${activeDay.charAt(0).toUpperCase() + activeDay.slice(1)}.`} />
         ) : (
           dayEntries.map((entry, i) => {
-            const status = getStatus(entry);
-            const accent = CLASS_COLORS[i % CLASS_COLORS.length];
+            const status      = getStatus(entry);
+            const accent      = CLASS_COLORS[i % CLASS_COLORS.length];
+            const hasReminder = !!reminders[entry.id];
             return (
               <View key={entry.id} style={[styles.classCard, { borderLeftColor: accent, backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}>
                 <View style={[layout.rowBetween, { marginBottom: spacing[1] }]}>
-                  <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text.primary }}>
+                  <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text.primary, flex: 1, marginRight: spacing[2] }} numberOfLines={1}>
                     {entry.courses?.course_code} — {entry.courses?.course_name}
                   </Text>
-                  {status === "NOW" && <Badge label="NOW" variant="green" dot />}
-                  {status === "UP NEXT" && <Badge label="Up Next" variant="amber" />}
-                  {status === "ENDED" && <Badge label="Ended" variant="gray" />}
+                  <View style={[layout.row, { gap: spacing[2] }]}>
+                    {status === "NOW"     && <Badge label="NOW"     variant="green" dot />}
+                    {status === "UP NEXT" && <Badge label="Up Next" variant="amber" />}
+                    {status === "ENDED"   && <Badge label="Ended"   variant="gray"  />}
+                    {/* Bell reminder button — mobile only */}
+                    {Platform.OS !== "web" && (
+                      <TouchableOpacity
+                        onPress={() => toggleReminder(entry)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={[styles.bellBtn, {
+                          backgroundColor: hasReminder ? brand.blueAlpha15 : colors.bg.hover,
+                          borderColor:     hasReminder ? brand.blueAlpha30 : colors.border.DEFAULT,
+                        }]}
+                      >
+                        <Icon
+                          name={hasReminder ? "ui-bell" : "ui-bell"}
+                          size="sm"
+                          color={hasReminder ? brand.blue : colors.text.muted}
+                          filled={hasReminder}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
                 <Text style={{ fontSize: fontSize.sm, color: colors.text.secondary }}>
                   {entry.start_time?.slice(0,5)} – {entry.end_time?.slice(0,5)}
                   {entry.venue ? ` · ${entry.venue}` : ""}
                   {(entry.courses as any)?.lecturers?.full_name ? ` · ${(entry.courses as any).lecturers.full_name}` : ""}
                 </Text>
+                {hasReminder && (
+                  <Text style={{ fontSize: fontSize.xs, color: brand.blue, marginTop: spacing[1] }}>
+                    Reminder set · 10 min before
+                  </Text>
+                )}
               </View>
             );
           })
@@ -164,4 +263,5 @@ const styles = StyleSheet.create({
   dayTab:   { paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.lg, borderWidth: 1, position: "relative" as any },
   todayDot: { position: "absolute", bottom: spacing[1], right: spacing[1], width: spacing[1] + 1, height: spacing[1] + 1, borderRadius: radius.full },
   classCard:{ borderLeftWidth: 4, borderRadius: radius.lg, borderWidth: 1, padding: spacing[4] },
+  bellBtn:  { width: 32, height: 32, borderRadius: radius.full, borderWidth: 1, alignItems: "center", justifyContent: "center" },
 });

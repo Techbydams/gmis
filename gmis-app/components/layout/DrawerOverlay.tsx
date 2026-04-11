@@ -26,7 +26,7 @@ import { Text, Avatar, Badge } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { useTheme } from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
-import { layout } from "@/styles/shared";
+import { layout, platformShadow } from "@/styles/shared";
 import type { NavItem, SidebarUser } from "./Sidebar";
 
 interface DrawerOverlayProps {
@@ -249,11 +249,7 @@ const styles = StyleSheet.create({
     bottom:           0,
     zIndex:           2,
     borderRightWidth: 1,
-    elevation:        20,
-    shadowColor:      "#000",
-    shadowOffset:     { width: 4, height: 0 },
-    shadowOpacity:    0.3,
-    shadowRadius:     12,
+    ...platformShadow("#000", 0, 12, 0.3, 20, 4),
   },
   header: {
     flexDirection:     "row",

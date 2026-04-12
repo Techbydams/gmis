@@ -41,7 +41,19 @@
       "Bash(git clone:*)",
       "Bash(echo \"EXIT:$?\")",
       "Read(//c/Users/DAMS TECHNOLOGIES/AppData/Local/Temp/banana-claude//**)",
-      "Read(//c/Users/DAMS TECHNOLOGIES/AppData/Local/Temp/banana-claude/**)"
+      "Read(//c/Users/DAMS TECHNOLOGIES/AppData/Local/Temp/banana-claude/**)",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/AgriciDaniel/banana-claude/main/skills/banana/SKILL.md' -OutFile 'C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\AppData\\\\Local\\\\Temp\\\\SKILL.md'\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\AppData\\\\Local\\\\Temp\\\\banana2' -Recurse -Depth 3 | Select-Object FullName\")",
+      "Bash(powershell:*)",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"luxury SaaS EdTech university academic management platform Nigeria\" --design-system -p \"GMIS\" -f markdown)",
+      "Bash(python:*)",
+      "Bash(node -e ':*)",
+      "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/banana/scripts/generate.py\" --aspect-ratio \"9:16\" --image-size \"2K\" --prompt \"iPhone 15 Pro in Natural Titanium finish, tilted at a precise 20-degree angle, floating against a deep indigo backdrop \\(#1e1b4b\\). The screen is fully illuminated, displaying a university student portal mobile app UI — a GPA card at the top showing 4.21 CGPA in bold white numerals on a rich indigo gradient, below it a row of academic result cards for Engineering Mathematics, Database Systems, and Networks, each showing letter grades and scores in a clean sans-serif layout. Soft natural studio lighting: a large diffused softbox positioned upper-left casting a gentle highlight that kisses the titanium chamfer, a subtle fill card from the right keeping shadows open, and a narrow rim light from behind creating separation from the background. The phone casts a soft elongated shadow forward. Shot on a Sony A7R V with a 90mm macro lens at f/5.6, medium close-up three-quarter hero angle looking slightly up from below. A faint deep-blue ambient glow halos the device from behind. Apple product photography campaign, Wallpaper* magazine design editorial aesthetic. NEVER include any text or UI elements outside the phone screen. The background must remain solid deep indigo with no patterns.\")",
+      "Bash(node -e \"const s=require\\(process.env.APPDATA+'/Claude/claude_desktop_config.json'\\); const k=s?.mcpServers?.['nanobanana-mcp']?.env?.GOOGLE_AI_API_KEY || ''; process.stdout.write\\(k?'found':'missing'\\)\")",
+      "Read(//c/Users/DAMS TECHNOLOGIES/.claude/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); k=next\\(\\(v.get\\('env',{}\\).get\\('GOOGLE_AI_API_KEY',''\\) for v in d.get\\('mcpServers',{}\\).values\\(\\) if v.get\\('env',{}\\).get\\('GOOGLE_AI_API_KEY'\\)\\), ''\\); print\\('key:'+k[:12]+'...' if k else 'not found'\\)\")",
+      "mcp__claude_ai_Supabase__list_edge_functions",
+      "mcp__claude_ai_Supabase__get_advisors"
     ]
   }
 }

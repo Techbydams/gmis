@@ -15,7 +15,7 @@
 import { useState, useEffect } from "react";
 import {
   View, ScrollView, TouchableOpacity, StyleSheet,
-  useWindowDimensions, Platform, Text as RNText,
+  useWindowDimensions, Platform, Text as RNText, Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Text, Button } from "@/components/ui";
@@ -37,6 +37,17 @@ function usePremiumFonts() {
     document.head.appendChild(link);
   }, []);
 }
+
+// ── Mockup images ─────────────────────────────────────────
+// After generating with /banana, place images at:
+//   gmis-app/assets/mockups/phone-dashboard.png   (iPhone 15 Pro, 9:16)
+//   gmis-app/assets/mockups/macbook-admin.png     (MacBook Pro, 16:9)
+// Then uncomment the require() lines below — the drawn fallback
+// will be replaced automatically.
+const PHONE_MOCKUP_IMAGE: any = null;
+// const PHONE_MOCKUP_IMAGE = require("../../assets/mockups/phone-dashboard.png");
+const MACBOOK_MOCKUP_IMAGE: any = null;
+// const MACBOOK_MOCKUP_IMAGE = require("../../assets/mockups/macbook-admin.png");
 
 // ── Types ─────────────────────────────────────────────────
 interface Feature {
@@ -223,71 +234,76 @@ function PhoneMockup() {
       {/* Glow orb behind phone */}
       <View style={S.mockupGlow} />
 
-      {/* Phone frame */}
-      <View style={S.phoneFrame}>
-        {/* Notch */}
-        <View style={S.phoneNotch} />
+      {PHONE_MOCKUP_IMAGE ? (
+        /* AI-generated photorealistic mockup */
+        <Image source={PHONE_MOCKUP_IMAGE} style={S.mockupImage} resizeMode="contain" />
+      ) : (
+        /* Drawn phone frame — fallback until AI mockup is generated */
+        <View style={S.phoneFrame}>
+          {/* Notch */}
+          <View style={S.phoneNotch} />
 
-        {/* Screen content */}
-        <View style={S.phoneScreen}>
-          {/* App header */}
-          <View style={S.appHeader}>
-            <View>
-              <RNText style={S.appHeaderSub}>Good morning 👋</RNText>
-              <RNText style={S.appHeaderName}>Amina Okafor</RNText>
-            </View>
-            <View style={S.appAvatar}>
-              <RNText style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>AO</RNText>
-            </View>
-          </View>
-
-          {/* GPA card */}
-          <View style={S.gpaCard}>
-            <RNText style={S.gpaLabel}>Current CGPA</RNText>
-            <RNText style={S.gpaValue}>4.21</RNText>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#4ade80" }} />
-              <RNText style={S.gpaTag}>Second Class Upper</RNText>
-            </View>
-          </View>
-
-          {/* Quick stat row */}
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-            {[["6", "Courses"], ["87%", "Attend."], ["₦0", "Owing"]].map(([val, lbl]) => (
-              <View key={lbl} style={S.statChip}>
-                <RNText style={S.statChipVal}>{val}</RNText>
-                <RNText style={S.statChipLbl}>{lbl}</RNText>
+          {/* Screen content */}
+          <View style={S.phoneScreen}>
+            {/* App header */}
+            <View style={S.appHeader}>
+              <View>
+                <RNText style={S.appHeaderSub}>Good morning 👋</RNText>
+                <RNText style={S.appHeaderName}>Amina Okafor</RNText>
               </View>
-            ))}
-          </View>
-
-          {/* Recent activity */}
-          <View style={{ marginTop: 14 }}>
-            <RNText style={S.activityTitle}>Recent Activity</RNText>
-            {[
-              { dot: "#4ade80", text: "ENG 301 result released" },
-              { dot: "#60a5fa", text: "Fee payment confirmed" },
-              { dot: brand.gold, text: "Timetable updated" },
-            ].map(({ dot, text }) => (
-              <View key={text} style={S.activityRow}>
-                <View style={[S.activityDot, { backgroundColor: dot }]} />
-                <RNText style={S.activityText}>{text}</RNText>
+              <View style={S.appAvatar}>
+                <RNText style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>AO</RNText>
               </View>
-            ))}
-          </View>
+            </View>
 
-          {/* Bottom nav bar */}
-          <View style={S.phoneNav}>
-            {["home", "results", "payments", "courses", "more"].map((n) => (
-              <View key={n} style={S.phoneNavItem}>
-                <View style={[S.phoneNavDot, { backgroundColor: n === "home" ? brand.blue : "rgba(255,255,255,0.2)" }]} />
+            {/* GPA card */}
+            <View style={S.gpaCard}>
+              <RNText style={S.gpaLabel}>Current CGPA</RNText>
+              <RNText style={S.gpaValue}>4.21</RNText>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#4ade80" }} />
+                <RNText style={S.gpaTag}>Second Class Upper</RNText>
               </View>
-            ))}
+            </View>
+
+            {/* Quick stat row */}
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+              {[["6", "Courses"], ["87%", "Attend."], ["₦0", "Owing"]].map(([val, lbl]) => (
+                <View key={lbl} style={S.statChip}>
+                  <RNText style={S.statChipVal}>{val}</RNText>
+                  <RNText style={S.statChipLbl}>{lbl}</RNText>
+                </View>
+              ))}
+            </View>
+
+            {/* Recent activity */}
+            <View style={{ marginTop: 14 }}>
+              <RNText style={S.activityTitle}>Recent Activity</RNText>
+              {[
+                { dot: "#4ade80", text: "ENG 301 result released" },
+                { dot: "#60a5fa", text: "Fee payment confirmed" },
+                { dot: brand.gold, text: "Timetable updated" },
+              ].map(({ dot, text }) => (
+                <View key={text} style={S.activityRow}>
+                  <View style={[S.activityDot, { backgroundColor: dot }]} />
+                  <RNText style={S.activityText}>{text}</RNText>
+                </View>
+              ))}
+            </View>
+
+            {/* Bottom nav bar */}
+            <View style={S.phoneNav}>
+              {["home", "results", "payments", "courses", "more"].map((n) => (
+                <View key={n} style={S.phoneNavItem}>
+                  <View style={[S.phoneNavDot, { backgroundColor: n === "home" ? brand.blue : "rgba(255,255,255,0.2)" }]} />
+                </View>
+              ))}
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
-      {/* Floating stat badge */}
+      {/* Floating stat badges */}
       <View style={[S.floatingBadge, { top: 60, right: -20 }]}>
         <RNText style={S.floatingBadgeNum}>4.5★</RNText>
         <RNText style={S.floatingBadgeSub}>App Rating</RNText>
@@ -626,6 +642,17 @@ export default function LandingPage() {
                   </View>
                 ))}
               </View>
+
+              {/* Admin dashboard preview — shown when MacBook mockup is ready */}
+              {activePersona === 2 && MACBOOK_MOCKUP_IMAGE && (
+                <View style={S.macbookWrap}>
+                  <Image
+                    source={MACBOOK_MOCKUP_IMAGE}
+                    style={S.macbookImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
             </View>
           );
         })()}
@@ -1060,6 +1087,10 @@ const S = StyleSheet.create({
     position: "relative",
     alignItems: "center",
   },
+  mockupImage: {
+    width:  260,
+    height: 520,
+  },
   mockupGlow: {
     position:        "absolute",
     width:           240,
@@ -1227,6 +1258,17 @@ const S = StyleSheet.create({
     paddingVertical:   spacing[3],
     borderRadius:      radius.xl,
     borderWidth:       1,
+  },
+  macbookWrap: {
+    marginTop:    spacing[8],
+    borderRadius: radius["2xl"],
+    overflow:     "hidden",
+    width:        "100%" as any,
+    alignItems:   "center",
+  },
+  macbookImage: {
+    width:  "100%" as any,
+    height: 400,
   },
 
   // ── Steps

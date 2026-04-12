@@ -45,7 +45,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/gmis_logo.png"
     },
     "plugins": [
       "expo-router",

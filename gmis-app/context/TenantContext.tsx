@@ -110,9 +110,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      // Simple select — no complex joins that might fail
+      // Query the safe view — never exposes supabase_service_key
       const { data: org, error: orgError } = await supabase
-        .from("organizations")
+        .from("org_public")
         .select("id, name, slug, logo_url, supabase_url, supabase_anon_key, status")
         .eq("slug", s.toLowerCase().trim())
         .maybeSingle();  // maybeSingle won't throw on no results

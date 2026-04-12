@@ -33,7 +33,15 @@
       "Bash(wc -l \"/c/Users/DAMS TECHNOLOGIES/Documents/GMIS/gmis-app/app/\\(tenant\\)/\\(student\\)/\"*.tsx)",
       "Bash(node -e \"require\\('expo-constants'\\)\")",
       "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"academic SaaS admin dashboard education management\" --design-system -p \"GMIS Admin\" -f markdown)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(node -e \"const p = require\\('expo-image-picker'\\); console.log\\(Object.keys\\(p\\).filter\\(k => k.toLowerCase\\(\\).includes\\('media'\\)\\)\\)\")",
+      "Bash(node -e \"const p = require\\('./node_modules/expo-image-picker/build/ImagePicker'\\); console.log\\(Object.keys\\(p\\)\\)\")",
+      "Bash(gh repo:*)",
+      "Bash(cat \"/c/Users/DAMS TECHNOLOGIES/.claude/plugins/marketplaces/claude-plugins-official/external_plugins/asana/\"*.json)",
+      "Bash(git clone:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Read(//c/Users/DAMS TECHNOLOGIES/AppData/Local/Temp/banana-claude//**)",
+      "Read(//c/Users/DAMS TECHNOLOGIES/AppData/Local/Temp/banana-claude/**)"
     ]
   }
 }

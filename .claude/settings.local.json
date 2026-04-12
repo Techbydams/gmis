@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm --version)",
+      "Bash(npm install:*)",
+      "Bash(uipro init:*)",
+      "Bash(python3 skills/ui-ux-pro-max/scripts/search.py \"education SaaS multi-tenant academic portal dashboard mobile-first\" --design-system -p \"GMIS\")",
+      "Bash(py -3 skills/ui-ux-pro-max/scripts/search.py \"education SaaS multi-tenant academic portal dashboard mobile-first\" --design-system -p \"GMIS\")",
+      "Bash(py -3 \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"dashboard admin role-based dark mode professional\" --design-system)",
+      "Bash(py -3 \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"animation loading states mobile navigation\" --domain ux)",
+      "Bash(py:*)",
+      "Bash(npx tsc:*)",
+      "Read(//c/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/**)",
+      "Bash(python3 scripts/search.py \"education mobile dashboard results payments fintech\" --domain ux -n 5)",
+      "Bash(python scripts/search.py \"mobile dashboard data visualization results\" --domain chart -n 4)",
+      "Bash(python scripts/search.py \"progress bar grade distribution comparison\" --domain chart -n 3)",
+      "Bash(python3 \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"academic SaaS university mobile dashboard navigation\" --design-system -p \"GMIS\")",
+      "Bash(python \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"academic SaaS university mobile dashboard navigation\" --design-system -p \"GMIS\")",
+      "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"mobile bottom navigation tab bar global standards\" --domain ux -n 5)",
+      "Bash(python \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"mobile bottom navigation tab bar global standards\" --domain ux -n 5)",
+      "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"react native bottom nav tab\" --stack react-native)",
+      "Bash(python \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"react native bottom nav tab\" --stack react-native)",
+      "Bash(dir \"C:/Users/DAMS TECHNOLOGIES/Documents/GMIS/gmis-app/app/\")",
+      "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"social feed twitter mobile chat whatsapp\" --domain ux -n 3)",
+      "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"mobile keyboard input chat\" --stack react-native -n 3)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__list_tables",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(npx expo:*)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(wc -l \"/c/Users/DAMS TECHNOLOGIES/Documents/GMIS/gmis-app/app/\\(tenant\\)/\\(student\\)/\"*.tsx)",
+      "Bash(node -e \"require\\('expo-constants'\\)\")",
+      "Bash(python3 \"C:/Users/DAMS TECHNOLOGIES/.claude/skills/ui-ux-pro-max/scripts/search.py\" \"academic SaaS admin dashboard education management\" --design-system -p \"GMIS Admin\" -f markdown)",
+      "Bash(grep -v \"^$\")"
+    ]
+  }
+}

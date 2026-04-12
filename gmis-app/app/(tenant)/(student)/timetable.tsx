@@ -9,13 +9,14 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
 import { scheduleClassReminder, cancelClassReminder } from "@/lib/notifications";
+import { useAutoLoad } from "@/lib/useAutoLoad";
 import { Text, Card, Badge, Spinner, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
@@ -53,7 +54,7 @@ export default function StudentTimetable() {
 
   const db = useMemo(() => tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null, [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: timetable.length > 0 });
 
   // Load persisted reminder map from storage
   useEffect(() => {

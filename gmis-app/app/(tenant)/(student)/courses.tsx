@@ -8,16 +8,18 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
+import { useState, useMemo } from "react";
+import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Modal, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
+import { useAutoLoad } from "@/lib/useAutoLoad";
 import { Text, Card, Badge, Button, Input, Spinner, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }    from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
+import { useToast }    from "@/components/ui/Toast";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
@@ -25,8 +27,15 @@ interface Course {
   id: string; course_code: string; course_name: string;
   credit_units: number; level: string; semester: string;
   departments?: { name: string }; lecturers?: { full_name: string };
+  is_general?: boolean;
 }
 interface Registration { id: string; course_id: string; status: string; }
+interface EditRequest  { id: string; registration_id: string | null; old_course_id: string | null; status: string; }
+interface OrgSettings {
+  registration_open: boolean;
+  current_session: string | null;
+  current_semester: string | null;
+}
 
 export default function CourseRegistration() {
   const { user, signOut } = useAuth();
@@ -35,24 +44,29 @@ export default function CourseRegistration() {
   const { pagePadding }   = useResponsive();
 
   const [studentId,      setStudentId]      = useState<string | null>(null);
+  const [studentLevel,   setStudentLevel]   = useState<string>("");
+  const [studentDeptId,  setStudentDeptId]  = useState<string | null>(null);
   const [courses,        setCourses]        = useState<Course[]>([]);
   const [registrations,  setRegistrations]  = useState<Registration[]>([]);
   const [regOpen,        setRegOpen]        = useState(false);
+  const [currentSession, setCurrentSession] = useState<string | null>(null);
+  const [currentSemester,setCurrentSemester]= useState<string | null>(null);
   const [loading,        setLoading]        = useState(true);
   const [refreshing,     setRefreshing]     = useState(false);
   const [actionId,       setActionId]       = useState<string | null>(null);
   const [search,         setSearch]         = useState("");
   const [filterLevel,    setFilterLevel]    = useState("");
-  const [toast,          setToast]          = useState<{ msg: string; type: "error"|"success" } | null>(null);
+  const [editRequests,   setEditRequests]   = useState<EditRequest[]>([]);
+  // Edit-request modal
+  const [editModal,      setEditModal]      = useState(false);
+  const [editCourse,     setEditCourse]     = useState<(Course & { regId: string }) | null>(null);
+  const [editReason,     setEditReason]     = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const db = useMemo(() => tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null, [tenant, slug]);
+  const { showToast } = useToast();
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
-
-  const showToast = (msg: string, type: "error"|"success" = "error") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
-  };
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: courses.length > 0 });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;
@@ -60,31 +74,64 @@ export default function CourseRegistration() {
     try {
       // Get student + org settings in parallel
       const [sRes, settingsRes] = await Promise.all([
-        db.from("students").select("id, level").eq("supabase_uid", user.id).maybeSingle(),
+        db.from("students").select("id, level, department_id").eq("supabase_uid", user.id).maybeSingle(),
         db.from("org_settings").select("registration_open, current_session, current_semester").maybeSingle(),
       ]);
 
       if (!sRes.data) { setLoading(false); return; }
       const s = sRes.data as any;
       setStudentId(s.id);
+      setStudentLevel(s.level || "");
+      setStudentDeptId(s.department_id || null);
 
       const settings = settingsRes.data as any;
+      const session  = settings?.current_session  || null;
+      const semester = settings?.current_semester || null;
       setRegOpen(settings?.registration_open || false);
+      setCurrentSession(session);
+      setCurrentSemester(semester);
 
-      // Load all active courses + student's registrations
+      // Load courses: student's own department + general courses (is_general=true)
+      // Filter by current semester if set
+      let coursesQuery = db.from("courses")
+        .select("id, course_code, course_name, credit_units, level, semester, is_general, department_id, departments(id, name), lecturers(full_name)")
+        .eq("is_active", true)
+        .order("level").order("course_code");
+
+      // Apply semester filter — match both "first" and "First Semester" style values
+      if (semester) {
+        const semLower = semester.toLowerCase().replace(" semester", "");
+        coursesQuery = (coursesQuery as any).ilike("semester", `%${semLower}%`);
+      }
+
       const [coursesRes, regsRes] = await Promise.all([
-        db.from("courses")
-          .select("id, course_code, course_name, credit_units, level, semester, departments(name), lecturers(full_name)")
-          .eq("is_active", true)
-          .order("course_code"),
+        coursesQuery,
         db.from("semester_registrations")
           .select("id, course_id, status")
           .eq("student_id", s.id)
-          .eq("session", settings?.current_session || "2024/2025"),
+          .eq("session", session || ""),
       ]);
 
-      setCourses((coursesRes.data || []) as unknown as Course[]);
+      // Filter by student's level + department (or general courses)
+      const allCourses = ((coursesRes.data || []) as unknown as (Course & { department_id?: string })[]);
+      const filteredByDept = s.department_id
+        ? allCourses.filter((c) => {
+            // Show: general courses, courses with no dept, or courses matching student's department UUID
+            return c.is_general || !c.department_id || c.department_id === s.department_id;
+          })
+        : allCourses;
+
+      setCourses(filteredByDept);
       setRegistrations((regsRes.data || []) as Registration[]);
+
+      // Load pending edit requests for this student+session
+      const { data: editReqs } = await db
+        .from("course_edit_requests")
+        .select("id, registration_id, old_course_id, status")
+        .eq("student_id", s.id)
+        .eq("session", session || "")
+        .eq("status", "pending");
+      setEditRequests((editReqs || []) as EditRequest[]);
     } finally { setLoading(false); setRefreshing(false); }
   };
 
@@ -92,9 +139,15 @@ export default function CourseRegistration() {
     if (!db || !studentId) return;
     setActionId(courseId);
     try {
-      const { error } = await db.from("semester_registrations").insert({ student_id: studentId, course_id: courseId, status: "registered" } as any);
-      if (error) { showToast("Registration failed. Please try again."); return; }
-      showToast("Course registered!", "success");
+      const { error } = await db.from("semester_registrations").insert({
+        student_id: studentId,
+        course_id:  courseId,
+        status:     "registered",
+        session:    currentSession || null,
+        semester:   currentSemester || null,
+      } as any);
+      if (error) { showToast({ message: "Registration failed. Please try again.", variant: "error" }); return; }
+      showToast({ message: "Course registered!", variant: "success" });
       await load(true);
     } finally { setActionId(null); }
   };
@@ -104,11 +157,40 @@ export default function CourseRegistration() {
     setActionId(courseId);
     try {
       const { error } = await db.from("semester_registrations").delete().eq("id", regId);
-      if (error) { showToast("Could not drop course."); return; }
-      showToast("Course dropped.", "success");
+      if (error) { showToast({ message: "Could not drop course.", variant: "error" }); return; }
+      showToast({ message: "Course dropped.", variant: "success" });
       await load(true);
     } finally { setActionId(null); }
   };
+
+  const submitEditRequest = async () => {
+    if (!db || !studentId || !editCourse) return;
+    if (!editReason.trim()) { showToast({ message: "Please provide a reason for your request.", variant: "warning" }); return; }
+    setEditSubmitting(true);
+    try {
+      const { error } = await db.from("course_edit_requests").insert({
+        student_id:      studentId,
+        registration_id: editCourse.regId || null,
+        old_course_id:   editCourse.id,
+        request_type:    "drop",
+        reason:          editReason.trim(),
+        status:          "pending",
+        session:         currentSession || null,
+        semester:        currentSemester || null,
+      } as any);
+      if (error) throw error;
+      showToast({ message: "Edit request submitted. Await admin approval.", variant: "success" });
+      setEditModal(false);
+      setEditReason("");
+      setEditCourse(null);
+      await load(true);
+    } catch (err: any) {
+      showToast({ message: err?.message || "Failed to submit request.", variant: "error" });
+    } finally { setEditSubmitting(false); }
+  };
+
+  const hasPendingRequest = (courseId: string) =>
+    editRequests.some((r) => r.old_course_id === courseId);
 
   const isRegistered   = (id: string) => registrations.find((r) => r.course_id === id);
   const registered     = courses.filter((c) => isRegistered(c.id));
@@ -126,12 +208,59 @@ export default function CourseRegistration() {
 
   return (
     <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Course Registration" onLogout={async () => signOut()}>
-      {toast && (
-        <View style={[styles.toast, { backgroundColor: toast.type === "error" ? colors.status.errorBg : colors.status.successBg, borderColor: toast.type === "error" ? colors.status.errorBorder : colors.status.successBorder }]}>
-          <Icon name={toast.type === "error" ? "status-error" : "status-success"} size="sm" color={toast.type === "error" ? colors.status.error : colors.status.success} />
-          <Text style={{ flex: 1, fontSize: fontSize.sm, color: toast.type === "error" ? colors.status.error : colors.status.success, marginLeft: spacing[2] }}>{toast.msg}</Text>
-        </View>
-      )}
+      {/* Course Edit Request Modal */}
+      <Modal visible={editModal} transparent animationType="fade" onRequestClose={() => setEditModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}>
+            <View style={[layout.rowBetween, { marginBottom: spacing[3] }]}>
+              <Text variant="label" weight="bold" color="primary">Request Course Edit</Text>
+              <TouchableOpacity onPress={() => { setEditModal(false); setEditReason(""); }} activeOpacity={0.75}>
+                <Icon name="ui-close" size="md" color={colors.text.muted} />
+              </TouchableOpacity>
+            </View>
+            {editCourse && (
+              <View style={[styles.coursePreview, { backgroundColor: colors.bg.hover, borderColor: colors.border.subtle }]}>
+                <Text variant="label" weight="semibold" color="primary">{editCourse.course_code}</Text>
+                <Text variant="caption" color="secondary" numberOfLines={2}>{editCourse.course_name}</Text>
+              </View>
+            )}
+            <Text variant="micro" color="muted" style={{ marginBottom: spacing[2] }}>
+              Provide a reason for requesting to drop or edit this course. Your request will be reviewed by admin.
+            </Text>
+            <TextInput
+              style={[styles.reasonInput, { backgroundColor: colors.bg.input, color: colors.text.primary, borderColor: colors.border.DEFAULT }]}
+              value={editReason}
+              onChangeText={setEditReason}
+              placeholder="Reason for edit request..."
+              placeholderTextColor={colors.text.muted}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            <View style={[layout.row, { gap: spacing[3], marginTop: spacing[3] }]}>
+              <TouchableOpacity
+                onPress={() => { setEditModal(false); setEditReason(""); }}
+                activeOpacity={0.75}
+                style={[styles.modalBtn, { backgroundColor: colors.bg.hover, borderColor: colors.border.DEFAULT, flex: 1 }]}
+              >
+                <Text style={{ color: colors.text.secondary, fontWeight: fontWeight.semibold, fontSize: fontSize.sm }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={submitEditRequest}
+                disabled={editSubmitting}
+                activeOpacity={0.75}
+                style={[styles.modalBtn, { backgroundColor: brand.blue, flex: 1 }]}
+              >
+                {editSubmitting ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <Text style={{ color: "#fff", fontWeight: fontWeight.bold, fontSize: fontSize.sm }}>Submit Request</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
@@ -143,6 +272,11 @@ export default function CourseRegistration() {
           <Text variant="caption" color={regOpen ? "success" : "error"}>
             {regOpen ? "Registration is open" : "Registration is currently closed"}
           </Text>
+          {(currentSession || currentSemester) && (
+            <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+              {[currentSession, currentSemester ? `${currentSemester} Semester` : ""].filter(Boolean).join(" · ")}
+            </Text>
+          )}
         </View>
 
         {/* Summary */}
@@ -173,8 +307,19 @@ export default function CourseRegistration() {
                       <Text variant="label" weight="semibold" color="primary">{c.course_code} — {c.course_name}</Text>
                       <Text variant="micro" color="muted">{c.credit_units} units · {c.semester} · {(c.lecturers as any)?.full_name || "TBA"}</Text>
                     </View>
-                    {regOpen && (
+                    {regOpen ? (
                       <Button label={actionId === c.id ? "..." : "Drop"} variant="danger" size="xs" loading={actionId === c.id} onPress={() => drop(reg.id, c.id)} />
+                    ) : hasPendingRequest(c.id) ? (
+                      <Badge label="Requested" variant="amber" dot size="sm" />
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => { setEditCourse({ ...c, regId: reg.id }); setEditModal(true); }}
+                        activeOpacity={0.75}
+                        style={[styles.editReqBtn, { backgroundColor: colors.bg.hover, borderColor: colors.border.DEFAULT }]}
+                      >
+                        <Icon name="action-edit" size="xs" color={colors.text.muted} />
+                        <Text style={{ fontSize: fontSize.xs, color: colors.text.muted }}>Request Edit</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 </Card>
@@ -239,6 +384,11 @@ export default function CourseRegistration() {
 }
 
 const styles = StyleSheet.create({
-  toast:      { position: "absolute", top: spacing[12], left: spacing[4], right: spacing[4], zIndex: 100, flexDirection: "row", alignItems: "center", paddingHorizontal: spacing[4], paddingVertical: spacing[3], borderRadius: radius.lg, borderWidth: 1 },
-  filterChip: { paddingHorizontal: spacing[3], paddingVertical: spacing[1] + spacing[1], borderRadius: radius.lg, borderWidth: 1 },
+  filterChip:   { paddingHorizontal: spacing[3], paddingVertical: spacing[1] + spacing[1], borderRadius: radius.lg, borderWidth: 1 },
+  editReqBtn:   { flexDirection: "row", alignItems: "center", gap: spacing[1], paddingHorizontal: spacing[2], paddingVertical: spacing[1], borderRadius: radius.md, borderWidth: 1 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: spacing[5] },
+  modalBox:     { width: "100%", maxWidth: 420, borderRadius: radius["2xl"], borderWidth: 1, padding: spacing[5] },
+  coursePreview:{ padding: spacing[3], borderRadius: radius.lg, borderWidth: 1, marginBottom: spacing[3] },
+  reasonInput:  { borderWidth: 1, borderRadius: radius.md, padding: spacing[3], fontSize: fontSize.sm, minHeight: 80, marginBottom: spacing[1] },
+  modalBtn:     { paddingVertical: spacing[3], borderRadius: radius.lg, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
 });

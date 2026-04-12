@@ -12,7 +12,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { useRouter }       from "expo-router";
 import { useAuth }         from "@/context/AuthContext";
@@ -27,13 +27,14 @@ import { EmptyState }      from "@/components/ui/EmptyState";
 import { AppShell }        from "@/components/layout";
 import { useTheme }        from "@/context/ThemeContext";
 import { useResponsive }   from "@/lib/responsive";
+import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
 let QRCode: any = null;
 try { QRCode = require("react-native-qrcode-svg").default; } catch {}
 
-type Tab = "manual" | "qr";
+type Tab = "manual" | "qr" | "history";
 
 interface AttendedStudent {
   id: string;
@@ -71,6 +72,12 @@ export default function LecturerAttendance() {
   const [liveTotal,     setLiveTotal]     = useState(0);
   const [liveRefreshing, setLiveRefreshing] = useState(false);
 
+  // History tab state
+  const [historyCourse,  setHistoryCourse]  = useState<string | null>(null);
+  const [historyData,    setHistoryData]    = useState<Record<string, { date: string; present: AttendedStudent[]; absent: number; total: number }[]>>({});
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [expandedDates,  setExpandedDates]  = useState<Record<string, boolean>>({});
+
   const pollRef  = useRef<any>(null);
   const timerRef = useRef<any>(null);
 
@@ -79,7 +86,7 @@ export default function LecturerAttendance() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: courses.length > 0 });
 
   // ── Countdown timer ──────────────────────────────────────
   useEffect(() => {
@@ -206,6 +213,54 @@ export default function LecturerAttendance() {
     startPolling(qrCourse, today);
   };
 
+  // ── History helpers ──────────────────────────────────────
+  const loadHistory = async (courseId: string) => {
+    if (!db) return;
+    setHistoryLoading(true);
+    const { data: records } = await db
+      .from("attendance_records")
+      .select("id, status, class_date, student_id, students(id, first_name, last_name, matric_number), created_at")
+      .eq("course_id", courseId)
+      .order("class_date", { ascending: false });
+
+    const { count: totalEnrolled } = await db
+      .from("semester_registrations")
+      .select("*", { count: "exact", head: true })
+      .eq("course_id", courseId)
+      .eq("status", "registered");
+
+    if (records) {
+      const grouped: Record<string, { present: AttendedStudent[]; absentCount: number }> = {};
+      (records as any[]).forEach((r) => {
+        const date = r.class_date;
+        if (!grouped[date]) grouped[date] = { present: [], absentCount: 0 };
+        if (r.status === "present" && r.students?.first_name) {
+          grouped[date].present.push({
+            id: r.students.id, first_name: r.students.first_name,
+            last_name: r.students.last_name, matric_number: r.students.matric_number,
+            marked_at: r.created_at,
+          });
+        } else {
+          grouped[date].absentCount += 1;
+        }
+      });
+      const sorted = Object.entries(grouped)
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([date, { present, absentCount }]) => ({
+          date, present, absent: absentCount,
+          total: totalEnrolled ?? present.length + absentCount,
+        }));
+      setHistoryData((prev) => ({ ...prev, [courseId]: sorted }));
+    }
+    setHistoryLoading(false);
+  };
+
+  const toggleDate = (key: string) =>
+    setExpandedDates((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
   const deactivateQR = async () => {
     if (!db || !activeQR) return;
     await db.from("qr_codes").update({ is_active: false } as any).eq("id", activeQR.id);
@@ -234,12 +289,16 @@ export default function LecturerAttendance() {
 
         {/* Tabs */}
         <View style={[styles.tabBar, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}>
-          {(["manual", "qr"] as Tab[]).map((t) => (
+          {(["manual", "qr", "history"] as Tab[]).map((t) => (
             <TouchableOpacity key={t} onPress={() => setActiveTab(t)} activeOpacity={0.75}
               style={[styles.tab, activeTab === t && { backgroundColor: brand.blue }]}>
-              <Icon name={t === "manual" ? "ui-check" : "content-qr"} size="sm" color={activeTab === t ? "#fff" : colors.text.secondary} />
-              <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: activeTab === t ? "#fff" : colors.text.secondary }}>
-                {t === "manual" ? "Manual" : "QR Code"}
+              <Icon
+                name={t === "manual" ? "ui-check" : t === "qr" ? "content-qr" : "nav-results"}
+                size="sm"
+                color={activeTab === t ? "#fff" : colors.text.secondary}
+              />
+              <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: activeTab === t ? "#fff" : colors.text.secondary }}>
+                {t === "manual" ? "Manual" : t === "qr" ? "QR Code" : "History"}
               </Text>
             </TouchableOpacity>
           ))}
@@ -249,6 +308,79 @@ export default function LecturerAttendance() {
           <View style={[layout.centred, { paddingVertical: spacing[12] }]}><Spinner size="lg" /></View>
         ) : courses.length === 0 ? (
           <EmptyState icon="nav-attendance" title="No courses assigned" description="No courses to take attendance for." />
+        ) : activeTab === "history" ? (
+
+          /* ══════════ HISTORY TAB ══════════ */
+          <>
+            <Text variant="label" weight="semibold" color="muted">Select course to view history</Text>
+            <View style={[layout.row, { gap: spacing[2], flexWrap: "wrap" }]}>
+              {courses.map((c) => (
+                <TouchableOpacity key={c.id}
+                  onPress={() => { setHistoryCourse(c.id); loadHistory(c.id); }}
+                  activeOpacity={0.75}
+                  style={[styles.courseChip, { backgroundColor: historyCourse === c.id ? brand.blue : colors.bg.card, borderColor: historyCourse === c.id ? brand.blue : colors.border.DEFAULT }]}>
+                  <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: historyCourse === c.id ? "#fff" : colors.text.primary }}>{c.course_code}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {historyCourse && (
+              historyLoading ? (
+                <View style={[layout.centred, { paddingVertical: spacing[12] }]}><Spinner size="lg" /></View>
+              ) : !historyData[historyCourse] || historyData[historyCourse].length === 0 ? (
+                <EmptyState icon="nav-attendance" title="No records yet" description="No attendance records found for this course." />
+              ) : (
+                historyData[historyCourse].map((session) => {
+                  const pct = session.total > 0 ? Math.round((session.present.length / session.total) * 100) : 0;
+                  const key = `${historyCourse}_${session.date}`;
+                  const expanded = expandedDates[key];
+                  return (
+                    <Card key={session.date}>
+                      <TouchableOpacity onPress={() => toggleDate(key)} activeOpacity={0.75}>
+                        <View style={layout.rowBetween}>
+                          <View>
+                            <Text variant="label" weight="bold" color="primary">{fmtDate(session.date)}</Text>
+                            <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+                              {session.present.length} present · {session.absent} absent · {pct}%
+                            </Text>
+                          </View>
+                          <View style={[layout.row, { gap: spacing[2], alignItems: "center" }]}>
+                            <View style={[{ paddingHorizontal: spacing[3], paddingVertical: spacing[1], borderRadius: radius.full }, { backgroundColor: colors.status.successBg }]}>
+                              <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: colors.status.success }}>{session.present.length}/{session.total}</Text>
+                            </View>
+                            <Icon name={expanded ? "ui-up" : "ui-down"} size="sm" color={colors.text.muted} />
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      {expanded && session.present.length > 0 && (
+                        <View style={{ marginTop: spacing[3] }}>
+                          <View style={[styles.progressBg, { backgroundColor: colors.bg.hover, marginBottom: spacing[3] }]}>
+                            <View style={[styles.progressFill, { backgroundColor: brand.blue, width: `${pct}%` as any }]} />
+                          </View>
+                          {session.present.map((s, i) => (
+                            <View key={s.id} style={[styles.liveRow, { borderBottomColor: colors.border.subtle, borderBottomWidth: i < session.present.length - 1 ? 1 : 0 }]}>
+                              <View style={[styles.check, { backgroundColor: colors.status.success }]}>
+                                <Icon name="ui-check" size="xs" color="#fff" />
+                              </View>
+                              <View style={layout.fill}>
+                                <Text variant="label" weight="semibold" color="primary">{s.first_name} {s.last_name}</Text>
+                                <Text variant="micro" color="muted">{s.matric_number}</Text>
+                              </View>
+                              {s.marked_at && (
+                                <Text style={{ fontSize: fontSize.xs, color: colors.text.muted }}>{formatTime(s.marked_at)}</Text>
+                              )}
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </Card>
+                  );
+                })
+              )
+            )}
+          </>
+
         ) : activeTab === "manual" ? (
 
           /* ══════════ MANUAL TAB ══════════ */

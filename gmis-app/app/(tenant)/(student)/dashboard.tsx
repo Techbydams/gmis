@@ -11,7 +11,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image,
   Animated, Easing,
@@ -24,6 +24,7 @@ import { useDrawer }     from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
 import { formatGPA, getHonourClass, timeAgo, greeting } from "@/lib/helpers";
 import { Text, Card, Badge, StatCard, SkeletonDashboard } from "@/components/ui";
+import { useAutoLoad } from "@/lib/useAutoLoad";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }      from "@/context/ThemeContext";
@@ -199,7 +200,7 @@ export default function StudentDashboard() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: !!student });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;

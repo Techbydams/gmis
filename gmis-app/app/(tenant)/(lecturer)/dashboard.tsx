@@ -21,9 +21,10 @@ import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }      from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
+import { useAutoLoad }   from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
-import { greeting } from "@/lib/helpers";
+import { greeting, getInitials } from "@/lib/helpers";
 
 const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
 const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
@@ -57,7 +58,7 @@ export default function LecturerDashboard() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: !!lecturer });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;
@@ -67,7 +68,7 @@ export default function LecturerDashboard() {
       // Get lecturer profile — confirmed columns from schema
       const { data: lec } = await db
         .from("lecturers")
-        .select("id, full_name, email, staff_id, department_id, specialization")
+        .select("id, full_name, email, staff_id, department_id, specialization, profile_picture_url")
         .eq("supabase_uid", user.id)
         .maybeSingle();
 
@@ -124,12 +125,33 @@ export default function LecturerDashboard() {
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""}
       onLogout={async () => { await signOut(); router.replace("/login"); }}>
       {/* Native top bar */}
-      <View style={[{ flexDirection:"row", alignItems:"center", justifyContent:"space-between", paddingHorizontal:spacing[4], paddingBottom:spacing[3], borderBottomWidth:1, backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
+      <View style={[styles.topBar, { backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
         <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
           <Icon name="ui-menu" size="md" color={colors.text.secondary} />
         </TouchableOpacity>
-        <Image source={GMIS_LOGO} style={{ width:80, height:28 }} resizeMode="contain" />
-        <View style={{ width: spacing[10] }} />
+        {/* Institution logo + name */}
+        <View style={layout.row}>
+          {(tenant as any)?.logo_url ? (
+            <Image source={{ uri: (tenant as any).logo_url }} style={styles.schoolLogo} resizeMode="contain" />
+          ) : (
+            <Image source={GMIS_LOGO} style={{ width:80, height:28 }} resizeMode="contain" />
+          )}
+          {(tenant as any)?.logo_url && (
+            <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.text.primary, marginLeft: spacing[2] }} numberOfLines={1}>{tenant?.name}</Text>
+          )}
+        </View>
+        {/* Lecturer avatar → tap to edit profile */}
+        <TouchableOpacity onPress={() => router.push("/(tenant)/(lecturer)/more" as any)} activeOpacity={0.7}>
+          {(lecturer as any)?.profile_picture_url ? (
+            <Image source={{ uri: (lecturer as any).profile_picture_url }} style={styles.avatarSmall} />
+          ) : (
+            <View style={[styles.avatarSmall, styles.avatarFallback, { backgroundColor: brand.blueAlpha15 }]}>
+              <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.black, color: brand.blue }}>
+                {getInitials(lecturer?.full_name || "L")}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
@@ -199,7 +221,11 @@ export default function LecturerDashboard() {
 }
 
 const styles = StyleSheet.create({
-  courseRow: { flexDirection: "row", alignItems: "center", gap: spacing[3], paddingVertical: spacing[3] },
-  courseCode: { paddingHorizontal: spacing[3], paddingVertical: spacing[1], borderRadius: radius.lg },
-  actionCard: { flex: 1, minWidth: 80, aspectRatio: 1, borderRadius: radius.xl, borderWidth: 1, alignItems: "center", justifyContent: "center", padding: spacing[3] },
+  topBar:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing[4], paddingBottom: spacing[3], borderBottomWidth: 1 },
+  schoolLogo:    { width: 32, height: 32, borderRadius: radius.sm },
+  avatarSmall:   { width: 34, height: 34, borderRadius: radius.full },
+  avatarFallback:{ alignItems: "center", justifyContent: "center" },
+  courseRow:     { flexDirection: "row", alignItems: "center", gap: spacing[3], paddingVertical: spacing[3] },
+  courseCode:    { paddingHorizontal: spacing[3], paddingVertical: spacing[1], borderRadius: radius.lg },
+  actionCard:    { flex: 1, minWidth: 80, aspectRatio: 1, borderRadius: radius.xl, borderWidth: 1, alignItems: "center", justifyContent: "center", padding: spacing[3] },
 });

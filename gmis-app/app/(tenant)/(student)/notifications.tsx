@@ -5,25 +5,29 @@
 // Groups notifications by date: Today · Yesterday · Earlier
 // Each item: coloured icon by type, title, message, timestamp
 // Unread items glow with a blue left accent.
+// Tapping a notification opens a detail BottomSheet with full
+// message, timestamp, and optional image/PDF attachment.
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
+  Image, Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter }   from "expo-router";
 import { useAuth }     from "@/context/AuthContext";
 import { useTenant }   from "@/context/TenantContext";
-import { useDrawer }   from "@/context/DrawerContext";
 import { getTenantClient } from "@/lib/supabase";
+import { useAutoLoad } from "@/lib/useAutoLoad";
 import { Text, Spinner, EmptyState } from "@/components/ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { AppShell }    from "@/components/layout";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { useTheme }    from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
@@ -49,7 +53,14 @@ interface Notif {
   action_url: string | null;
   is_read: boolean;
   created_at: string;
+  attachment_url: string | null;
+  attachment_type: string | null;
 }
+
+type SelectedNotif = Notif & {
+  attachment_url?: string | null;
+  attachment_type?: "image" | "pdf" | null;
+};
 
 function dayLabel(dateStr: string): string {
   const d = new Date(dateStr);
@@ -64,6 +75,12 @@ function dayLabel(dateStr: string): string {
 
 function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatFullDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-GB", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  }) + " · " + formatTime(dateStr);
 }
 
 // ── Top bar ────────────────────────────────────────────────
@@ -157,6 +174,112 @@ function NotifItem({
   );
 }
 
+// ── Detail BottomSheet ─────────────────────────────────────
+function NotifDetail({
+  notif,
+  onClose,
+}: { notif: SelectedNotif | null; onClose: () => void }) {
+  const { colors } = useTheme();
+
+  const cfg = notif
+    ? (TYPE_CONFIG[(notif.type as NType) ?? "default"] ?? TYPE_CONFIG.default)
+    : TYPE_CONFIG.default;
+
+  const isImage = notif?.attachment_type === "image" && !!notif?.attachment_url;
+  const isPdf   = notif?.attachment_type === "pdf"   && !!notif?.attachment_url;
+
+  return (
+    <BottomSheet visible={!!notif} onClose={onClose} scrollable>
+      <View style={styles.detailContainer}>
+
+        {/* Icon badge */}
+        <View style={[styles.detailIconCircle, { backgroundColor: cfg.color + "18" }]}>
+          <Icon name={cfg.icon} size="xl" color={cfg.color} />
+        </View>
+
+        {/* Title */}
+        <Text
+          style={{
+            fontSize: fontSize.lg,
+            fontWeight: fontWeight.bold,
+            color: colors.text.primary,
+            textAlign: "center",
+            marginTop: spacing[3],
+          }}
+        >
+          {notif?.title ?? ""}
+        </Text>
+
+        {/* Timestamp */}
+        <Text
+          style={{
+            fontSize: fontSize.xs,
+            color: colors.text.muted,
+            textAlign: "center",
+            marginTop: spacing[1],
+          }}
+        >
+          {notif ? formatFullDate(notif.created_at) : ""}
+        </Text>
+
+        {/* Divider */}
+        <View style={[styles.divider, { backgroundColor: colors.border.subtle }]} />
+
+        {/* Full message */}
+        <Text
+          style={{
+            fontSize: fontSize.sm,
+            color: colors.text.secondary,
+            lineHeight: 22,
+            marginBottom: spacing[4],
+          }}
+        >
+          {notif?.message ?? ""}
+        </Text>
+
+        {/* Image attachment */}
+        {isImage && (
+          <View style={styles.attachmentWrap}>
+            <Image
+              source={{ uri: notif!.attachment_url! }}
+              style={styles.attachmentImage}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+
+        {/* PDF attachment chip */}
+        {isPdf && (
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => Linking.openURL(notif!.attachment_url!)}
+            style={[
+              styles.pdfChip,
+              {
+                backgroundColor: colors.bg.hover,
+                borderColor: colors.border.DEFAULT,
+              },
+            ]}
+          >
+            <Icon name="status-info" size="sm" color={brand.blue} />
+            <Text
+              style={{
+                fontSize: fontSize.sm,
+                fontWeight: fontWeight.semibold,
+                color: brand.blue,
+                marginLeft: spacing[2],
+              }}
+            >
+              Open PDF attachment
+            </Text>
+          </TouchableOpacity>
+        )}
+
+      </View>
+    </BottomSheet>
+  );
+}
+
 // ── Main screen ────────────────────────────────────────────
 export default function Notifications() {
   const router             = useRouter();
@@ -164,17 +287,18 @@ export default function Notifications() {
   const { tenant, slug }   = useTenant();
   const { colors }         = useTheme();
 
-  const [studentId, setStudentId] = useState<string | null>(null);
-  const [notifs,     setNotifs]    = useState<Notif[]>([]);
-  const [loading,    setLoading]   = useState(true);
-  const [refreshing, setRefreshing]= useState(false);
-  const [unread,     setUnread]    = useState(0);
+  const [studentId,      setStudentId]      = useState<string | null>(null);
+  const [notifs,         setNotifs]         = useState<Notif[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [unread,         setUnread]         = useState(0);
+  const [selectedNotif,  setSelectedNotif]  = useState<SelectedNotif | null>(null);
 
   const db = useMemo(() =>
     tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null,
   [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: notifs.length > 0 });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;
@@ -188,7 +312,7 @@ export default function Notifications() {
     // Fetch: notifications for this student OR broadcast (user_id IS NULL)
     const { data } = await db
       .from("notifications")
-      .select("id, title, message, type, action_url, is_read, created_at")
+      .select("id, title, message, type, action_url, is_read, created_at, attachment_url, attachment_type")
       .or(sid ? `user_id.eq.${sid},user_id.is.null` : "user_id.is.null")
       .order("created_at", { ascending: false })
       .limit(50);
@@ -215,6 +339,15 @@ export default function Notifications() {
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
     setUnread((u) => Math.max(0, u - 1));
   };
+
+  const handleNotifPress = useCallback(async (notif: Notif) => {
+    // Mark as read if unread
+    if (!notif.is_read) {
+      await markRead(notif.id);
+    }
+    // Open detail sheet
+    setSelectedNotif(notif as SelectedNotif);
+  }, [db, notifs]);
 
   // Group by date label
   const grouped = useMemo(() => {
@@ -277,13 +410,19 @@ export default function Notifications() {
                   key={n.id}
                   notif={n}
                   colors={colors}
-                  onPress={() => markRead(n.id)}
+                  onPress={() => handleNotifPress(n)}
                 />
               ))}
             </View>
           ))}
         </ScrollView>
       )}
+
+      {/* Notification detail sheet */}
+      <NotifDetail
+        notif={selectedNotif}
+        onClose={() => setSelectedNotif(null)}
+      />
     </AppShell>
   );
 }
@@ -318,5 +457,46 @@ const styles = StyleSheet.create({
     width: spacing[2] + 2, height: spacing[2] + 2,
     borderRadius: radius.full, flexShrink: 0,
     marginTop: spacing[1],
+  },
+  // Detail sheet styles
+  detailContainer: {
+    paddingHorizontal: spacing[5],
+    paddingBottom: spacing[4],
+    alignItems: "center",
+  },
+  detailIconCircle: {
+    width: spacing[16],
+    height: spacing[16],
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing[2],
+  },
+  divider: {
+    width: "100%",
+    height: StyleSheet.hairlineWidth,
+    marginVertical: spacing[4],
+  },
+  attachmentWrap: {
+    alignSelf: "stretch",
+    borderRadius: radius.lg,
+    overflow: "hidden",
+    marginBottom: spacing[4],
+    backgroundColor: "rgba(0,0,0,0.05)",
+  },
+  attachmentImage: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    minHeight: 160,
+  } as any,
+  pdfChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginBottom: spacing[4],
+    alignSelf: "stretch",
   },
 });

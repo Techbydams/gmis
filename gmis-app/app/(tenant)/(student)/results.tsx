@@ -9,7 +9,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
@@ -20,6 +20,7 @@ import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }     from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
+import { useAutoLoad } from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
@@ -47,7 +48,7 @@ export default function StudentResults() {
 
   const db = useMemo(() => tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null, [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: results.length > 0 });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;

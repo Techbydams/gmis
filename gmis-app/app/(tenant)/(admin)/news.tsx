@@ -14,13 +14,14 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, RefreshControl, Alert, Image, Platform,
   ActivityIndicator, Switch,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
+import * as ImagePicker    from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import { useRouter }       from "expo-router";
 import { useAuth }         from "@/context/AuthContext";
 import { useTenant }       from "@/context/TenantContext";
@@ -37,6 +38,7 @@ import { AppShell }        from "@/components/layout";
 import { useTheme }        from "@/context/ThemeContext";
 import { useResponsive }   from "@/lib/responsive";
 import { timeAgo }         from "@/lib/helpers";
+import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout, platformShadow } from "@/styles/shared";
 
@@ -71,10 +73,19 @@ const TYPE_VARIANT_MAP: Record<AnnouncementType, "blue" | "green" | "amber" | "r
 };
 
 // ── Compose Sheet ──────────────────────────────────────────
+interface PostData {
+  title:            string;
+  message:          string;
+  type:             AnnouncementType;
+  attachment_url:   string | null;
+  attachment_type:  "image" | "pdf" | null;
+  onUploadProgress?: (pct: number) => void;
+}
+
 interface ComposeSheetProps {
   visible: boolean;
   onClose: () => void;
-  onPost:  (data: { title: string; message: string; type: AnnouncementType; attachment_url: string | null; attachment_type: "image" | "pdf" | null }) => Promise<void>;
+  onPost:  (data: PostData) => Promise<void>;
   colors:  any;
 }
 
@@ -88,6 +99,7 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
   const [notifyStudents,  setNotifyStudents]  = useState(true);
   const [posting,         setPosting]         = useState(false);
   const [uploadingAttach, setUploadingAttach] = useState(false);
+  const [uploadProgress,  setUploadProgress]  = useState(0);
 
   const reset = () => {
     setTitle(""); setBody(""); setType("announcement");
@@ -102,7 +114,7 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       allowsEditing: false,
       quality: 0.8,
     });
@@ -117,12 +129,27 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
     setAttachmentUri(null); setAttachmentType(null); setAttachmentName(null);
   };
 
+  const pickPDF = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+      if (!result.canceled && result.assets?.[0]) {
+        const asset = result.assets[0];
+        setAttachmentUri(asset.uri);
+        setAttachmentType("pdf");
+        setAttachmentName(asset.name || "document.pdf");
+      }
+    } catch {
+      Alert.alert("Error", "Failed to open document picker. Please try again.");
+    }
+  };
+
   const handlePost = async () => {
     if (!title.trim() || !body.trim()) {
       Alert.alert("Required", "Please fill in the title and message.");
       return;
     }
     setPosting(true);
+    setUploadProgress(0);
     try {
       await onPost({
         title:           title.trim(),
@@ -130,13 +157,23 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
         type,
         attachment_url:  attachmentUri,
         attachment_type: attachmentType,
+        onUploadProgress: setUploadProgress,
       });
       reset();
       onClose();
-    } catch {
-      Alert.alert("Error", "Failed to post announcement. Please try again.");
+    } catch (err: any) {
+      const msg: string = err?.message || "";
+      if (msg.includes("bucket") || msg.includes("storage") || msg.includes("Upload failed")) {
+        Alert.alert(
+          "Upload Failed",
+          "Please ensure the 'announcements' storage bucket exists in your Supabase project.",
+        );
+      } else {
+        Alert.alert("Error", "Failed to post announcement. Please try again.");
+      }
     } finally {
       setPosting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -206,7 +243,11 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
       </View>
       {attachmentUri ? (
         <View style={[styles.attachPreview, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}>
-          {attachmentType === "image" ? (
+          {posting ? (
+            <View style={[styles.pdfIcon, { backgroundColor: brand.blueAlpha15 }]}>
+              <ActivityIndicator color={brand.blue} size="small" />
+            </View>
+          ) : attachmentType === "image" ? (
             <Image source={{ uri: attachmentUri }} style={styles.attachThumb} resizeMode="cover" />
           ) : (
             <View style={[styles.pdfIcon, { backgroundColor: brand.blueAlpha15 }]}>
@@ -215,11 +256,19 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
           )}
           <View style={layout.fill}>
             <Text variant="caption" weight="semibold" color="primary" numberOfLines={1}>{attachmentName || "Attachment"}</Text>
-            <Text variant="micro" color="muted">{attachmentType === "image" ? "Image" : "PDF Document"}</Text>
+            {posting ? (
+              <Text variant="micro" color="muted">
+                {uploadProgress > 0 ? `Uploading… ${uploadProgress}%` : "Uploading…"}
+              </Text>
+            ) : (
+              <Text variant="micro" color="muted">{attachmentType === "image" ? "Image" : "PDF Document"}</Text>
+            )}
           </View>
-          <TouchableOpacity onPress={removeAttachment} activeOpacity={0.7} style={{ padding: spacing[2] }}>
-            <Icon name="ui-close" size="sm" color={colors.text.muted} />
-          </TouchableOpacity>
+          {!posting && (
+            <TouchableOpacity onPress={removeAttachment} activeOpacity={0.7} style={{ padding: spacing[2] }}>
+              <Icon name="ui-close" size="sm" color={colors.text.muted} />
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <View style={[layout.row, { gap: spacing[3] }]}>
@@ -232,12 +281,12 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
             <Text style={{ fontSize: fontSize.xs, color: brand.blue, fontWeight: fontWeight.semibold }}>Add Image</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => Alert.alert("PDF Attachment", "Share a PDF letterhead via the Image option. Full PDF document picker requires expo-document-picker.")}
+            onPress={pickPDF}
             activeOpacity={0.75}
             style={[styles.attachBtn, { borderColor: colors.border.DEFAULT, flex: 1 }]}
           >
-            <Icon name="nav-clearance" size="sm" color={colors.text.muted} />
-            <Text style={{ fontSize: fontSize.xs, color: colors.text.muted, fontWeight: fontWeight.semibold }}>Add PDF</Text>
+            <Icon name="nav-clearance" size="sm" color={brand.blue} />
+            <Text style={{ fontSize: fontSize.xs, color: brand.blue, fontWeight: fontWeight.semibold }}>Add PDF</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -302,7 +351,7 @@ export default function AdminNews() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db) load(); }, [db]);
+  useAutoLoad(() => { if (db) load(); }, [db], { hasData: announcements.length > 0 });
 
   const load = useCallback(async (isRefresh = false) => {
     if (!db) return;
@@ -329,35 +378,47 @@ export default function AdminNews() {
     }
   }, [db]);
 
-  // ── Upload image to Supabase Storage ────────────────────
-  const uploadAttachment = async (uri: string, type: "image" | "pdf"): Promise<string | null> => {
-    if (!db || !tenant) return uri; // fallback: return local URI for preview
-    try {
-      const ext      = type === "image" ? "jpg" : "pdf";
-      const filename = `announcements/${slug}/${Date.now()}.${ext}`;
-      const response = await fetch(uri);
-      const blob     = await response.blob();
-      // Use Supabase storage upload — falls back gracefully
-      const { data: storageData, error: storageError } = await (db as any).storage
-        .from("announcements")
-        .upload(filename, blob, { contentType: type === "image" ? "image/jpeg" : "application/pdf", upsert: true });
-      if (storageError) return uri; // fallback to local URI
-      const { data: urlData } = (db as any).storage.from("announcements").getPublicUrl(filename);
-      return urlData?.publicUrl || uri;
-    } catch {
-      return uri;
+  // ── Upload attachment to Supabase Storage ───────────────
+  const uploadAttachment = async (
+    uri: string,
+    type: "image" | "pdf",
+    onProgress?: (pct: number) => void,
+  ): Promise<string> => {
+    if (!db || !tenant) {
+      throw new Error("Upload failed: No database connection.");
     }
+    const ext      = type === "image" ? "jpg" : "pdf";
+    const filename = `announcements/${slug}/${Date.now()}.${ext}`;
+    const response = await fetch(uri);
+    const blob     = await response.blob();
+    onProgress?.(30);
+    const { error: storageError } = await (db as any).storage
+      .from("announcements")
+      .upload(filename, blob, { contentType: type === "image" ? "image/jpeg" : "application/pdf", upsert: true });
+    if (storageError) {
+      throw new Error(
+        `Upload failed: ${storageError.message || "Please ensure the 'announcements' storage bucket exists in your Supabase project."}`,
+      );
+    }
+    onProgress?.(90);
+    const { data: urlData } = (db as any).storage.from("announcements").getPublicUrl(filename);
+    onProgress?.(100);
+    if (!urlData?.publicUrl) {
+      throw new Error("Upload failed: Could not retrieve public URL for the uploaded file.");
+    }
+    return urlData.publicUrl;
   };
 
-  const handlePost = async (data: {
-    title: string; message: string; type: AnnouncementType;
-    attachment_url: string | null; attachment_type: "image" | "pdf" | null;
-  }) => {
+  const handlePost = async (data: PostData) => {
     if (!db) throw new Error("No DB");
 
-    let finalAttachUrl = data.attachment_url;
+    let finalAttachUrl: string | null = data.attachment_url;
     if (data.attachment_url && data.attachment_type) {
-      finalAttachUrl = await uploadAttachment(data.attachment_url, data.attachment_type);
+      finalAttachUrl = await uploadAttachment(
+        data.attachment_url,
+        data.attachment_type,
+        data.onUploadProgress,
+      );
     }
 
     const { error } = await db.from("notifications").insert({

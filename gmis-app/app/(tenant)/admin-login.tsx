@@ -134,19 +134,27 @@ export default function AdminLogin() {
 
           {/* Header */}
           <View style={[layout.centredH, { marginBottom: spacing[6] }]}>
-            {/* Gold emblem */}
+            {/* Institution logo / emblem */}
             <View style={styles.emblem}>
-              <View style={styles.emblemInner}>
-                <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize["2xl"], color: "#fff", letterSpacing: -1 }}>
-                  G
-                </Text>
-              </View>
+              {tenant?.logo_url ? (
+                <Image
+                  source={{ uri: tenant.logo_url }}
+                  style={{ width: "100%", height: "100%", borderRadius: (sizes.iconCircle - spacing[6]) / 2 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.emblemInner}>
+                  <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize["2xl"], color: "#fff", letterSpacing: -1 }}>
+                    {(tenant?.name || slug || "G").slice(0, 1).toUpperCase()}
+                  </Text>
+                </View>
+              )}
             </View>
             <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize.xl, color: "#e8eeff", marginBottom: spacing[1] }}>
-              Administration Access
+              {tenant?.name || "Administration Access"}
             </Text>
             <Text style={{ fontSize: fontSize.xs, color: colors.text.muted, letterSpacing: 0.5 }}>
-              {tenant?.name?.toUpperCase() || slug?.toUpperCase()} · RESTRICTED PORTAL
+              {slug?.toUpperCase()} · RESTRICTED PORTAL
             </Text>
           </View>
 
@@ -188,19 +196,28 @@ export default function AdminLogin() {
             />
 
             {/* Password */}
-            <Input
-              label="Password"
-              value={password}
-              onChangeText={(v) => { setPassword(v); setErrPass(""); }}
-              onSubmitEditing={handleLogin}
-              placeholder="••••••••••••"
-              secureTextEntry={!showPass}
-              autoComplete="password"
-              iconLeft="auth-password"
-              iconRight={showPass ? "auth-eye-off" : "auth-eye"}
-              onPressRight={() => setShowPass((v) => !v)}
-              error={errPass}
-            />
+            <View style={{ marginBottom: spacing[3] }}>
+              <View style={[layout.rowBetween, { marginBottom: spacing[1] }]}>
+                <Text variant="caption" color="secondary" weight="medium">Password</Text>
+                <TouchableOpacity onPress={() => router.push("/(tenant)/forgot-password?role=admin" as any)} activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                  <Text style={{ fontSize: fontSize.sm, color: brand.gold }}>Forgot?</Text>
+                </TouchableOpacity>
+              </View>
+              <Input
+                value={password}
+                onChangeText={(v) => { setPassword(v); setErrPass(""); }}
+                onSubmitEditing={handleLogin}
+                placeholder="••••••••••••"
+                secureTextEntry={!showPass}
+                autoComplete="password"
+                iconLeft="auth-password"
+                iconRight={showPass ? "auth-eye-off" : "auth-eye"}
+                onPressRight={() => setShowPass((v) => !v)}
+                error={errPass}
+                containerStyle={{ marginBottom: 0 }}
+              />
+            </View>
 
             {/* Multiple attempts warning */}
             {attempts >= 3 && (

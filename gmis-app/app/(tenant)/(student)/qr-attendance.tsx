@@ -15,21 +15,30 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  View, TouchableOpacity, StyleSheet, Vibration,
+  View, TouchableOpacity, StyleSheet, Vibration, Platform, TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CameraView, useCameraPermissions } from "expo-camera";
+// expo-camera crashes on web — guard with Platform check before importing
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
-import { Text, Spinner } from "@/components/ui";
+import { Text, Spinner, Input, Button } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme } from "@/context/ThemeContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
+
+// Lazy-load expo-camera only on native (crashes on web)
+let CameraView: any = null;
+let useCameraPermissions: any = null;
+if (Platform.OS !== "web") {
+  const cam = require("expo-camera");
+  CameraView          = cam.CameraView;
+  useCameraPermissions = cam.useCameraPermissions;
+}
 
 // ── Device fingerprint ────────────────────────────────────
 // A UUID stored in AsyncStorage — unique per device install.
@@ -120,6 +129,73 @@ function ResultOverlay({
   );
 }
 
+// ── Web fallback ─────────────────────────────────────────────
+// On web, expo-camera is unavailable. Students can enter the
+// attendance code manually (lecturer reads it out or displays it).
+function WebAttendanceFallback({
+  onSubmit, loading, onBack,
+}: { onSubmit: (code: string) => void; loading: boolean; onBack: () => void }) {
+  const { colors } = useTheme();
+  const [code, setCode] = useState("");
+  const [err,  setErr]  = useState("");
+
+  const handleSubmit = () => {
+    const v = code.trim();
+    if (!v) { setErr("Enter the attendance code provided by your lecturer."); return; }
+    setErr("");
+    onSubmit(v);
+  };
+
+  return (
+    <View style={[layout.fill, { backgroundColor: colors.bg.primary, padding: spacing[6] }]}>
+      <View style={[styles.webIconCircle, { backgroundColor: brand.blueAlpha10 }]}>
+        <Icon name="content-qr" size="3xl" color={brand.blue} />
+      </View>
+      <Text style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.text.primary, textAlign: "center", marginTop: spacing[4] }}>
+        Attendance Code Entry
+      </Text>
+      <Text style={{ fontSize: fontSize.sm, color: colors.text.muted, textAlign: "center", marginTop: spacing[2], marginBottom: spacing[6], lineHeight: 22 }}>
+        QR scanning is available on the GMIS mobile app.{"\n"}
+        Enter the code your lecturer provides, or use the mobile app to scan.
+      </Text>
+
+      <View style={[styles.webInfoBanner, { backgroundColor: colors.status.infoBg, borderColor: colors.status.infoBorder }]}>
+        <Icon name="status-info" size="sm" color={colors.status.info} />
+        <Text style={{ flex: 1, fontSize: fontSize.xs, color: colors.status.info, marginLeft: spacing[2], lineHeight: 18 }}>
+          Ask your lecturer for the 6-digit or text attendance code if they have one.
+        </Text>
+      </View>
+
+      <View style={{ marginTop: spacing[5] }}>
+        <Input
+          label="Attendance code"
+          value={code}
+          onChangeText={(v) => { setCode(v); setErr(""); }}
+          onSubmitEditing={handleSubmit}
+          placeholder="Enter code from lecturer"
+          autoCapitalize="none"
+          iconLeft="content-qr"
+          error={err}
+        />
+      </View>
+
+      <Button
+        label={loading ? "Marking attendance..." : "Submit code"}
+        variant="primary"
+        size="lg"
+        full
+        loading={loading}
+        onPress={handleSubmit}
+        style={{ marginTop: spacing[2] }}
+      />
+
+      <TouchableOpacity onPress={onBack} style={{ marginTop: spacing[4], alignItems: "center" }} activeOpacity={0.7}>
+        <Text style={{ fontSize: fontSize.sm, color: colors.text.secondary }}>← Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ── Main screen ──────────────────────────────────────────────
 export default function QRAttendance() {
   const router           = useRouter();
@@ -127,12 +203,17 @@ export default function QRAttendance() {
   const { tenant, slug } = useTenant();
   const { colors }       = useTheme();
 
-  const [permission, requestPermission] = useCameraPermissions();
+  // On web, useCameraPermissions is null — we skip camera entirely
+  const permHook = useCameraPermissions ? useCameraPermissions() : [null, null];
+  const [permission, requestPermission] = permHook as any;
+
   const [studentId,  setStudentId]      = useState<string | null>(null);
   const [deviceId,   setDeviceId]       = useState<string>("");
   const [scanState,  setScanState]      = useState<ScanState>("idle");
   const [resultMsg,  setResultMsg]      = useState("");
   const [courseName, setCourseName]     = useState("");
+  const [webLoading, setWebLoading]     = useState(false);
+  const [webResult,  setWebResult]      = useState<{ ok: boolean; msg: string } | null>(null);
 
   const scanLockRef = useRef(false);
 
@@ -141,6 +222,7 @@ export default function QRAttendance() {
   [tenant, slug]);
 
   useEffect(() => {
+    // On web, still load studentId so we can process manual codes
     if (db && user) init();
   }, [db, user]);
 
@@ -293,7 +375,54 @@ export default function QRAttendance() {
     setScanState("scanning");
   };
 
+  // Web: handle manually typed attendance code
+  const handleWebCode = async (code: string) => {
+    setWebLoading(true); setWebResult(null);
+    try {
+      await handleQRScanned({ data: code });
+      // scanState will be set by handleQRScanned — mirror into webResult
+      // Give a brief moment for state to settle
+      await new Promise((r) => setTimeout(r, 200));
+      setWebResult({ ok: scanState === "success", msg: resultMsg || (scanState === "success" ? "Attendance marked!" : "Failed. Check the code and try again.") });
+    } catch (e: any) {
+      setWebResult({ ok: false, msg: e?.message || "Unexpected error." });
+    } finally {
+      setWebLoading(false);
+    }
+  };
+
   const shellUser = { name: user?.email?.split("@")[0] || "Student", role: "student" as const };
+
+  // ── Web: no camera API — show manual code entry ──────────
+  if (Platform.OS === "web") {
+    return (
+      <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""}>
+        <TopBar onBack={() => router.back()} />
+        {webResult ? (
+          <View style={[layout.fill, layout.centred, { padding: spacing[6] }]}>
+            <View style={[styles.resultIcon, { backgroundColor: webResult.ok ? "#10b981" : "#ef4444" }]}>
+              <Icon name={webResult.ok ? "ui-check" : "status-warning"} size="2xl" color="#fff" />
+            </View>
+            <Text style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.text.primary, textAlign: "center", marginTop: spacing[4] }}>
+              {webResult.ok ? "Attendance Marked!" : "Failed"}
+            </Text>
+            <Text style={{ fontSize: fontSize.sm, color: colors.text.secondary, textAlign: "center", marginTop: spacing[2], marginBottom: spacing[6] }}>
+              {webResult.msg}
+            </Text>
+            <TouchableOpacity onPress={() => router.back()} style={[styles.permBtn, { backgroundColor: webResult.ok ? "#10b981" : brand.blue }]} activeOpacity={0.8}>
+              <Text style={{ color: "#fff", fontWeight: fontWeight.bold, fontSize: fontSize.sm }}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <WebAttendanceFallback
+            loading={webLoading}
+            onSubmit={handleWebCode}
+            onBack={() => router.back()}
+          />
+        )}
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell role="student" user={shellUser} schoolName={tenant?.name || ""}>
@@ -380,4 +509,6 @@ const styles = StyleSheet.create({
   resultIcon: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center" },
   rescanBtn: { marginTop: spacing[6], paddingHorizontal: spacing[8], paddingVertical: spacing[3], borderRadius: radius.full },
   permBtn: { paddingHorizontal: spacing[8], paddingVertical: spacing[4], borderRadius: radius.full },
+  webIconCircle: { width: 96, height: 96, borderRadius: 48, alignItems: "center", justifyContent: "center", alignSelf: "center" },
+  webInfoBanner: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: spacing[3], paddingVertical: spacing[2] + spacing[1], borderRadius: radius.lg, borderWidth: 1 },
 });

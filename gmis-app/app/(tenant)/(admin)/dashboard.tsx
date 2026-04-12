@@ -9,7 +9,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -22,8 +22,10 @@ import { Icon } from "@/components/ui/Icon";
 import { AppShell } from "@/components/layout";
 import { useTheme }      from "@/context/ThemeContext";
 import { useResponsive } from "@/lib/responsive";
+import { useAutoLoad }   from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
+import { getInitials } from "@/lib/helpers";
 
 const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
 const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
@@ -66,7 +68,8 @@ export default function AdminDashboard() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  // Load once on first focus — prevents reload on every navigation
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: !!adminUser });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;
@@ -76,7 +79,7 @@ export default function AdminDashboard() {
       // Get admin record
       const { data: admin } = await db
         .from("admin_users")
-        .select("id, full_name, role, email")
+        .select("id, full_name, role, email, profile_picture_url")
         .eq("supabase_uid", user.id)
         .maybeSingle();
       if (admin) setAdminUser(admin);
@@ -127,13 +130,32 @@ export default function AdminDashboard() {
     <AppShell role="admin" user={shellUser} schoolName={tenant?.name || ""}
       onLogout={async () => { await signOut(); router.replace("/login"); }}>
       {/* Native top bar */}
-      <View style={[{ flexDirection:"row", alignItems:"center", justifyContent:"space-between", paddingHorizontal:spacing[4], paddingBottom:spacing[3], borderBottomWidth:1, backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
+      <View style={[styles.topBar, { backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
         <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
           <Icon name="ui-menu" size="md" color={colors.text.secondary} />
         </TouchableOpacity>
-        <Image source={GMIS_LOGO} style={{ width:80, height:28 }} resizeMode="contain" />
-        <TouchableOpacity onPress={() => router.push("/(tenant)/(admin)/settings" as any)} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
-          <Icon name="nav-settings" size="md" color={colors.text.secondary} />
+        {/* Institution logo + name */}
+        <View style={layout.row}>
+          {(tenant as any)?.logo_url ? (
+            <Image source={{ uri: (tenant as any).logo_url }} style={styles.schoolLogo} resizeMode="contain" />
+          ) : (
+            <Image source={GMIS_LOGO} style={{ width:80, height:28 }} resizeMode="contain" />
+          )}
+          {(tenant as any)?.logo_url && (
+            <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.text.primary, marginLeft: spacing[2] }} numberOfLines={1}>{tenant?.name}</Text>
+          )}
+        </View>
+        {/* Admin avatar */}
+        <TouchableOpacity onPress={() => router.push("/(tenant)/(admin)/settings" as any)} activeOpacity={0.7}>
+          {adminUser?.profile_picture_url ? (
+            <Image source={{ uri: adminUser.profile_picture_url }} style={styles.avatarSmall} />
+          ) : (
+            <View style={[styles.avatarSmall, styles.avatarFallback, { backgroundColor: brand.goldAlpha15 }]}>
+              <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.black, color: brand.gold }}>
+                {getInitials(adminUser?.full_name || "A")}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
       <ScrollView
@@ -199,7 +221,7 @@ export default function AdminDashboard() {
               activeOpacity={0.75}
               style={[styles.actionTile, { backgroundColor: colors.bg.card, borderColor: colors.border.DEFAULT }]}
             >
-              <View style={[styles.actionIcon, { backgroundColor: `${color}18` }]}>
+              <View style={[styles.actionIcon, { backgroundColor: colors.bg.hover }]}>
                 <Icon name={icon} size="md" color={color} />
               </View>
               <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.text.primary, textAlign: "center" }}>
@@ -218,6 +240,13 @@ export default function AdminDashboard() {
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: spacing[4], paddingBottom: spacing[3], borderBottomWidth: 1,
+  },
+  schoolLogo:    { width: 32, height: 32, borderRadius: radius.sm },
+  avatarSmall:   { width: 34, height: 34, borderRadius: radius.full },
+  avatarFallback:{ alignItems: "center", justifyContent: "center" },
   approveBtn: {
     flexDirection: "row", alignItems: "center", gap: spacing[1],
     paddingHorizontal: spacing[3], paddingVertical: spacing[1],

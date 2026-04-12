@@ -8,12 +8,13 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter }       from "expo-router";
 import { useAuth }         from "@/context/AuthContext";
 import { useTenant }       from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
+import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { Text, Card, Spinner, EmptyState } from "@/components/ui";
 import { AppShell }        from "@/components/layout";
 import { useTheme }        from "@/context/ThemeContext";
@@ -52,7 +53,8 @@ export default function LecturerTimetable() {
     tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null,
   [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  // Load only when screen is first focused (no reload on back-navigate)
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: slots.length > 0 });
 
   const load = async () => {
     if (!db || !user) return;
@@ -60,17 +62,13 @@ export default function LecturerTimetable() {
     if (!lec) { setLoading(false); return; }
     setLecturer(lec);
 
-    const courseRes = await db.from("courses").select("id").eq("lecturer_id", (lec as any).id).eq("is_active", true);
-    const courseIds = (courseRes.data || []).map((c: any) => c.id);
-
-    if (courseIds.length > 0) {
-      const { data } = await db
-        .from("timetable_slots")
-        .select("id, day_of_week, start_time, end_time, venue, courses(course_code, course_name)")
-        .in("course_id", courseIds)
-        .order("day_of_week").order("start_time");
-      setSlots((data || []) as unknown as Slot[]);
-    }
+    // Query directly by lecturer_id — avoids the two-step courses lookup
+    const { data } = await db
+      .from("timetable")
+      .select("id, day_of_week, start_time, end_time, venue, courses(course_code, course_name)")
+      .eq("lecturer_id", (lec as any).id)
+      .order("start_time");
+    setSlots((data || []) as unknown as Slot[]);
     setLoading(false);
   };
 
@@ -82,7 +80,8 @@ export default function LecturerTimetable() {
     return `${hour % 12 || 12}:${m} ${ampm}`;
   };
 
-  const daySlots = slots.filter((s) => s.day_of_week === activeDay);
+  const todayName = DAYS[Math.max(0, new Date().getDay() - 1)] ?? DAYS[0];
+  const daySlots  = slots.filter((s) => s.day_of_week === activeDay);
   const shellUser = { name: lecturer?.full_name || user?.email || "Lecturer", role: "lecturer" as const };
 
   return (
@@ -104,17 +103,23 @@ export default function LecturerTimetable() {
               <View style={[layout.row, { gap: spacing[2] }]}>
                 {DAYS.map((day, i) => {
                   const hasClass = slots.some((s) => s.day_of_week === day);
+                  const isActive = activeDay === day;
+                  const isToday  = day === todayName;
                   return (
                     <TouchableOpacity key={day} onPress={() => setActiveDay(day)} activeOpacity={0.75}
                       style={[styles.dayChip, {
-                        backgroundColor: activeDay === day ? brand.blue : colors.bg.card,
-                        borderColor: activeDay === day ? brand.blue : colors.border.DEFAULT,
+                        backgroundColor: isActive ? brand.blue : colors.bg.card,
+                        borderColor: isActive ? brand.blue : isToday ? brand.gold : colors.border.DEFAULT,
+                        borderWidth: isToday && !isActive ? 2 : 1,
                       }]}>
-                      <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: activeDay === day ? "#fff" : colors.text.secondary }}>
+                      <Text style={{ fontSize: fontSize.sm, fontWeight: isToday ? fontWeight.black : fontWeight.semibold, color: isActive ? "#fff" : isToday ? brand.gold : colors.text.secondary }}>
                         {DAY_SHORT[i]}
                       </Text>
+                      {isToday && !isActive && (
+                        <Text style={{ fontSize: 9, color: brand.gold, fontWeight: fontWeight.bold }}>TODAY</Text>
+                      )}
                       {hasClass && (
-                        <View style={[styles.dot, { backgroundColor: activeDay === day ? "#ffffff80" : brand.blue }]} />
+                        <View style={[styles.dot, { backgroundColor: isActive ? colors.bg.card : brand.blue }]} />
                       )}
                     </TouchableOpacity>
                   );

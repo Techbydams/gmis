@@ -58,6 +58,7 @@ const iconMap = {
   "action-search":     "search-outline",
   "action-copy":       "copy-outline",
   "action-share":      "share-outline",
+  "action-print":      "print-outline",
   // Status
   "status-success":    "checkmark-circle",
   "status-warning":    "warning",

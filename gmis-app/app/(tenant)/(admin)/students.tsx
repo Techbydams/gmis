@@ -15,7 +15,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View, ScrollView, TextInput, TouchableOpacity,
   StyleSheet, RefreshControl, Image, ActivityIndicator,
@@ -35,6 +35,7 @@ import { AppShell }        from "@/components/layout";
 import { useTheme }        from "@/context/ThemeContext";
 import { useResponsive }   from "@/lib/responsive";
 import { getInitials }     from "@/lib/helpers";
+import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
@@ -187,7 +188,7 @@ export default function AdminStudents() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db) load(); }, [db]);
+  useAutoLoad(() => { if (db) load(); }, [db], { hasData: students.length > 0 });
 
   const load = useCallback(async (isRefresh = false) => {
     if (!db) return;

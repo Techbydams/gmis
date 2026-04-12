@@ -250,7 +250,7 @@ export default function SchoolLogin() {
               <View style={{ marginBottom: spacing[3] }}>
                 <View style={[layout.rowBetween, { marginBottom: spacing[1] }]}>
                   <Text variant="caption" color="secondary" weight="medium">Password</Text>
-                  <TouchableOpacity onPress={() => router.push("/forgot-password" as any)} activeOpacity={0.7}
+                  <TouchableOpacity onPress={() => router.push(`/(tenant)/forgot-password?role=${role}` as any)} activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
                     <Text style={{ fontSize: fontSize.sm, color: colors.text.link }}>Forgot?</Text>
                   </TouchableOpacity>

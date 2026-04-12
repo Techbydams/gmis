@@ -2,12 +2,13 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
 import { useRouter }       from "expo-router";
 import { useAuth }         from "@/context/AuthContext";
 import { useTenant }       from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
+import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { Text }            from "@/components/ui/Text";
 import { Card }            from "@/components/ui/Card";
 import { Badge }           from "@/components/ui/Badge";
@@ -38,7 +39,7 @@ export default function LecturerCourses() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db && user) load(); }, [db, user]);
+  useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: courses.length > 0 });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;

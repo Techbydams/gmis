@@ -43,6 +43,7 @@ import { AppShell }        from "@/components/layout";
 import { useTheme }        from "@/context/ThemeContext";
 import { useResponsive }   from "@/lib/responsive";
 import { formatDate }      from "@/lib/helpers";
+import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
@@ -316,7 +317,7 @@ export default function AdminSessions() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db) load(); }, [db]);
+  useAutoLoad(() => { if (db) load(); }, [db], { hasData: sessions.length > 0 });
 
   const load = useCallback(async (isRefresh = false) => {
     if (!db) return;
@@ -360,15 +361,21 @@ export default function AdminSessions() {
     if (!db) throw new Error("No DB");
     if (d.is_current) {
       // Unset all others first
-      await db.from("academic_sessions").update({ is_current: false } as any).neq("id", editingSession?.id || "");
+      const unsetId = editingSession?.id || "00000000-0000-0000-0000-000000000000";
+      await db.from("academic_sessions").update({ is_current: false } as any).neq("id", unsetId);
     }
     if (editingSession) {
-      await db.from("academic_sessions").update(d as any).eq("id", editingSession.id);
+      const { error } = await db.from("academic_sessions").update(d as any).eq("id", editingSession.id);
+      if (error) throw new Error(error.message);
     } else {
-      await db.from("academic_sessions").insert(d as any);
+      const { error } = await db.from("academic_sessions").insert(d as any);
+      if (error) throw new Error(error.message);
+    }
+    // Sync org_settings so the whole app reflects the current session
+    if (d.is_current) {
+      await syncOrgSettings({ session: d.name });
     }
     showToast({ message: editingSession ? "Session updated." : "Session created.", variant: "success" });
-    // Send announcement
     await sendAnnouncement(
       d.is_current ? `Academic Session ${d.name} is now active` : `Session ${d.name} updated`,
       `The academic session ${d.name} has been ${editingSession ? "updated" : "created"} by the administration.`,
@@ -382,14 +389,27 @@ export default function AdminSessions() {
   const saveSemester = async (d: { session_id: string; name: string; start_date: string; end_date: string; is_open: boolean; is_current: boolean }) => {
     if (!db) throw new Error("No DB");
     if (d.is_current) {
-      await db.from("semesters").update({ is_current: false } as any).neq("id", editingSemester?.id || "");
+      const unsetId = editingSemester?.id || "00000000-0000-0000-0000-000000000000";
+      await db.from("semesters").update({ is_current: false } as any).neq("id", unsetId);
     }
     if (editingSemester) {
-      await db.from("semesters").update(d as any).eq("id", editingSemester.id);
+      const { error } = await db.from("semesters").update(d as any).eq("id", editingSemester.id);
+      if (error) throw new Error(error.message);
     } else {
-      await db.from("semesters").insert(d as any);
+      const { error } = await db.from("semesters").insert(d as any);
+      if (error) throw new Error(error.message);
     }
-    const sess = sessions.find((s) => s.id === d.session_id);
+    // Sync org_settings — drives course reg, results, fees across the whole app
+    if (d.is_current) {
+      const sess = sessions.find((s) => s.id === d.session_id);
+      await syncOrgSettings({
+        semester:         d.name,
+        registrationOpen: d.is_open,
+        ...(sess?.is_current ? { session: sess.name } : {}),
+      });
+    } else if (d.is_open) {
+      await syncOrgSettings({ registrationOpen: true });
+    }
     showToast({ message: editingSemester ? "Semester updated." : "Semester added.", variant: "success" });
     await sendAnnouncement(
       d.is_open ? `${d.name} Registration Now Open` : `${d.name} Updated`,
@@ -406,7 +426,15 @@ export default function AdminSessions() {
   const toggleSemesterOpen = async (semester: Semester) => {
     if (!db) return;
     const newState = !semester.is_open;
-    await db.from("semesters").update({ is_open: newState } as any).eq("id", semester.id);
+    const { error } = await db.from("semesters").update({ is_open: newState } as any).eq("id", semester.id);
+    if (error) { showToast({ message: `Failed: ${error.message}`, variant: "error" }); return; }
+
+    // Always sync registration_open in org_settings
+    // If this is the current semester, also sync semester name
+    const orgPatch: Parameters<typeof syncOrgSettings>[0] = { registrationOpen: newState };
+    if (semester.is_current) orgPatch.semester = semester.name;
+    await syncOrgSettings(orgPatch);
+
     showToast({ message: newState ? "Semester opened for registration." : "Semester closed.", variant: "success" });
     await sendAnnouncement(
       newState ? `${semester.name} Registration Open` : `${semester.name} Registration Closed`,
@@ -483,6 +511,24 @@ export default function AdminSessions() {
         },
       },
     ]);
+  };
+
+  // ── Sync org_settings ───────────────────────────────────
+  // org_settings drives course registration, results, fees, etc.
+  // Must be updated whenever the admin changes current session/semester.
+  const syncOrgSettings = async (opts: {
+    session?: string | null;
+    semester?: string | null;
+    registrationOpen?: boolean;
+  }) => {
+    if (!db) return;
+    const patch: Record<string, any> = {};
+    if (opts.session   !== undefined) patch.current_session   = opts.session;
+    if (opts.semester  !== undefined) patch.current_semester  = opts.semester;
+    if (opts.registrationOpen !== undefined) patch.registration_open = opts.registrationOpen;
+    if (Object.keys(patch).length === 0) return;
+    // org_settings has exactly one row — update without filter
+    await db.from("org_settings").update(patch as any).neq("id", "00000000-0000-0000-0000-000000000000");
   };
 
   // ── Send announcement helper ────────────────────────────

@@ -10,7 +10,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, RefreshControl, Alert,
@@ -19,6 +19,7 @@ import { useRouter } from "expo-router";
 import { useTenant }       from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
 import { isValidEmail }    from "@/lib/helpers";
+import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { Text, Card, Badge, Button, Spinner } from "@/components/ui";
 import { SelectModal, type SelectOption } from "@/components/ui/SelectModal";
 import { Icon } from "@/components/ui/Icon";
@@ -34,7 +35,9 @@ interface Department { id: string; name: string; code: string; faculty_id: strin
 interface Course {
   id: string; course_code: string; course_name: string; credit_units: number;
   level: string; semester: string; is_active: boolean; is_elective: boolean;
-  department_id: string; lecturer_id: string | null;
+  is_general: boolean;          // true = shared across all departments
+  department_id: string | null; // null when is_general=true
+  lecturer_id: string | null;
   session: string | null;
 }
 interface Lecturer   { id: string; full_name: string; email: string; staff_id: string | null; department_id: string | null; is_active: boolean }
@@ -75,7 +78,7 @@ export default function AdminAcademicSetup() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  useEffect(() => { if (db) loadAll(); }, [db]);
+  useAutoLoad(() => { if (db) loadAll(); }, [db], { hasData: courses.length > 0 || faculties.length > 0 });
 
   // ── Load ──────────────────────────────────────────────
   const loadAll = async (isRefresh = false) => {
@@ -88,7 +91,7 @@ export default function AdminAcademicSetup() {
 
   const loadFaculties   = async () => { if (!db) return; const { data } = await db.from("faculties").select("id, name, code, is_active").order("name"); if (data) setFaculties(data as Faculty[]); };
   const loadDepartments = async () => { if (!db) return; const { data } = await db.from("departments").select("id, name, code, faculty_id, is_active").order("name"); if (data) setDepartments(data as Department[]); };
-  const loadCourses     = async () => { if (!db) return; const { data } = await db.from("courses").select("id, course_code, course_name, credit_units, level, semester, is_active, is_elective, department_id, lecturer_id, session").order("course_code"); if (data) setCourses(data as Course[]); };
+  const loadCourses     = async () => { if (!db) return; const { data } = await db.from("courses").select("id, course_code, course_name, credit_units, level, semester, is_active, is_elective, is_general, department_id, lecturer_id, session").order("course_code"); if (data) setCourses(data as Course[]); };
   const loadLecturers   = async () => { if (!db) return; const { data } = await db.from("lecturers").select("id, full_name, email, staff_id, department_id, is_active").order("full_name"); if (data) setLecturers(data as Lecturer[]); };
 
   // ── Helper lookups ───────────────────────────────────
@@ -155,16 +158,20 @@ export default function AdminAcademicSetup() {
     setForm(c ? {
       course_code: c.course_code, course_name: c.course_name,
       credit_units: String(c.credit_units), level: c.level,
-      semester: c.semester, department_id: c.department_id,
+      semester: c.semester, department_id: c.department_id || "",
       lecturer_id: c.lecturer_id || "", is_elective: c.is_elective,
-    } : { course_code: "", course_name: "", credit_units: "3", level: "100", semester: "first", department_id: "", lecturer_id: "", is_elective: false });
+      is_general: c.is_general ?? false,
+    } : { course_code: "", course_name: "", credit_units: "3", level: "100", semester: "first", department_id: "", lecturer_id: "", is_elective: false, is_general: false });
     setEditId(c?.id || null);
     setShowForm(true);
   };
 
   const saveCourse = async () => {
-    if (!form.course_code?.trim() || !form.course_name?.trim() || !form.department_id) {
-      Alert.alert("Error", "Code, name and department are required"); return;
+    if (!form.course_code?.trim() || !form.course_name?.trim()) {
+      Alert.alert("Error", "Code and name are required"); return;
+    }
+    if (!form.is_general && !form.department_id) {
+      Alert.alert("Error", "Assign a department, or mark the course as General (shared)"); return;
     }
     setSaving(true);
     const payload = {
@@ -173,9 +180,10 @@ export default function AdminAcademicSetup() {
       credit_units:  parseInt(form.credit_units) || 3,
       level:         form.level,
       semester:      form.semester,
-      department_id: form.department_id,
+      department_id: form.is_general ? null : (form.department_id || null),
       lecturer_id:   form.lecturer_id || null,
       is_elective:   form.is_elective || false,
+      is_general:    form.is_general  || false,
       is_active:     true,
     };
     const { error } = editId
@@ -302,7 +310,19 @@ export default function AdminAcademicSetup() {
             <View style={layout.fill}><SelectModal label="Semester" placeholder="Select" value={form.semester || "first"} options={semOptions} onChange={(v) => setF("semester", v)} /></View>
             <View style={layout.fill}><SelectModal label="Units" placeholder="Select" value={form.credit_units || "3"} options={unitOptions} onChange={(v) => setF("credit_units", v)} /></View>
           </View>
-          <SelectModal label="Department *" placeholder="Select department" value={form.department_id || ""} options={deptOptions} onChange={(v) => setF("department_id", v)} />
+          {/* General course toggle — hides department selector when enabled */}
+          <TouchableOpacity onPress={() => { setF("is_general", !form.is_general); if (!form.is_general) setF("department_id", null); }} style={[layout.row, { gap: spacing[2], marginBottom: spacing[3] }]} activeOpacity={0.7}>
+            <View style={[{ width: spacing[5], height: spacing[5], borderRadius: radius.sm, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: form.is_general ? brand.gold : colors.border.strong, backgroundColor: form.is_general ? brand.gold : "transparent" }]}>
+              {form.is_general && <Icon name="ui-check" size="xs" color="#fff" />}
+            </View>
+            <View>
+              <Text variant="caption" color="secondary">General course (shared across all departments)</Text>
+              <Text variant="micro" color="muted">No department required — visible to all students</Text>
+            </View>
+          </TouchableOpacity>
+          {!form.is_general && (
+            <SelectModal label="Department *" placeholder="Select department" value={form.department_id || ""} options={deptOptions} onChange={(v) => setF("department_id", v)} />
+          )}
           <SelectModal label="Assign lecturer" placeholder="Unassigned" value={form.lecturer_id || ""} options={lecturerOptions} onChange={(v) => setF("lecturer_id", v)} />
           <TouchableOpacity onPress={() => setF("is_elective", !form.is_elective)} style={[layout.row, { gap: spacing[2], marginBottom: spacing[4] }]} activeOpacity={0.7}>
             <View style={[{ width: spacing[5], height: spacing[5], borderRadius: radius.sm, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: form.is_elective ? brand.blue : colors.border.strong, backgroundColor: form.is_elective ? brand.blue : "transparent" }]}>
@@ -481,12 +501,13 @@ export default function AdminAcademicSetup() {
             filteredCourses.map((c, i) => (
               <View key={c.id} style={[styles.itemRow, { borderBottomWidth: i < filteredCourses.length - 1 ? 1 : 0, borderBottomColor: colors.border.subtle }]}>
                 <View style={layout.fill}>
-                  <View style={[layout.row, { gap: spacing[2], marginBottom: 2 }]}>
+                  <View style={[layout.row, { gap: spacing[2], marginBottom: 2, flexWrap: "wrap" }]}>
                     <Text style={styles.mono}>{c.course_code}</Text>
                     <Badge label={c.is_elective ? "Elective" : "Core"} variant={c.is_elective ? "indigo" : "brand"} size="xs" />
+                    {c.is_general && <Badge label="General" variant="gold" size="xs" />}
                   </View>
                   <Text variant="label" weight="semibold" color="primary" numberOfLines={1}>{c.course_name}</Text>
-                  <Text variant="micro" color="muted">{c.level} · {c.semester} · {c.credit_units} units · {deptName(c.department_id)}</Text>
+                  <Text variant="micro" color="muted">{c.level} · {c.semester} · {c.credit_units} units · {c.is_general ? "All departments" : deptName(c.department_id)}</Text>
                   {/* Inline lecturer selector */}
                   <SelectModal
                     placeholder="Assign lecturer"

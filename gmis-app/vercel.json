@@ -1,7 +1,3 @@
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
-
 {
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",

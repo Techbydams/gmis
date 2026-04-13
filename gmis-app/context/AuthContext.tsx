@@ -24,6 +24,7 @@ import {
   type ReactNode,
 } from "react";
 import { supabase, getTenantClient, clearTenantClientCache } from "@/lib/supabase";
+import { cache } from "@/lib/cache";
 import { useTenant } from "@/context/TenantContext";
 import type { AuthUser } from "@/types";
 
@@ -258,6 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       clearTenantClientCache();
+      cache.flush(); // clear all cached screen data on logout
     }
   };
 

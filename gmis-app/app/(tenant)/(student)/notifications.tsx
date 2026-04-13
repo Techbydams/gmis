@@ -13,7 +13,7 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl,
   Image, Linking,
@@ -24,6 +24,8 @@ import { useAuth }     from "@/context/AuthContext";
 import { useTenant }   from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
 import { useAutoLoad } from "@/lib/useAutoLoad";
+import { useRealtimeTable } from "@/lib/realtime";
+import { cache } from "@/lib/cache";
 import { Text, Spinner, EmptyState } from "@/components/ui";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { AppShell }    from "@/components/layout";
@@ -298,16 +300,33 @@ export default function Notifications() {
     tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null,
   [tenant, slug]);
 
+  const studentIdRef = useRef<string | null>(null);
+  const cacheKey = slug && user ? `notifs:${slug}:${user.id}` : null;
+
   useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: notifs.length > 0 });
 
   const load = async (isRefresh = false) => {
     if (!db || !user) return;
-    if (!isRefresh) setLoading(true);
 
-    // Get student id
-    const { data: s } = await db.from("students").select("id").eq("supabase_uid", user.id).maybeSingle();
-    const sid = (s as any)?.id ?? null;
-    setStudentId(sid);
+    // Serve from cache immediately — screen feels instant on revisit
+    if (!isRefresh && cacheKey) {
+      const cached = cache.get<Notif[]>(cacheKey);
+      if (cached) {
+        setNotifs(cached);
+        setUnread(cached.filter((n) => !n.is_read).length);
+        setLoading(false);
+      }
+    }
+    if (!isRefresh && !cacheKey) setLoading(true);
+
+    // Get student id (also cached via studentIdRef across renders)
+    let sid = studentIdRef.current;
+    if (!sid) {
+      const { data: s } = await db.from("students").select("id").eq("supabase_uid", user.id).maybeSingle();
+      sid = (s as any)?.id ?? null;
+      studentIdRef.current = sid;
+      setStudentId(sid);
+    }
 
     // Fetch: notifications for this student OR broadcast (user_id IS NULL)
     const { data } = await db
@@ -320,9 +339,25 @@ export default function Notifications() {
     const list = (data || []) as Notif[];
     setNotifs(list);
     setUnread(list.filter((n) => !n.is_read).length);
+    if (cacheKey) cache.set(cacheKey, list);
     setLoading(false);
     setRefreshing(false);
   };
+
+  // ── Real-time: new notifications arrive instantly ──────────
+  // Only listen when we know the student id
+  useRealtimeTable(db, "notifications", {
+    filter: studentIdRef.current ? `user_id=eq.${studentIdRef.current}` : undefined,
+    onInsert: useCallback((row: Notif) => {
+      setNotifs((prev) => {
+        if (prev.some((n) => n.id === row.id)) return prev;
+        const updated = [row, ...prev];
+        if (cacheKey) cache.set(cacheKey, updated);
+        return updated;
+      });
+      setUnread((u) => u + 1);
+    }, [cacheKey]),
+  });
 
   const markAllRead = async () => {
     if (!db || !studentId) return;

@@ -9,13 +9,19 @@
 //  · Keyboard-responsive input bar uses useSafeAreaInsets
 //  · My messages: blue, right-aligned, rounded-br-none tail
 //  · Their messages: card-bg, left-aligned, rounded-bl-none
+//
+// Real-time:
+//  · Subscribes to chat_messages INSERT for active course
+//  · New messages from any student appear instantly — no refresh
+//  · Optimistic send: message shows immediately on tap, before DB confirms
+//  · Cache: course list is cached so list screen loads instantly
 // ============================================================
 
 /* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   View, FlatList, TouchableOpacity, TextInput, StyleSheet,
   KeyboardAvoidingView, Platform, Image,
@@ -25,6 +31,8 @@ import { useRouter } from "expo-router";
 import { useAuth }   from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
 import { getTenantClient } from "@/lib/supabase";
+import { useRealtimeTable } from "@/lib/realtime";
+import { cache } from "@/lib/cache";
 import { timeAgo } from "@/lib/helpers";
 import { Text, Spinner, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
@@ -154,57 +162,125 @@ export default function Chat() {
   const [loading,      setLoading]      = useState(true);
   const [sending,      setSending]      = useState(false);
   const [topBarHeight, setTopBarHeight] = useState(0);
-  const flatRef = useRef<FlatList>(null);
+  const flatRef     = useRef<FlatList>(null);
+  const studentIdRef = useRef<string | null>(null);
 
   const db = useMemo(() =>
     tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null,
   [tenant, slug]);
 
+  // ── Cache key helpers ──────────────────────────────────────
+  const courseCacheKey = slug && user ? `chat:courses:${slug}:${user.id}` : null;
+
   useEffect(() => { if (db && user) loadInit(); }, [db, user]);
-  useEffect(() => { if (activeCourse) loadMessages(activeCourse.id); }, [activeCourse]);
+
+  // When course changes: load messages (with cache), then subscribe
+  useEffect(() => {
+    if (!activeCourse) { setMessages([]); return; }
+    loadMessages(activeCourse.id);
+  }, [activeCourse?.id]);
 
   const loadInit = async () => {
     if (!db || !user) return;
-    setLoading(true);
+
+    // Show cached course list immediately so screen feels instant
+    if (courseCacheKey) {
+      const cached = cache.get<Course[]>(courseCacheKey);
+      if (cached) { setCourses(cached); setLoading(false); }
+    }
+
     const { data: s } = await db.from("students").select("id").eq("supabase_uid", user.id).maybeSingle();
     if (!s) { setLoading(false); return; }
-    setStudentId((s as any).id);
+    const sid = (s as any).id as string;
+    setStudentId(sid);
+    studentIdRef.current = sid;
 
     const { data: regs } = await db
       .from("semester_registrations")
       .select("courses(id, course_code, course_name)")
-      .eq("student_id", (s as any).id)
+      .eq("student_id", sid)
       .eq("status", "registered");
 
     const list = (regs || []).map((r: any) => r.courses).filter(Boolean) as Course[];
     setCourses(list);
+    if (courseCacheKey) cache.set(courseCacheKey, list);
     setLoading(false);
   };
 
   const loadMessages = async (courseId: string) => {
     if (!db) return;
+
+    // Show cached messages instantly
+    const msgKey = `chat:msgs:${slug}:${courseId}`;
+    const cached = cache.get<Message[]>(msgKey);
+    if (cached) {
+      setMessages(cached);
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 50);
+    }
+
     const { data } = await db.from("chat_messages")
       .select("*")
       .eq("course_id", courseId)
       .order("created_at", { ascending: true })
       .limit(100);
-    if (data) setMessages(data as Message[]);
-    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 80);
+    if (data) {
+      setMessages(data as Message[]);
+      cache.set(msgKey, data);
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 80);
+    }
   };
 
+  // ── Real-time: new messages for active course ──────────────
+  // Appends incoming rows directly — no full reload needed
+  useRealtimeTable(db, "chat_messages", {
+    filter: activeCourse ? `course_id=eq.${activeCourse.id}` : undefined,
+    onInsert: useCallback((row: Message) => {
+      // Skip if we already have this message (e.g. the optimistic copy we added on send)
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === row.id)) return prev;
+        const updated = [...prev, row];
+        // Update cache too so background reload is consistent
+        if (activeCourse && slug) {
+          cache.set(`chat:msgs:${slug}:${activeCourse.id}`, updated);
+        }
+        return updated;
+      });
+      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
+    }, [activeCourse?.id, slug]),
+  });
+
   const send = async () => {
-    if (!newMsg.trim() || !studentId || !activeCourse || !db) return;
+    const text = newMsg.trim();
+    if (!text || !studentIdRef.current || !activeCourse || !db) return;
+
+    // Optimistic: show message immediately before DB confirms
+    const optimistic: Message = {
+      id:         `opt-${Date.now()}`,
+      sender_id:  studentIdRef.current,
+      course_id:  activeCourse.id,
+      message:    text,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    setNewMsg("");
+    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50);
+
     setSending(true);
     const { error } = await db.from("chat_messages").insert({
-      sender_id: studentId,
+      sender_id: studentIdRef.current,
       course_id: activeCourse.id,
-      message:   newMsg.trim(),
+      message:   text,
       is_read:   false,
     } as any);
     setSending(false);
-    if (error) return;
-    setNewMsg("");
-    loadMessages(activeCourse.id);
+
+    if (error) {
+      // Roll back optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      setNewMsg(text);
+    }
+    // On success: the realtime subscription will append the real row,
+    // and the duplicate-check above will prevent showing it twice.
   };
 
   const shellUser = { name: user?.email?.split("@")[0] || "Student", role: "student" as const };

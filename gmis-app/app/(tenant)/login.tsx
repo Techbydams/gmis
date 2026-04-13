@@ -327,6 +327,27 @@ export default function SchoolLogin() {
               </Text>
             </TouchableOpacity>
 
+            {/* Back to GMIS */}
+            {Platform.OS === "web" && (
+              <TouchableOpacity
+                onPress={() => {
+                  const hostname = window.location.hostname;
+                  const isLocal  = hostname === "localhost" || hostname === "127.0.0.1";
+                  if (isLocal) {
+                    router.push("/find-school" as any);
+                  } else {
+                    window.location.href = "https://gmis.app";
+                  }
+                }}
+                style={[{ alignItems: "center", marginTop: spacing[3] }]}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: fontSize.sm, color: colors.text.muted }}>
+                  ← Back to <Text style={{ fontSize: fontSize.sm, color: colors.text.link }}>gmis.app</Text>
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {/* Footer */}
             <View style={{ alignItems: "center", marginTop: spacing[4], marginBottom: spacing[4], gap: spacing[2] }}>
               <Image source={GMIS_LOGO} style={styles.logoFooter} resizeMode="contain" />

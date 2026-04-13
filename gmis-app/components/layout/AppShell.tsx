@@ -38,19 +38,20 @@ type AppRole = "student" | "lecturer" | "admin" | "parent";
 export interface AppShellUser extends SidebarUser {}
 
 interface AppShellProps {
-  role:          AppRole;
-  user:          AppShellUser;
-  schoolName:    string;
+  role:           AppRole;
+  user:           AppShellUser;
+  schoolName:     string;
+  schoolLogoUrl?: string | null;
   /** Used only on desktop sidebar. Mobile screens own their top bar. */
-  pageTitle?:    string;
-  pageSubtitle?: string;
-  showBack?:     boolean;
-  onBack?:       () => void;
-  headerRight?:  React.ReactNode;
-  onLogout?:     () => void;
+  pageTitle?:     string;
+  pageSubtitle?:  string;
+  showBack?:      boolean;
+  onBack?:        () => void;
+  headerRight?:   React.ReactNode;
+  onLogout?:      () => void;
   /** Show GMIS logo in desktop sidebar header */
-  showLogo?:     boolean;
-  children:      React.ReactNode;
+  showLogo?:      boolean;
+  children:       React.ReactNode;
 }
 
 const sidebarNavMap: Record<AppRole, NavItem[]> = {
@@ -71,6 +72,7 @@ export function AppShell({
   role,
   user,
   schoolName,
+  schoolLogoUrl,
   pageTitle    = "",
   pageSubtitle,
   showBack     = false,
@@ -104,6 +106,7 @@ export function AppShell({
               items={sidebarNavMap[role]}
               user={user}
               schoolName={schoolName}
+              schoolLogoUrl={schoolLogoUrl}
               onLogout={onLogout}
             />
           )}
@@ -146,6 +149,7 @@ export function AppShell({
             items={sidebarNavMap[role]}
             user={user}
             schoolName={schoolName}
+            schoolLogoUrl={schoolLogoUrl}
             onLogout={onLogout}
           />
         )}

@@ -375,13 +375,44 @@ export default function QRAttendance() {
     setScanState("scanning");
   };
 
-  // Web: handle manually typed attendance code
+  // Web: handle manually typed attendance code (6-char short code or full JSON payload)
   const handleWebCode = async (code: string) => {
     setWebLoading(true); setWebResult(null);
     try {
-      await handleQRScanned({ data: code });
-      // scanState will be set by handleQRScanned — mirror into webResult
-      // Give a brief moment for state to settle
+      const trimmed = code.trim();
+      let payload = trimmed;
+
+      // If it looks like a 6-char short code (alphanum, ≤8 chars), look it up
+      if (/^[A-Za-z0-9]{4,8}$/.test(trimmed)) {
+        if (!db) throw new Error("Not connected to school database.");
+        const upper = trimmed.toUpperCase();
+        // Find an active QR whose ID starts with this prefix (case-insensitive hex)
+        const { data: qrs } = await db
+          .from("qr_codes")
+          .select("id, course_id, class_date, expires_at, is_active")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        const today = new Date().toISOString().split("T")[0];
+        const match = (qrs || []).find((q: any) =>
+          q.id.replace(/-/g, "").slice(0, 6).toUpperCase() === upper &&
+          q.class_date === today
+        );
+
+        if (!match) {
+          setWebResult({ ok: false, msg: "Code not found or expired. Check the code with your lecturer." });
+          setWebLoading(false); return;
+        }
+        // Build the full payload for handleQRScanned
+        payload = JSON.stringify({
+          qr_id:      match.id,
+          course_id:  match.course_id,
+          class_date: match.class_date,
+        });
+      }
+
+      await handleQRScanned({ data: payload });
       await new Promise((r) => setTimeout(r, 200));
       setWebResult({ ok: scanState === "success", msg: resultMsg || (scanState === "success" ? "Attendance marked!" : "Failed. Check the code and try again.") });
     } catch (e: any) {

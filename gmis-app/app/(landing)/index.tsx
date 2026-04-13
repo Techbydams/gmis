@@ -16,7 +16,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   View, ScrollView, TouchableOpacity, StyleSheet,
-  useWindowDimensions, Platform, Text as RNText, Image,
+  useWindowDimensions, Platform, Text as RNText, Image, FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Text, Button } from "@/components/ui";
@@ -267,11 +267,13 @@ export default function LandingPage() {
   usePremiumFonts();
 
   const router = useRouter();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
   const { width } = useWindowDimensions();
 
   const [openFaq,       setOpenFaq]       = useState<number | null>(null);
   const [activePersona, setActivePersona] = useState(0);
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const testiRef = useRef<FlatList<any>>(null);
 
   const isNarrow = width < 768;
   const isWide   = width >= 1100;
@@ -395,12 +397,25 @@ export default function LandingPage() {
             scrollTrigger: { trigger: "#steps-section", start: "top 75%", once: true } }
         );
 
-        // ── 8. Testimonials reveal ───────────────────────
+        // ── 8. Testimonials — stacked reveal + float ─────
         gsap.from($$(".testi-card"), {
-          opacity: 0, y: 36,
-          duration: 0.65, stagger: 0.15,
+          opacity: 0, y: 50, rotation: 2, scale: 0.96,
+          duration: 0.75, stagger: { amount: 0.5, from: "start" },
           ease: "power3.out",
           scrollTrigger: { trigger: "#testi-section", start: "top 82%", once: true },
+        });
+
+        // ── 8b. Persona section reveal ───────────────────
+        gsap.from("#persona-content", {
+          opacity: 0, y: 30, duration: 0.6, ease: "power2.out",
+          scrollTrigger: { trigger: "#persona-content", start: "top 85%", once: true },
+        });
+
+        // ── 8c. Stats bar number flip ────────────────────
+        gsap.from($$(".stat-item-inner"), {
+          opacity: 0, y: 20, scale: 0.9, duration: 0.5, stagger: 0.1,
+          ease: "back.out(1.4)",
+          scrollTrigger: { trigger: ".stats-bar", start: "top 90%", once: true },
         });
 
         // ── 9. Contact section ───────────────────────────
@@ -500,17 +515,37 @@ export default function LandingPage() {
             </View>
           )}
 
-          {/* CTAs */}
-          <View style={[layout.row, { gap: spacing[3] }]}>
+          {/* CTAs + Theme toggle */}
+          <View style={[layout.row, { gap: spacing[2], alignItems: "center" }]}>
+            {/* Theme toggle — always visible */}
+            <TouchableOpacity
+              onPress={toggleTheme}
+              activeOpacity={0.75}
+              style={[S.themeToggle, {
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                borderColor:     isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
+              }]}
+            >
+              <RNText style={{ fontSize: 16 }}>{isDark ? "☀️" : "🌙"}</RNText>
+            </TouchableOpacity>
+
             {!isNarrow && (
               <Button label="Find your school" variant="ghost" size="sm"
                 onPress={() => router.push("/find-school")} />
             )}
-            <Button
-              label={isNarrow ? "Get started" : "Register institution →"}
-              variant="primary" size="sm"
-              onPress={() => router.push("/register")}
-            />
+            {isNarrow ? (
+              <Button
+                label="Find School"
+                variant="primary" size="sm"
+                onPress={() => router.push("/find-school")}
+              />
+            ) : (
+              <Button
+                label="Register institution →"
+                variant="primary" size="sm"
+                onPress={() => router.push("/register")}
+              />
+            )}
           </View>
         </View>
       </View>
@@ -760,28 +795,85 @@ export default function LandingPage() {
             Trusted by institutions
           </RNText>
         </View>
-        <View style={[S.testiRow, { gap:spacing[5], maxWidth:1100, alignSelf:"center", width:"100%" as any }]}>
-          {TESTIMONIALS.map(({ quote, name, role, school }) => (
-            <View key={name} className="testi-card" style={[S.testiCard, {
-              ...glassStyle, borderWidth:1, borderColor:cardBorder,
-              flex: isNarrow ? undefined : 1, width: isNarrow ? "100%" as any : undefined,
-            }]}>
-              <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:52, color:brand.blueAlpha20, lineHeight:52 }}>❝</RNText>
-              <RNText style={[bodyFont(14, colors.text.secondary), { marginTop:spacing[2], lineHeight:24 }]}>{quote}</RNText>
-              <View style={[S.testiAuthor, { borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]}>
-                <View style={[S.testiAvatar, { backgroundColor: brand.blueAlpha15 }]}>
-                  <RNText style={{ fontSize:12, fontWeight:"700", color:brand.blue, fontFamily:'"Space Grotesk",system-ui' }}>
-                    {name.split(" ").map((w) => w[0]).join("").slice(0,2)}
-                  </RNText>
+
+        {isNarrow ? (
+          /* Mobile: Stacked card slider */
+          <View>
+            <FlatList
+              ref={testiRef}
+              data={TESTIMONIALS}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(_, i) => String(i)}
+              onMomentumScrollEnd={(e) => {
+                const idx = Math.round(e.nativeEvent.contentOffset.x / (width - spacing[12]));
+                setActiveTestimonial(idx);
+              }}
+              contentContainerStyle={{ paddingHorizontal: spacing[6] }}
+              renderItem={({ item: { quote, name, role, school } }) => (
+                <View className="testi-card" style={[S.testiCard, {
+                  ...glassStyle, borderWidth:1, borderColor:cardBorder,
+                  width: width - spacing[12],
+                  marginHorizontal: spacing[3],
+                }]}>
+                  <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:44, color:brand.blueAlpha20, lineHeight:44 }}>❝</RNText>
+                  <RNText style={[bodyFont(14, colors.text.secondary), { marginTop:spacing[2], lineHeight:24 }]}>{quote}</RNText>
+                  <View style={[S.testiAuthor, { borderTopColor:"rgba(255,255,255,0.06)" }]}>
+                    <View style={[S.testiAvatar, { backgroundColor: brand.blueAlpha15 }]}>
+                      <RNText style={{ fontSize:12, fontWeight:"700", color:brand.blue, fontFamily:'"Space Grotesk",system-ui' }}>
+                        {name.split(" ").map((w: string) => w[0]).join("").slice(0,2)}
+                      </RNText>
+                    </View>
+                    <View>
+                      <RNText style={headFont(13, "600", colors.text.primary)}>{name}</RNText>
+                      <RNText style={bodyFont(11, colors.text.muted)}>{role} · {school}</RNText>
+                    </View>
+                  </View>
                 </View>
-                <View>
-                  <RNText style={headFont(13, "600", colors.text.primary)}>{name}</RNText>
-                  <RNText style={bodyFont(11, colors.text.muted)}>{role} · {school}</RNText>
+              )}
+            />
+            {/* Dot indicators */}
+            <View style={{ flexDirection:"row", justifyContent:"center", gap:spacing[2], marginTop:spacing[5] }}>
+              {TESTIMONIALS.map((_, i) => (
+                <TouchableOpacity key={i} onPress={() => {
+                  testiRef.current?.scrollToIndex({ index: i, animated: true });
+                  setActiveTestimonial(i);
+                }}>
+                  <View style={{
+                    width: activeTestimonial === i ? 20 : 7,
+                    height: 7, borderRadius: radius.full,
+                    backgroundColor: activeTestimonial === i ? brand.blue : (isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)"),
+                  } as any} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : (
+          /* Desktop: Row layout with stagger animation */
+          <View style={[S.testiRow, { gap:spacing[5], maxWidth:1100, alignSelf:"center", width:"100%" as any }]}>
+            {TESTIMONIALS.map(({ quote, name, role, school }) => (
+              <View key={name} className="testi-card" style={[S.testiCard, {
+                ...glassStyle, borderWidth:1, borderColor:cardBorder,
+                flex:1,
+              }]}>
+                <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:52, color:brand.blueAlpha20, lineHeight:52 }}>❝</RNText>
+                <RNText style={[bodyFont(14, colors.text.secondary), { marginTop:spacing[2], lineHeight:24 }]}>{quote}</RNText>
+                <View style={[S.testiAuthor, { borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]}>
+                  <View style={[S.testiAvatar, { backgroundColor: brand.blueAlpha15 }]}>
+                    <RNText style={{ fontSize:12, fontWeight:"700", color:brand.blue, fontFamily:'"Space Grotesk",system-ui' }}>
+                      {name.split(" ").map((w) => w[0]).join("").slice(0,2)}
+                    </RNText>
+                  </View>
+                  <View>
+                    <RNText style={headFont(13, "600", colors.text.primary)}>{name}</RNText>
+                    <RNText style={bodyFont(11, colors.text.muted)}>{role} · {school}</RNText>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* ════════════════ CONTACT (replaces Pricing) ════ */}
@@ -794,8 +886,13 @@ export default function LandingPage() {
         <View style={[S.orb, { bottom:-40, right:-80, width:360, height:360, backgroundColor:brand.purple, opacity:0.12 }]} />
 
         <View style={{ maxWidth:820, alignSelf:"center", width:"100%"as any, alignItems:"center" }}>
-          {/* GMIS logo */}
-          <Image className="contact-reveal" source={LOGO_LIGHT} style={{ width:60, height:60, marginBottom:spacing[5] }} resizeMode="contain" />
+          {/* GMIS logo — theme-aware, responsive */}
+          <Image
+            className="contact-reveal"
+            source={LOGO_LIGHT}
+            style={{ width: isNarrow ? 48 : 64, height: isNarrow ? 48 : 64, marginBottom: spacing[5] }}
+            resizeMode="contain"
+          />
 
           <View className="contact-reveal" style={S.sectionPill}>
             <RNText style={{ fontSize:11, fontWeight:"700", color:brand.blue, letterSpacing:1.4,
@@ -819,13 +916,12 @@ export default function LandingPage() {
             gap:spacing[4], marginTop:spacing[10], flexWrap:"wrap", justifyContent:"center",
           }]}>
             {[
-              { icon:"nav-chat"as IconName, label:"Chat on WhatsApp", sub:"+229 97 00 00 00", color:brand.emerald, bg:"rgba(16,185,129,0.1)", border:"rgba(16,185,129,0.25)" },
-              { icon:"nav-ai"  as IconName, label:"Send us an email",  sub:"hello@damstech.com",   color:brand.blue,   bg:"rgba(45,108,255,0.1)",  border:"rgba(45,108,255,0.25)"  },
-            ].map(({ icon, label, sub, color, bg: cbg, border }) => (
-              <TouchableOpacity key={label} activeOpacity={0.8} style={[S.contactCard, {
-                backgroundColor: cbg,
-                borderColor: border,
-              }]}>
+              { icon:"nav-chat"as IconName, label:"Chat on WhatsApp", sub:"+234 815 301 8986", href:"https://wa.me/2348153018986", color:brand.emerald, bg:"rgba(16,185,129,0.1)", border:"rgba(16,185,129,0.25)" },
+              { icon:"nav-ai"  as IconName, label:"Send us an email",  sub:"info@gmis.app",     href:"mailto:info@gmis.app",          color:brand.blue,   bg:"rgba(45,108,255,0.1)",  border:"rgba(45,108,255,0.25)"  },
+            ].map(({ icon, label, sub, href, color, bg: cbg, border }) => (
+              <TouchableOpacity key={label} activeOpacity={0.8}
+                onPress={() => { if (Platform.OS === "web") { (window as any).open(href, "_blank"); } }}
+                style={[S.contactCard, { backgroundColor: cbg, borderColor: border }]}>
                 <View style={{ width:44, height:44, borderRadius:radius.lg, backgroundColor:color+"25", alignItems:"center", justifyContent:"center", marginBottom:spacing[3] }}>
                   <Icon name={icon} size="lg" color={color} />
                 </View>
@@ -903,7 +999,7 @@ export default function LandingPage() {
               GRASP Management Information System{"\n"}The future of academic operations{"\n"}for Nigerian institutions.
             </RNText>
             <RNText style={[bodyFont(12, "rgba(255,255,255,0.2)"), { marginTop:spacing[4] }]}>
-              © {new Date().getFullYear()} DAMS Technologies · Built in Cotonou, Benin Republic 🇧🇯
+              © {new Date().getFullYear()} DAMS Technologies · All rights Reserved{"\n"}Built with love ❤️ @DAMS Technologies
             </RNText>
           </View>
           <View style={S.footerLinks}>
@@ -947,10 +1043,10 @@ const S: any = StyleSheet.create(({
     paddingHorizontal:spacing[6], width:"100%"as any,
   },
 
-  // Hero
+  // Hero — paddingTop clears the sticky nav (desktop 130, mobile 90)
   hero: {
-    paddingTop:130, paddingBottom:110,
-    paddingHorizontal:spacing[6], overflow:"hidden",
+    paddingTop: 90, paddingBottom: 80,
+    paddingHorizontal: spacing[6], overflow:"hidden",
   },
   heroInner: {
     flexDirection:"row", alignItems:"center", justifyContent:"space-between",
@@ -1117,6 +1213,12 @@ const S: any = StyleSheet.create(({
     width:32, height:32, borderRadius:radius.lg,
     alignItems:"center", justifyContent:"center",
     marginLeft:spacing[3], flexShrink:0,
+  },
+
+  // Theme toggle button (nav)
+  themeToggle: {
+    width: 36, height: 36, borderRadius: radius.xl,
+    borderWidth: 1, alignItems: "center", justifyContent: "center",
   },
 
   // Footer

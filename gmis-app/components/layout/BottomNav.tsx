@@ -74,6 +74,12 @@ export const parentBottomNav: BottomNavItem[] = [
   { label: "More",     icon: "ui-menu",      href: "/(tenant)/(parent)/more"      },
 ];
 
+// Strip Expo Router group segments so usePathname() output matches item hrefs.
+// usePathname() returns "/dashboard" but item.href is "/(tenant)/(student)/dashboard".
+function stripGroups(path: string): string {
+  return path.replace(/\/\([^)]+\)/g, "") || "/";
+}
+
 // ── Component ──────────────────────────────────────────────
 interface BottomNavProps {
   items: BottomNavItem[];
@@ -95,9 +101,12 @@ export function BottomNav({ items }: BottomNavProps) {
   // Icon scale animations — one per tab, indexes align with items
   const iconScales = useRef(items.map(() => new Animated.Value(1))).current;
 
-  const activeIndex = items.findIndex(
-    (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
-  );
+  // Strip group names from both sides so "/dashboard" matches "/(tenant)/(student)/dashboard"
+  const strippedPathname = stripGroups(pathname);
+  const activeIndex = items.findIndex((item) => {
+    const stripped = stripGroups(item.href);
+    return strippedPathname === stripped || strippedPathname.startsWith(stripped + "/");
+  });
 
   // Slide pill + pulse active icon on tab change
   useEffect(() => {
@@ -170,7 +179,8 @@ export function BottomNav({ items }: BottomNavProps) {
       {/* Tab buttons */}
       <View style={[layout.row, styles.tabRow]}>
         {items.map((item, idx) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const strippedHref = stripGroups(item.href);
+          const active = strippedPathname === strippedHref || strippedPathname.startsWith(strippedHref + "/");
 
           return (
             <TouchableOpacity

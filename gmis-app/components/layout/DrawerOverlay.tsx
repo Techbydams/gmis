@@ -25,18 +25,20 @@ import { usePathname } from "expo-router";
 import { Text, Avatar, Badge } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { useTheme } from "@/context/ThemeContext";
+import { useTenant } from "@/context/TenantContext";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout, platformShadow } from "@/styles/shared";
 import type { NavItem, SidebarUser } from "./Sidebar";
 
 interface DrawerOverlayProps {
-  visible:    boolean;
-  onClose:    () => void;
-  onNavigate: (path: string) => void;
-  items:      NavItem[];
-  user:       SidebarUser;
-  schoolName: string;
-  onLogout?:  () => void;
+  visible:        boolean;
+  onClose:        () => void;
+  onNavigate:     (path: string) => void;
+  items:          NavItem[];
+  user:           SidebarUser;
+  schoolName:     string;
+  schoolLogoUrl?: string | null;
+  onLogout?:      () => void;
 }
 
 // Expo Router usePathname() strips group names — e.g. returns "/dashboard"
@@ -48,12 +50,15 @@ function stripGroups(path: string | undefined): string {
 }
 
 export function DrawerOverlay({
-  visible, onClose, onNavigate, items, user, schoolName, onLogout,
+  visible, onClose, onNavigate, items, user, schoolName, schoolLogoUrl, onLogout,
 }: DrawerOverlayProps) {
   const { colors, toggleTheme, isDark } = useTheme();
+  const { tenant }  = useTenant();
   const pathname    = usePathname();
   const { width }   = useWindowDimensions();
   const GMIS_LOGO   = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
+  // Prefer explicit prop, fall back to tenant context logo
+  const logoUrl     = schoolLogoUrl ?? tenant?.logo_url ?? null;
 
   const drawerWidth = Math.min(280, Math.floor(width * 0.80));
 
@@ -122,10 +127,17 @@ export function DrawerOverlay({
 
           {/* School banner */}
           <View style={[styles.header, { borderBottomColor: colors.border.DEFAULT }]}>
-            <View style={[styles.initials, { backgroundColor: brand.blueAlpha15 }]}>
-              <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: brand.blue }}>
-                {schoolName.slice(0, 2).toUpperCase()}
-              </Text>
+            <View style={[styles.initials, {
+              backgroundColor: logoUrl ? "transparent" : brand.blueAlpha15,
+              overflow: "hidden",
+            }]}>
+              {logoUrl ? (
+                <Image source={{ uri: logoUrl }} style={{ width: "100%" as any, height: "100%" as any }} resizeMode="contain" />
+              ) : (
+                <Text style={{ fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: brand.blue }}>
+                  {schoolName.slice(0, 2).toUpperCase()}
+                </Text>
+              )}
             </View>
             <View style={layout.fill}>
               <Text variant="label" weight="bold" color="primary" numberOfLines={1}>{schoolName}</Text>

@@ -436,6 +436,7 @@ export default function StudentDashboard() {
       role="student"
       user={shellUser}
       schoolName={tenant?.name || ""}
+      schoolLogoUrl={tenant?.logo_url}
       onLogout={async () => { await signOut(); router.replace("/login"); }}
     >
       {/* Native mobile top bar — [avatar] [greeting+info] · · · [QR][bell] */}
@@ -614,9 +615,9 @@ export default function StudentDashboard() {
           <StatCard
             icon="nav-payments"
             label="Fees"
-            value={`${stats.paidFees}/${stats.totalFees}`}
-            sub="Items paid"
-            color={stats.paidFees === stats.totalFees && stats.totalFees > 0 ? "success" : "warning"}
+            value={stats.totalFees === 0 ? "—" : `${stats.paidFees}/${stats.totalFees}`}
+            sub={stats.totalFees === 0 ? "No active fees" : "Items paid"}
+            color={stats.totalFees === 0 ? "brand" : stats.paidFees === stats.totalFees ? "success" : "warning"}
           />
         </View>
 

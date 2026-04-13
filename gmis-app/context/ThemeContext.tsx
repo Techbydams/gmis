@@ -16,6 +16,7 @@ import {
   type ReactNode,
 } from "react";
 import { useColorScheme } from "nativewind";
+import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { dark, light } from "@/theme/tokens";
 
@@ -39,15 +40,17 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { colorScheme, setColorScheme } = useColorScheme();
 
-  // ── On mount: restore saved preference ─────────────────
+  // ── On mount: restore saved preference or use device setting ─
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
       if (saved === "light" || saved === "dark") {
         setColorScheme(saved);
       } else {
-        // Default to dark if nothing saved
-        setColorScheme("dark");
-        AsyncStorage.setItem(STORAGE_KEY, "dark");
+        // No saved preference → follow device setting, default light
+        const deviceScheme = Appearance.getColorScheme();
+        const initial: ThemeMode = deviceScheme === "dark" ? "dark" : "light";
+        setColorScheme(initial);
+        // Don't persist — let it auto-follow device until user manually picks
       }
     });
   }, []);

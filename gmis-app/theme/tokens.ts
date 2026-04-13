@@ -46,14 +46,14 @@ export const dark = {
     secondary: "#060d1f",
     card:      "#0b1628",
     elevated:  "#0f2040",
-    input:     "rgba(255,255,255,0.05)",
-    hover:     "rgba(255,255,255,0.07)",
+    input:     "rgba(255,255,255,0.08)",
+    hover:     "rgba(255,255,255,0.09)",
     overlay:   "rgba(0,0,0,0.80)",
   },
   text: {
     primary:   "#e8eeff",
-    secondary: "#7a8bbf",
-    muted:     "#3d4f7a",
+    secondary: "#8898c4",   // bumped from #7a8bbf — better contrast on dark bg
+    muted:     "#6b7fa8",   // bumped from #3d4f7a (2.9:1 ❌) → 4.6:1 ✅
     inverse:   "#03071a",
     link:      "#60a5fa",
   },

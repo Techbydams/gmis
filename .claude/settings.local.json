@@ -53,7 +53,9 @@
       "Read(//c/Users/DAMS TECHNOLOGIES/.claude/**)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); k=next\\(\\(v.get\\('env',{}\\).get\\('GOOGLE_AI_API_KEY',''\\) for v in d.get\\('mcpServers',{}\\).values\\(\\) if v.get\\('env',{}\\).get\\('GOOGLE_AI_API_KEY'\\)\\), ''\\); print\\('key:'+k[:12]+'...' if k else 'not found'\\)\")",
       "mcp__claude_ai_Supabase__list_edge_functions",
-      "mcp__claude_ai_Supabase__get_advisors"
+      "mcp__claude_ai_Supabase__get_advisors",
+      "WebFetch(domain:gsap.com)",
+      "Bash(ls \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\Documents\\\\GMIS\\\\gmis-app\\\\assets\\\\gmis\"*)"
     ]
   }
 }

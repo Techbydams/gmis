@@ -227,10 +227,23 @@ Tenant credentials for all schools are loaded at runtime from the `organizations
 
 ## Current Build Progress
 
-Last completed: **Step 6 — Student Signup + Setup Account**
+Last completed: **Step 15 — Platform Admin Dashboard**
 
-Screens fully implemented: `find-school`, `(tenant)/login`, `(tenant)/admin-login`, `(tenant)/signup`, `(tenant)/setup`, plus partial student/admin dashboard shells.
+All portals are fully implemented with real Supabase data queries, design system tokens, and role-based routing.
 
-**Pending steps (in order):** Step 7 Student Dashboard → Step 8 Admin Dashboard → Step 9 Lecturer Portal → Step 10 Chat/Social/Voting/GPA/Clearance → Step 11 Parent Portal → Step 12 AI Assistant → Step 13 QR Attendance → Step 14 Landing Page (3D) → Step 15 Platform Admin → Step 16 EAS Build.
+**Screens implemented:**
+- Auth flow: `find-school`, `(tenant)/login`, `(tenant)/admin-login`, `(tenant)/signup`, `(tenant)/setup`
+- Student portal (19 screens): dashboard, results, payments, courses, timetable, gpa, clearance, ai, social, chat, voting, settings, calendar, profile, qr-attendance, notifications, course-form, transcript, more
+- Admin portal (17 screens): dashboard, approvals, students, academic, sessions, results, grading, fees, payment-gateway, elections, idcards, news, notifications, timetable, bulk-import, settings, more
+- Lecturer portal (8 screens): dashboard, courses, course-detail, attendance, results, students, timetable, more
+- Parent portal (6 screens): dashboard, results, payments, attendance, calendar, more
+- Platform admin: `(platform)/dashboard` (741 lines — full org management, approvals, feature toggles, billing)
+- Landing page: `(landing)/index.tsx` (luxury redesign — bento grid, liquid glass, persona switcher)
+
+**Pending:**
+- Step 16 — EAS Build (production iOS/Android build configuration)
+- Mockup images: generate when Gemini quota resets, place in `assets/mockups/`, uncomment require() lines in `(landing)/index.tsx`
+- Automation: `provision-institution` Edge Function + "Provision Portal" button (see `supabase/AUTOMATION-PROPOSAL.md`)
+- Google Sign-In (deferred — integrate after EAS build is set up)
 
 When picking up a pending step, port the equivalent screen from `gmis/src/` as the reference implementation.

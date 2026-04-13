@@ -164,7 +164,7 @@ export default function PlatformLogin() {
             style={{ marginTop: spacing[5], alignItems: "center" }}
             activeOpacity={0.7}
           >
-            <Text style={{ fontSize: fontSize.sm, color: "#3d4f7a" }}>← Back to GMIS</Text>
+            <Text style={{ fontSize: fontSize.sm, color: "#7a8bbf" }}>← Back to GMIS</Text>
           </TouchableOpacity>
 
         </View>

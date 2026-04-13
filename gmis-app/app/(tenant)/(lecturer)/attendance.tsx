@@ -472,6 +472,22 @@ export default function LecturerAttendance() {
                         )}
                       </View>
 
+                      {/* ── Web/Manual Attendance Code ────────────────── */}
+                      {/* 6-character short code derived from QR ID.
+                          Students who cannot scan (web users) enter this code.
+                          Synced with the same QR session → prevents double-marking. */}
+                      <View style={[styles.codeBox, { backgroundColor: colors.bg.hover, borderColor: brand.blueAlpha30 }]}>
+                        <Text style={{ fontSize: fontSize.xs, color: colors.text.muted, marginBottom: spacing[1], textTransform: "uppercase", letterSpacing: 1 }}>
+                          Web / Manual Code
+                        </Text>
+                        <Text style={{ fontSize: 32, fontWeight: fontWeight.black, color: brand.blue, letterSpacing: 8, fontVariant: ["tabular-nums"] as any }}>
+                          {activeQR.id.replace(/-/g, "").slice(0, 6).toUpperCase()}
+                        </Text>
+                        <Text style={{ fontSize: fontSize.xs, color: colors.text.muted, marginTop: spacing[1], textAlign: "center" }}>
+                          Students without a camera enter this code on the GMIS app or web portal
+                        </Text>
+                      </View>
+
                       {/* Timer */}
                       <View style={[styles.timerRow, { backgroundColor: expiresIn > 120 ? colors.status.successBg : colors.status.warningBg }]}>
                         <Icon name="nav-calendar" size="sm" color={expiresIn > 120 ? colors.status.success : colors.status.warning} />
@@ -584,6 +600,10 @@ const styles = StyleSheet.create({
   generateBtn: { flexDirection: "row", alignItems: "center", gap: spacing[2], paddingHorizontal: spacing[6], paddingVertical: spacing[3], borderRadius: radius.full },
   timerRow: { flexDirection: "row", alignItems: "center", gap: spacing[2], paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.full },
   deactivateBtn: { paddingHorizontal: spacing[5], paddingVertical: spacing[2], borderRadius: radius.full, borderWidth: 1 },
+  codeBox: {
+    alignItems: "center", paddingHorizontal: spacing[6], paddingVertical: spacing[4],
+    borderRadius: radius["2xl"], borderWidth: 1.5, width: "100%" as any,
+  },
   liveCount: { flexDirection: "row", alignItems: "baseline", gap: 2, paddingHorizontal: spacing[3], paddingVertical: spacing[1], borderRadius: radius.full },
   progressBg: { height: 6, borderRadius: radius.full, overflow: "hidden" },
   progressFill: { height: 6, borderRadius: radius.full },

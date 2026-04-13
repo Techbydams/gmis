@@ -16,8 +16,9 @@
 import { useState } from "react";
 import {
   View, ScrollView, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform,
+  StyleSheet, KeyboardAvoidingView, Platform, Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { isValidEmail } from "@/lib/helpers";
@@ -60,9 +61,13 @@ const INIT: RegistrationForm = {
   admin_name: "", admin_email: "", admin_phone: "", slug: "",
 };
 
+const LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
+const LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
+
 export default function RegisterPage() {
   const router    = useRouter();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const LOGO = isDark ? LOGO_DARK : LOGO_LIGHT;
 
   const [step,     setStep]     = useState<Step>(1);
   const [form,     setForm]     = useState<RegistrationForm>(INIT);
@@ -190,6 +195,7 @@ export default function RegisterPage() {
   const STEPS = ["Institution info", "Admin contact", "Review"];
 
   return (
+    <SafeAreaView style={[layout.fill, { backgroundColor: colors.bg.primary }]} edges={["top", "bottom"]}>
     <KeyboardAvoidingView style={layout.fill} behavior={Platform.OS === "ios" ? "padding" : "height"}>
 
       {toast && (
@@ -214,9 +220,7 @@ export default function RegisterPage() {
           </TouchableOpacity>
 
           <View style={[styles.logoRow, layout.centredH]}>
-            <View style={styles.logoBox}>
-              <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize.lg, color: "#fff" }}>G</Text>
-            </View>
+            <Image source={LOGO} style={{ width: 40, height: 40 }} resizeMode="contain" />
             <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize["2xl"], color: colors.text.primary }}>GMIS</Text>
           </View>
 
@@ -332,6 +336,7 @@ export default function RegisterPage() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

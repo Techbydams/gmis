@@ -55,7 +55,10 @@
       "mcp__claude_ai_Supabase__list_edge_functions",
       "mcp__claude_ai_Supabase__get_advisors",
       "WebFetch(domain:gsap.com)",
-      "Bash(ls \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\Documents\\\\GMIS\\\\gmis-app\\\\assets\\\\gmis\"*)"
+      "Bash(ls \"C:\\\\Users\\\\DAMS TECHNOLOGIES\\\\Documents\\\\GMIS\\\\gmis-app\\\\assets\\\\gmis\"*)",
+      "Bash(grep -rn --include=\"*.tsx\" --include=\"*.ts\" \"color.*['\\\\\"]#[0-9a-fA-F]\\\\{3,8\\\\}['\\\\\"]\" app/)",
+      "Bash(grep -v \"//.*color\")",
+      "Bash(grep -rn --include=\"*.tsx\" \"color.*['\\\\\"]#[0-9a-fA-F]\\\\{3,8\\\\}['\\\\\"]\" \"app/\\(tenant\\)/\\(student\\)/dashboard.tsx\" \"app/\\(tenant\\)/login.tsx\" \"app/\\(tenant\\)/signup.tsx\")"
     ]
   }
 }

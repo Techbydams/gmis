@@ -348,8 +348,8 @@ export default function Chat() {
 
       <KeyboardAvoidingView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={topBarHeight}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? topBarHeight + insets.top : 0}
       >
         {/* Messages */}
         <FlatList
@@ -373,18 +373,18 @@ export default function Chat() {
           )}
         />
 
-        {/* Input bar — sticks to keyboard */}
+        {/* Input bar — sticks to keyboard, WhatsApp-style */}
         <View
           style={[
             styles.inputBar,
             {
               backgroundColor: colors.bg.card,
               borderTopColor:  colors.border.DEFAULT,
-              // On iOS with padding behavior, KAV handles bottom offset.
-              // On Android, add bottom inset manually.
-              paddingBottom: Platform.OS === "android"
-                ? Math.max(insets.bottom, spacing[2])
-                : spacing[2],
+              // Always respect safe area at the bottom.
+              // iOS: KAV(padding) lifts the whole view, so we still need insets.bottom.
+              // Android: KAV(height) shrinks the container, so insets.bottom ensures
+              //          the bar clears the navigation bar.
+              paddingBottom: Math.max(insets.bottom, spacing[2]),
             },
           ]}
         >
@@ -500,26 +500,32 @@ const styles = StyleSheet.create({
   },
   inputWrap: {
     flex:         1,
-    borderRadius: radius.xl,
+    borderRadius: radius["2xl"],
     borderWidth:  1,
-    paddingHorizontal: spacing[3],
-    paddingVertical:   Platform.OS === "ios" ? spacing[2] + 2 : spacing[1],
+    paddingHorizontal: spacing[3] + 2,
+    paddingVertical:   spacing[2],
     minHeight:    44,
+    maxHeight:    120,
     justifyContent: "center",
   },
   textInput: {
     fontSize:          fontSize.base,
     lineHeight:        22,
-    maxHeight:         120,
-    textAlignVertical: "center",
+    maxHeight:         100,
+    minHeight:         22,
+    textAlignVertical: "top",
+    paddingTop:        0,
+    paddingBottom:     0,
   },
   sendBtn: {
-    width:        44,
-    height:       44,
-    borderRadius: radius.full,
-    alignItems:   "center",
+    width:          44,
+    height:         44,
+    borderRadius:   radius.full,
+    alignItems:     "center",
     justifyContent: "center",
-    flexShrink:   0,
-    marginBottom: 0,
+    flexShrink:     0,
+    marginBottom:   0,
+    // Align to bottom of input wrap
+    alignSelf:      "flex-end",
   },
 });

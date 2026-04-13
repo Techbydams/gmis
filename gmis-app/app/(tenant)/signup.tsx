@@ -19,6 +19,7 @@ import {
   Platform,
   Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
 const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
@@ -301,7 +302,8 @@ export default function StudentSignup() {
   );
 
   return (
-    <KeyboardAvoidingView style={[layout.fill, { backgroundColor: colors.bg.primary }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <SafeAreaView style={[layout.fill, { backgroundColor: colors.bg.primary }]}>
+    <KeyboardAvoidingView style={layout.fill} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       {toast && (
         <View style={[styles.toast, { backgroundColor: toast.type === "error" ? colors.status.errorBg : colors.status.successBg, borderColor: toast.type === "error" ? colors.status.errorBorder : colors.status.successBorder }]}>
           <Icon name={toast.type === "error" ? "status-error" : "status-success"} size="sm" color={toast.type === "error" ? colors.status.error : colors.status.success} />
@@ -313,7 +315,13 @@ export default function StudentSignup() {
 
           {/* School banner */}
           <View style={styles.schoolBanner}>
-            <View style={styles.schoolLogo}><Text style={{ fontWeight: fontWeight.black, fontSize: fontSize.sm, color: "#fff" }}>{(tenant?.name || slug || "G").slice(0, 2).toUpperCase()}</Text></View>
+            <View style={[styles.schoolLogo, { overflow: "hidden" }]}>
+              {tenant?.logo_url ? (
+                <Image source={{ uri: tenant.logo_url }} style={{ width: "100%", height: "100%" }} resizeMode="contain" />
+              ) : (
+                <Text style={{ fontWeight: fontWeight.black, fontSize: fontSize.sm, color: "#fff" }}>{(tenant?.name || slug || "G").slice(0, 2).toUpperCase()}</Text>
+              )}
+            </View>
             <View style={layout.fill}><Text style={{ fontWeight: fontWeight.bold, color: "#fff", fontSize: fontSize.base }}>{tenant?.name} <Text style={{ fontWeight: fontWeight.normal, fontSize: fontSize.xs, color: "rgba(255,255,255,0.55)" }}>· {slug}.gmis.app</Text></Text></View>
             <TouchableOpacity onPress={() => router.push("/find-school")} activeOpacity={0.7}><Text style={{ fontSize: fontSize["2xs"], color: "rgba(255,255,255,0.4)" }}>← Change</Text></TouchableOpacity>
           </View>
@@ -386,11 +394,12 @@ export default function StudentSignup() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll:      { flexGrow: 1, paddingVertical: spacing[8], paddingHorizontal: spacing[5] },
+  scroll:      { flexGrow: 1, paddingVertical: spacing[6], paddingHorizontal: spacing[5] },
   inner:       { width: "100%", maxWidth: 540 },
   toast:       { position: "absolute", top: spacing[12], left: spacing[4], right: spacing[4], zIndex: 100, flexDirection: "row", alignItems: "center", paddingHorizontal: spacing[4], paddingVertical: spacing[3], borderRadius: radius.lg, borderWidth: 1 },
   schoolBanner:{ flexDirection: "row", alignItems: "center", gap: spacing[3], paddingHorizontal: spacing[4], paddingVertical: spacing[3], marginBottom: spacing[4], borderRadius: radius.xl, backgroundColor: "#1a3a8f" },

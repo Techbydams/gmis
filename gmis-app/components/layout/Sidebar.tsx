@@ -14,6 +14,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { Avatar }  from "@/components/ui/Avatar";
 import { Badge }   from "@/components/ui/Badge";
 import { useTheme } from "@/context/ThemeContext";
+import { useTenant } from "@/context/TenantContext";
 import {
   brand, spacing, radius, fontSize, fontWeight, sizes,
 } from "@/theme/tokens";
@@ -126,17 +127,28 @@ function NavRow({
 
 // ── Sidebar ────────────────────────────────────────────────
 interface SidebarProps {
-  items:      NavItem[];
-  user:       SidebarUser;
-  schoolName: string;
-  onLogout?:  () => void;
+  items:          NavItem[];
+  user:           SidebarUser;
+  schoolName:     string;
+  schoolLogoUrl?: string | null;
+  onLogout?:      () => void;
 }
 
-export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
+// Strip Expo Router group segments — usePathname() returns "/dashboard"
+// but item.href is "/(tenant)/(student)/dashboard".
+function stripGroups(path: string): string {
+  return path.replace(/\/\([^)]+\)/g, "") || "/";
+}
+
+export function Sidebar({ items, user, schoolName, schoolLogoUrl, onLogout }: SidebarProps) {
   const { colors, toggleTheme, isDark } = useTheme();
+  const { tenant } = useTenant();
   const router    = useRouter();
   const pathname  = usePathname();
   const GMIS_LOGO = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
+  // Prefer explicit prop, fall back to tenant context logo
+  const logoUrl   = schoolLogoUrl ?? tenant?.logo_url ?? null;
+  const strippedPathname = stripGroups(pathname);
 
   return (
     <View
@@ -161,10 +173,19 @@ export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
           style={[
             styles.brandIcon,
             layout.centred,
-            { backgroundColor: brand.blueAlpha15 },
+            { backgroundColor: logoUrl ? "transparent" : brand.blueAlpha15,
+              borderWidth: logoUrl ? 0 : 0, overflow: "hidden" },
           ]}
         >
-          <Icon name="academic-faculty" size="lg" color={brand.blue} />
+          {logoUrl ? (
+            <Image
+              source={{ uri: logoUrl }}
+              style={{ width: "100%" as any, height: "100%" as any }}
+              resizeMode="contain"
+            />
+          ) : (
+            <Icon name="academic-faculty" size="lg" color={brand.blue} />
+          )}
         </View>
         <View style={layout.fill}>
           <Text variant="label" weight="bold" color="primary" numberOfLines={1}>
@@ -211,14 +232,17 @@ export function Sidebar({ items, user, schoolName, onLogout }: SidebarProps) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.navList}
       >
-        {items.map((item) => (
-          <NavRow
-            key={item.href}
-            item={item}
-            active={pathname === item.href || pathname.startsWith(item.href + "/")}
-            onPress={() => router.push(item.href as any)}
-          />
-        ))}
+        {items.map((item) => {
+          const stripped = stripGroups(item.href);
+          return (
+            <NavRow
+              key={item.href}
+              item={item}
+              active={strippedPathname === stripped || strippedPathname.startsWith(stripped + "/")}
+              onPress={() => router.push(item.href as any)}
+            />
+          );
+        })}
       </ScrollView>
 
       {/* Footer */}

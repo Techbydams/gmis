@@ -106,6 +106,9 @@ const iconMap = {
   "ui-radio-on":       "radio-button-on",
   "ui-radio-off":      "radio-button-off",
   "ui-theme":          "contrast-outline",
+  "ui-refresh":        "refresh-outline",
+  "ui-chevron-right":  "chevron-forward",
+  "ui-chevron-left":   "chevron-back",
   // Academic
   "academic-grade":    "ribbon-outline",
   "academic-exam":     "clipboard-outline",

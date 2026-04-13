@@ -85,6 +85,15 @@ const FEATURES = [
     desc: "School-wide events, deadlines and sessions — synced for everyone." },
 ];
 
+const TRUST_SIGNALS = [
+  "Free for students",
+  "Zero transaction fees",
+  "Isolated per school",
+  "48h go-live",
+  "Nigerian-built",
+  "99.9% uptime SLA",
+];
+
 const PERSONAS = [
   {
     role: "Students",       icon: "user-student"  as IconName, color: brand.blue,   colorAlpha: brand.blueAlpha15,
@@ -120,12 +129,21 @@ const STEPS = [
 ];
 
 const TESTIMONIALS = [
-  { quote: "GMIS transformed how we manage student records. What took our registry days now takes minutes. The isolated database architecture was the deciding factor.",
-    name: "Dr. Seun Adeyemi", role: "ICT Director", school: "Federal Polytechnic Ede" },
-  { quote: "Our students love checking results and paying fees from their phones. Even parents praise the system. The QR attendance alone ended proxy attendance completely.",
-    name: "Mrs. Folake Okonkwo", role: "Deputy Registrar", school: "Lagos State University of Education" },
-  { quote: "We onboarded 1,400 students in under a week using the CSV import. The admin panel is clean and powerful. Best decision we made this academic session.",
-    name: "Prof. Emmanuel Eze", role: "Director of Academic Planning", school: "Bells University of Technology" },
+  {
+    quote: "GMIS transformed how we manage student records. What took our registry days now takes minutes. The isolated database architecture was the deciding factor.",
+    name: "Dr. Seun Adeyemi", role: "ICT Director", school: "Federal Polytechnic Ede",
+    image: "https://i.pravatar.cc/80?img=12",
+  },
+  {
+    quote: "Our students love checking results and paying fees from their phones. Even parents praise the system. The QR attendance alone ended proxy attendance completely.",
+    name: "Mrs. Folake Okonkwo", role: "Deputy Registrar", school: "Lagos State University of Education",
+    image: "https://i.pravatar.cc/80?img=47",
+  },
+  {
+    quote: "We onboarded 1,400 students in under a week using the CSV import. The admin panel is clean and powerful. Best decision we made this academic session.",
+    name: "Prof. Emmanuel Eze", role: "Director of Academic Planning", school: "Bells University of Technology",
+    image: "https://i.pravatar.cc/80?img=68",
+  },
 ];
 
 const FAQ_ITEMS = [
@@ -144,6 +162,213 @@ const FAQ_ITEMS = [
   ["What happens if an institution misses a payment?",
    "The system auto-detects overdue subscriptions and locks the portal. Only the platform admin can manually unlock it after renewal."],
 ] as const;
+
+// ── TestiAvatar — photo with initials fallback ────────────
+function TestiAvatar({ name, image, color, colorAlpha }: { name: string; image?: string; color: string; colorAlpha: string }) {
+  const [imgError, setImgError] = useState(false);
+  const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  if (image && !imgError) {
+    return (
+      <Image
+        source={{ uri: image }}
+        style={{ width:44, height:44, borderRadius:22 }}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <View style={{ width:44, height:44, borderRadius:22, backgroundColor: colorAlpha, alignItems:"center", justifyContent:"center" }}>
+      <RNText style={{ fontSize:14, fontWeight:"700" as any, color, fontFamily:'"Space Grotesk",system-ui' }}>
+        {initials}
+      </RNText>
+    </View>
+  );
+}
+
+// ── MobileFeatureDeck — creative GSAP card shuffle ───────
+// Cards sit in a visible stack. Tapping "Next" deals the top card
+// off to the side with a rotation + slide, revealing the next card.
+// A "Shuffle" tap scatters all cards and reassembles the deck.
+function MobileFeatureDeck({ features, isDark, glassStyle, cardBorder, colors }: any) {
+  const [deck,     setDeck]     = useState(() => features.map((_: any, i: number) => i));
+  const [isAnim,   setIsAnim]   = useState(false);
+  const cardRefs   = useRef<any[]>([]);
+
+  const dealCard = useCallback(async () => {
+    if (isAnim || Platform.OS !== "web") return;
+    setIsAnim(true);
+    const { default: gsap } = await import("gsap");
+    const topIdx = deck[deck.length - 1];
+    const el = cardRefs.current[topIdx];
+    if (!el) { setIsAnim(false); return; }
+
+    // Deal top card off to the right with a dramatic flick
+    await gsap.to(el, {
+      x: 420, rotation: 25, opacity: 0, scale: 0.85,
+      duration: 0.45, ease: "power2.in",
+    });
+
+    setDeck(prev => {
+      const next = [...prev];
+      const moved = next.pop()!;
+      next.unshift(moved);
+      return next;
+    });
+
+    // Reset position instantly (hidden, below stack)
+    gsap.set(el, { x: 0, rotation: 0, opacity: 0, scale: 0.92, y: 20 });
+
+    // Animate back in at bottom of stack
+    await gsap.to(el, { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: "back.out(1.4)" });
+    setIsAnim(false);
+  }, [deck, isAnim]);
+
+  const shuffleDeck = useCallback(async () => {
+    if (isAnim || Platform.OS !== "web") return;
+    setIsAnim(true);
+    const { default: gsap } = await import("gsap");
+    const visibleEls = cardRefs.current.filter(Boolean);
+
+    // Scatter all cards outward
+    const tl = gsap.timeline();
+    visibleEls.forEach((el, i) => {
+      const angle  = (Math.random() - 0.5) * 60;
+      const xOut   = (Math.random() - 0.5) * 280;
+      const yOut   = (Math.random() - 0.5) * 180;
+      tl.to(el, { x: xOut, y: yOut, rotation: angle, opacity: 0.6, duration: 0.4, ease: "power2.out" }, i * 0.04);
+    });
+
+    await tl;
+
+    // Shuffle the order
+    const shuffled = [...deck].sort(() => Math.random() - 0.5);
+    setDeck(shuffled);
+
+    // Collect cards back to center
+    const tl2 = gsap.timeline();
+    visibleEls.forEach((el, i) => {
+      tl2.to(el, { x: 0, y: 0, rotation: 0, opacity: 1, duration: 0.5, ease: "expo.out" }, i * 0.05);
+    });
+    await tl2;
+    setIsAnim(false);
+  }, [deck, isAnim]);
+
+  // Stack offset — each card beneath is slightly shifted down + scaled
+  const getStackStyle = (posFromTop: number) => ({
+    transform: [
+      { translateY: posFromTop * 6 },
+      { scale: 1 - posFromTop * 0.03 },
+    ],
+    zIndex: features.length - posFromTop,
+    opacity: posFromTop > 3 ? 0 : 1 - posFromTop * 0.06,
+  });
+
+  const topFeature = features[deck[deck.length - 1]];
+  const isAccent   = topFeature?.accent;
+
+  return (
+    <View style={{ alignItems:"center", paddingHorizontal:spacing[4] }}>
+      {/* Card counter pill */}
+      <View style={{
+        flexDirection:"row", alignItems:"center", gap:spacing[2],
+        marginBottom:spacing[4],
+        paddingHorizontal:spacing[3], paddingVertical:spacing[1],
+        borderRadius:radius.full,
+        backgroundColor:"rgba(45,108,255,0.10)",
+        borderWidth:1, borderColor:"rgba(45,108,255,0.20)",
+      }}>
+        <RNText style={{ fontSize:11, color:brand.blue, fontWeight:"600", fontFamily:'"DM Sans",system-ui' }}>
+          {features.length} features · tap to explore
+        </RNText>
+      </View>
+
+      {/* Stacked cards container */}
+      <View style={{ width:"100%"as any, height:260, position:"relative" }}>
+        {deck.map((featureIdx: number, stackPos: number) => {
+          const f   = features[featureIdx];
+          const isTop = stackPos === deck.length - 1;
+          return (
+            <TouchableOpacity
+              key={f.id}
+              ref={(r) => { cardRefs.current[featureIdx] = r; }}
+              activeOpacity={isTop ? 0.9 : 1}
+              onPress={isTop ? dealCard : undefined}
+              style={[
+                S.deckCard,
+                getStackStyle(deck.length - 1 - stackPos),
+                { borderColor: cardBorder },
+                f.accent
+                  ? { backgroundImage:`linear-gradient(135deg,${brand.blue},${brand.indigo})`,
+                      backgroundColor: brand.blue } as any
+                  : { ...glassStyle },
+              ] as any}
+            >
+              {isTop && (
+                <>
+                  <View style={{ flexDirection:"row", alignItems:"center", gap:spacing[3], marginBottom:spacing[3] }}>
+                    <View style={[S.bentoIcon, { backgroundColor: f.accent ? "rgba(255,255,255,0.18)" : brand.blueAlpha10 }]}>
+                      <Icon name={f.icon} size="lg" color={f.accent ? "#fff" : brand.blue} />
+                    </View>
+                    <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:17, fontWeight:"700"as any,
+                      color: f.accent ? "#fff" : colors.text.primary, flex:1 }}>
+                      {f.title}
+                    </RNText>
+                  </View>
+                  <RNText style={{ fontFamily:'"DM Sans",system-ui', fontSize:14,
+                    color: f.accent ? "rgba(255,255,255,0.82)" : colors.text.secondary,
+                    lineHeight:22 }}>
+                    {f.desc}
+                  </RNText>
+                  {/* Swipe hint */}
+                  <View style={{ flexDirection:"row", alignItems:"center", gap:spacing[2], marginTop:spacing[4], alignSelf:"flex-end" }}>
+                    <RNText style={{ fontSize:11, color: f.accent ? "rgba(255,255,255,0.55)" : colors.text.muted, fontFamily:'"DM Sans",system-ui' }}>
+                      tap for next
+                    </RNText>
+                    <Icon name="ui-chevron-right" size="xs" color={f.accent ? "rgba(255,255,255,0.55)" : colors.text.muted} />
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Controls */}
+      <View style={{ flexDirection:"row", gap:spacing[3], marginTop:spacing[6] }}>
+        <TouchableOpacity
+          onPress={dealCard}
+          activeOpacity={0.8}
+          style={[S.deckBtn, { backgroundColor:brand.blue }]}
+        >
+          <Icon name="ui-chevron-right" size="sm" color="#fff" />
+          <RNText style={{ fontSize:13, fontWeight:"600"as any, color:"#fff", fontFamily:'"DM Sans",system-ui' }}>Next</RNText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={shuffleDeck}
+          activeOpacity={0.8}
+          style={[S.deckBtn, {
+            backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+            borderWidth:1, borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
+          }]}
+        >
+          <Icon name="ui-refresh" size="sm" color={colors.text.secondary} />
+          <RNText style={{ fontSize:13, fontWeight:"600"as any, color:colors.text.secondary, fontFamily:'"DM Sans",system-ui' }}>Shuffle</RNText>
+        </TouchableOpacity>
+      </View>
+
+      {/* Dot indicators */}
+      <View style={{ flexDirection:"row", gap:spacing[2], marginTop:spacing[4] }}>
+        {features.map((_: any, i: number) => (
+          <View key={i} style={{
+            width: deck[deck.length - 1] === i ? 16 : 5,
+            height:5, borderRadius:radius.full,
+            backgroundColor: deck[deck.length - 1] === i ? brand.blue : (isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)"),
+          } as any} />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 // ── BentoCard — with 3D hover tilt ───────────────────────
 function BentoCard({
@@ -341,6 +566,16 @@ export default function LandingPage() {
           .from($$(".hero-trust"),{ y: 12, opacity: 0, duration: 0.45, stagger: 0.07 }, "<0.2")
           .from("#phone-wrap",   { scale: 0.88, y: 48, opacity: 0, duration: 1.1, ease: "expo.out" }, "<0.15");
 
+        // ── 2b. Trust signals marquee (mobile) ──────────
+        const trustTrack = document.getElementById("trust-marquee-track");
+        if (trustTrack) {
+          const trackWidth = trustTrack.scrollWidth / 2;
+          gsap.fromTo(trustTrack,
+            { x: 0 },
+            { x: -trackWidth, duration: 18, ease: "none", repeat: -1 }
+          );
+        }
+
         // ── 3. Phone float (continuous) ──────────────────
         gsap.to("#phone-wrap", {
           y: -18, duration: 3.2, ease: "sine.inOut",
@@ -526,7 +761,7 @@ export default function LandingPage() {
                 borderColor:     isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
               }]}
             >
-              <RNText style={{ fontSize: 16 }}>{isDark ? "☀️" : "🌙"}</RNText>
+              <Icon name={isDark ? "ui-sun" : "ui-moon"} size="sm" color={isDark ? "#f0c060" : "#4a5568"} />
             </TouchableOpacity>
 
             {!isNarrow && (
@@ -567,7 +802,7 @@ export default function LandingPage() {
             <View nativeID="hero-badge" style={S.heroBadge}>
               <View style={S.badgeDot} />
               <RNText style={{ fontSize:11, color:"#93c5fd", fontWeight:"600", letterSpacing:0.6, fontFamily:'"DM Sans",sans-serif' }}>
-                Platform Live · gmis.app
+                GRASP Management Information System
               </RNText>
             </View>
 
@@ -612,18 +847,31 @@ export default function LandingPage() {
               </View>
             </View>
 
-            {/* Trust signals */}
-            <View style={[layout.row, {
-              gap: spacing[5], marginTop: spacing[5], flexWrap:"wrap",
-              justifyContent: isNarrow ? "center" : "flex-start",
-            }]}>
-              {["Free for students", "Zero transaction fees", "Isolated per school"].map((t) => (
-                <View key={t} className="hero-trust" style={[layout.row, { gap: spacing[2] }]}>
-                  <View style={{ width:5, height:5, borderRadius:99, backgroundColor:"#4ade80", marginTop:4 }} />
-                  <RNText style={bodyFont(12, "rgba(148,163,184,0.72)")}>{t}</RNText>
+            {/* Trust signals — marquee on mobile, static row on desktop */}
+            {isNarrow ? (
+              <View nativeID="trust-marquee-wrap" style={{ marginTop: spacing[5], overflow:"hidden"as any, width:"100%"as any }}>
+                <View nativeID="trust-marquee-track" style={{ flexDirection:"row", gap:spacing[6] }}>
+                  {[...TRUST_SIGNALS, ...TRUST_SIGNALS].map((t, i) => (
+                    <View key={i} style={[layout.row, { gap: spacing[2], flexShrink:0 }]}>
+                      <View style={{ width:5, height:5, borderRadius:99, backgroundColor:"#4ade80", marginTop:4 }} />
+                      <RNText style={bodyFont(12, "rgba(148,163,184,0.72)")}>{t}</RNText>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
+              </View>
+            ) : (
+              <View style={[layout.row, {
+                gap: spacing[5], marginTop: spacing[5], flexWrap:"wrap",
+                justifyContent: "flex-start",
+              }]}>
+                {TRUST_SIGNALS.map((t) => (
+                  <View key={t} className="hero-trust" style={[layout.row, { gap: spacing[2] }]}>
+                    <View style={{ width:5, height:5, borderRadius:99, backgroundColor:"#4ade80", marginTop:4 }} />
+                    <RNText style={bodyFont(12, "rgba(148,163,184,0.72)")}>{t}</RNText>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Right: Phone mockup */}
@@ -671,22 +919,31 @@ export default function LandingPage() {
           </RNText>
         </View>
 
-        <View style={[S.bentoGrid, {
-          display: isNarrow ? "flex" : "grid" as any,
-          gridTemplateColumns: isWide ? "repeat(4,1fr)" : "repeat(2,1fr)",
-          flexDirection: "column",
-        } as any]}>
-          {FEATURES.map((f) => (
-            <BentoCard
-              key={f.id}
-              {...f}
-              isDark={isDark}
-              glassStyle={glassStyle}
-              cardBorder={cardBorder}
-              colors={colors}
-            />
-          ))}
-        </View>
+        {isNarrow ? (
+          <MobileFeatureDeck
+            features={FEATURES}
+            isDark={isDark}
+            glassStyle={glassStyle}
+            cardBorder={cardBorder}
+            colors={colors}
+          />
+        ) : (
+          <View style={[S.bentoGrid, {
+            display: "grid" as any,
+            gridTemplateColumns: isWide ? "repeat(4,1fr)" : "repeat(2,1fr)",
+          } as any]}>
+            {FEATURES.map((f) => (
+              <BentoCard
+                key={f.id}
+                {...f}
+                isDark={isDark}
+                glassStyle={glassStyle}
+                cardBorder={cardBorder}
+                colors={colors}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* ════════════════ PERSONAS ══════════════════════ */}
@@ -698,17 +955,28 @@ export default function LandingPage() {
           </RNText>
         </View>
 
-        {/* Tabs */}
-        <View style={[S.tabRow, { maxWidth:640, alignSelf:"center", width:"100%" as any, marginBottom:spacing[8] }]}>
+        {/* Tabs — 2×2 grid on mobile, single row on desktop */}
+        <View style={[{
+          maxWidth:680, alignSelf:"center"as any, width:"100%"as any,
+          marginBottom:spacing[8],
+          flexDirection: isNarrow ? "row" : "row" as any,
+          flexWrap: "wrap" as any,
+          gap: spacing[2],
+        }]}>
           {PERSONAS.map(({ role, color }, i) => (
             <TouchableOpacity key={role} onPress={() => switchPersona(i)} activeOpacity={0.8}
               style={[S.tab,
+                {
+                  flexBasis: isNarrow ? "47%" as any : "auto" as any,
+                  flexGrow: isNarrow ? 0 : 1,
+                  minWidth: isNarrow ? undefined : 120,
+                },
                 activePersona === i
                   ? { backgroundColor: color, borderColor: color }
-                  : { borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }
+                  : { borderColor: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)" },
               ]}>
               <Icon name={PERSONAS[i].icon} size="sm" color={activePersona === i ? "#fff" : colors.text.secondary} />
-              <RNText style={bodyFont(13, activePersona === i ? "#fff" : colors.text.secondary)}>
+              <RNText style={[bodyFont(13, activePersona === i ? "#fff" : colors.text.secondary), { fontWeight:"500"as any }]}>
                 {role}
               </RNText>
             </TouchableOpacity>
@@ -721,27 +989,36 @@ export default function LandingPage() {
           return (
             <View nativeID="persona-content" style={[S.personaCard, {
               ...glassStyle, borderWidth:1, borderColor:cardBorder,
-              borderRadius: radius["3xl"], maxWidth:900,
-              alignSelf:"center", width:"100%" as any,
+              borderRadius: radius["2xl"], maxWidth:900,
+              alignSelf:"center"as any, width:"100%"as any,
             }]}>
-              <View style={[layout.row, { gap:spacing[4], marginBottom:spacing[6], flexWrap:"wrap" }]}>
-                <View style={[S.personaIcon, { backgroundColor: p.colorAlpha }]}>
+              {/* Header: icon + title */}
+              <View style={{
+                flexDirection:"row", alignItems:"flex-start",
+                gap:spacing[4], marginBottom:spacing[6],
+              }}>
+                <View style={[S.personaIcon, { backgroundColor: p.colorAlpha, flexShrink:0 }]}>
                   <Icon name={p.icon} size="xl" color={p.color} />
                 </View>
-                <View style={{ flex:1, minWidth:200 }}>
-                  <RNText style={headFont(22, "700", colors.text.primary)}>{p.role}</RNText>
-                  <RNText style={bodyFont(15, colors.text.secondary)}>{p.headline}</RNText>
+                <View style={{ flex:1 }}>
+                  <RNText style={headFont(isNarrow ? 20 : 24, "700", colors.text.primary)}>{p.role}</RNText>
+                  <RNText style={[bodyFont(isNarrow ? 14 : 15, colors.text.secondary), { marginTop:spacing[1] }]}>{p.headline}</RNText>
                 </View>
               </View>
-              <View style={{ flexDirection: isNarrow ? "column" : "row", flexWrap:"wrap", gap:spacing[3] }}>
+              {/* Feature pills grid */}
+              <View style={{
+                flexDirection:"row", flexWrap:"wrap"as any,
+                gap:spacing[3],
+              }}>
                 {p.features.map((f) => (
                   <View key={f} style={[S.featurePill, {
                     backgroundColor: p.colorAlpha,
                     borderColor: p.color + "33",
-                    width: isNarrow ? "100%" as any : "47%" as any,
+                    flexBasis: isNarrow ? "100%" as any : "47%" as any,
+                    flexGrow: 0,
                   }]}>
-                    <View style={{ width:6, height:6, borderRadius:3, backgroundColor:p.color }} />
-                    <RNText style={bodyFont(13, colors.text.primary)}>{f}</RNText>
+                    <View style={{ width:6, height:6, borderRadius:3, backgroundColor:p.color, flexShrink:0 }} />
+                    <RNText style={[bodyFont(13, colors.text.primary), { flex:1 }]}>{f}</RNText>
                   </View>
                 ))}
               </View>
@@ -797,7 +1074,7 @@ export default function LandingPage() {
         </View>
 
         {isNarrow ? (
-          /* Mobile: Stacked card slider */
+          /* Mobile: paginated FlatList with snapping */
           <View>
             <FlatList
               ref={testiRef}
@@ -806,28 +1083,27 @@ export default function LandingPage() {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               keyExtractor={(_, i) => String(i)}
+              snapToAlignment="start"
+              decelerationRate="fast"
               onMomentumScrollEnd={(e) => {
-                const idx = Math.round(e.nativeEvent.contentOffset.x / (width - spacing[12]));
-                setActiveTestimonial(idx);
+                const cardW = width - spacing[8];
+                const idx = Math.round(e.nativeEvent.contentOffset.x / cardW);
+                setActiveTestimonial(Math.max(0, Math.min(idx, TESTIMONIALS.length - 1)));
               }}
-              contentContainerStyle={{ paddingHorizontal: spacing[6] }}
-              renderItem={({ item: { quote, name, role, school } }) => (
+              contentContainerStyle={{ paddingHorizontal: spacing[4] }}
+              renderItem={({ item: { quote, name, role, school, image } }) => (
                 <View className="testi-card" style={[S.testiCard, {
                   ...glassStyle, borderWidth:1, borderColor:cardBorder,
-                  width: width - spacing[12],
-                  marginHorizontal: spacing[3],
+                  width: width - spacing[8],
+                  marginHorizontal: spacing[2],
                 }]}>
-                  <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:44, color:brand.blueAlpha20, lineHeight:44 }}>❝</RNText>
-                  <RNText style={[bodyFont(14, colors.text.secondary), { marginTop:spacing[2], lineHeight:24 }]}>{quote}</RNText>
-                  <View style={[S.testiAuthor, { borderTopColor:"rgba(255,255,255,0.06)" }]}>
-                    <View style={[S.testiAvatar, { backgroundColor: brand.blueAlpha15 }]}>
-                      <RNText style={{ fontSize:12, fontWeight:"700", color:brand.blue, fontFamily:'"Space Grotesk",system-ui' }}>
-                        {name.split(" ").map((w: string) => w[0]).join("").slice(0,2)}
-                      </RNText>
-                    </View>
-                    <View>
-                      <RNText style={headFont(13, "600", colors.text.primary)}>{name}</RNText>
-                      <RNText style={bodyFont(11, colors.text.muted)}>{role} · {school}</RNText>
+                  <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:40, color:brand.blueAlpha20, lineHeight:40 }}>❝</RNText>
+                  <RNText style={[bodyFont(14, colors.text.secondary), { marginTop:spacing[2], lineHeight:24, flex:1 }]}>{quote}</RNText>
+                  <View style={[S.testiAuthor, { borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]}>
+                    <TestiAvatar name={name} image={image} color={brand.blue} colorAlpha={brand.blueAlpha15} />
+                    <View style={{ flex:1, minWidth:0 }}>
+                      <RNText style={headFont(13, "600", colors.text.primary)} numberOfLines={1}>{name}</RNText>
+                      <RNText style={bodyFont(11, colors.text.muted)} numberOfLines={2}>{role}{"\n"}{school}</RNText>
                     </View>
                   </View>
                 </View>
@@ -837,7 +1113,8 @@ export default function LandingPage() {
             <View style={{ flexDirection:"row", justifyContent:"center", gap:spacing[2], marginTop:spacing[5] }}>
               {TESTIMONIALS.map((_, i) => (
                 <TouchableOpacity key={i} onPress={() => {
-                  testiRef.current?.scrollToIndex({ index: i, animated: true });
+                  const cardW = width - spacing[8];
+                  testiRef.current?.scrollToOffset({ offset: i * cardW, animated: true });
                   setActiveTestimonial(i);
                 }}>
                   <View style={{
@@ -850,24 +1127,21 @@ export default function LandingPage() {
             </View>
           </View>
         ) : (
-          /* Desktop: Row layout with stagger animation */
-          <View style={[S.testiRow, { gap:spacing[5], maxWidth:1100, alignSelf:"center", width:"100%" as any }]}>
-            {TESTIMONIALS.map(({ quote, name, role, school }) => (
+          /* Desktop: equal-height row */
+          <View style={[S.testiRow, { gap:spacing[5], maxWidth:1100, alignSelf:"center"as any, width:"100%"as any }]}>
+            {TESTIMONIALS.map(({ quote, name, role, school, image }) => (
               <View key={name} className="testi-card" style={[S.testiCard, {
                 ...glassStyle, borderWidth:1, borderColor:cardBorder,
-                flex:1,
+                flex:1, minWidth:0,
               }]}>
-                <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:52, color:brand.blueAlpha20, lineHeight:52 }}>❝</RNText>
-                <RNText style={[bodyFont(14, colors.text.secondary), { marginTop:spacing[2], lineHeight:24 }]}>{quote}</RNText>
+                <RNText style={{ fontFamily:'"Space Grotesk",system-ui', fontSize:48, color:brand.blueAlpha20, lineHeight:48 }}>❝</RNText>
+                <RNText style={[bodyFont(14, colors.text.secondary), { marginTop:spacing[2], lineHeight:24, flex:1 }]}>{quote}</RNText>
                 <View style={[S.testiAuthor, { borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]}>
-                  <View style={[S.testiAvatar, { backgroundColor: brand.blueAlpha15 }]}>
-                    <RNText style={{ fontSize:12, fontWeight:"700", color:brand.blue, fontFamily:'"Space Grotesk",system-ui' }}>
-                      {name.split(" ").map((w) => w[0]).join("").slice(0,2)}
-                    </RNText>
-                  </View>
-                  <View>
-                    <RNText style={headFont(13, "600", colors.text.primary)}>{name}</RNText>
-                    <RNText style={bodyFont(11, colors.text.muted)}>{role} · {school}</RNText>
+                  <TestiAvatar name={name} image={image} color={brand.blue} colorAlpha={brand.blueAlpha15} />
+                  <View style={{ flex:1, minWidth:0 }}>
+                    <RNText style={headFont(13, "600", colors.text.primary)} numberOfLines={1}>{name}</RNText>
+                    <RNText style={bodyFont(11, colors.text.muted)} numberOfLines={1}>{role}</RNText>
+                    <RNText style={bodyFont(11, colors.text.muted)} numberOfLines={1}>{school}</RNText>
                   </View>
                 </View>
               </View>
@@ -889,7 +1163,7 @@ export default function LandingPage() {
           {/* GMIS logo — theme-aware, responsive */}
           <Image
             className="contact-reveal"
-            source={LOGO_LIGHT}
+            source={LOGO_DARK}
             style={{ width: isNarrow ? 48 : 64, height: isNarrow ? 48 : 64, marginBottom: spacing[5] }}
             resizeMode="contain"
           />
@@ -1213,6 +1487,26 @@ const S: any = StyleSheet.create(({
     width:32, height:32, borderRadius:radius.lg,
     alignItems:"center", justifyContent:"center",
     marginLeft:spacing[3], flexShrink:0,
+  },
+
+  // Feature deck (mobile)
+  deckCard: {
+    position:"absolute"as any,
+    left:0, right:0,
+    borderRadius:radius["2xl"],
+    borderWidth:1,
+    padding:spacing[6],
+    minHeight:220,
+    justifyContent:"space-between",
+    shadowColor:"#000",
+    shadowOpacity:0.18,
+    shadowRadius:16,
+    shadowOffset:{ width:0, height:8 },
+  },
+  deckBtn: {
+    flexDirection:"row", alignItems:"center", gap:spacing[2],
+    paddingHorizontal:spacing[5], paddingVertical:spacing[3],
+    borderRadius:radius.xl,
   },
 
   // Theme toggle button (nav)

@@ -225,30 +225,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── signInWithMatric ──────────────────────────────────
   // Looks up the student's email by matric number, then signs in normally
   const signInWithMatric = async (
-    matric:   string,
-    password: string
-  ): Promise<{ error: string | null }> => {
-    if (!tenant || !slug) return { error: "School portal not found." };
+  matric:   string,
+  password: string
+): Promise<{ error: string | null }> => {
+  if (!tenant || !slug) return { error: "School portal not found." };
 
-    try {
-      const { data: student, error: lookupError } = await client
-        .from("students")
-        .select("email")
-        .eq("matric_number", matric.trim().toUpperCase())
-        .maybeSingle();
+  try {
+    const normalizedMatric = matric.trim().toUpperCase();
+    console.log(`[GMIS] signInWithMatric: looking up "${normalizedMatric}" in tenant "${slug}"`);
+    
+    // ✅ USE THE RPC FUNCTION INSTEAD (bypasses RLS safely)
+    const { data: results, error: lookupError } = await client
+      .rpc('lookup_student_by_matric', { p_matric: normalizedMatric });
 
-      if (lookupError)
-        return { error: "Could not verify matric number. Please try again." };
+    console.log(`[GMIS] signInWithMatric lookup result:`, { 
+      found: !!results && results.length > 0, 
+      error: lookupError?.message,
+      results 
+    });
 
-      const s = student as any;
-      if (!s?.email)
-        return { error: "Matric number not found. Contact your registrar." };
+    if (lookupError)
+      return { error: "Could not verify matric number. Please try again." };
 
-      return await signIn(s.email, password);
-    } catch {
-      return { error: "Network error. Please check your connection and try again." };
-    }
-  };
+    if (!results || results.length === 0 || !results[0]?.email)
+      return { error: "Matric number not found. Contact your registrar." };
+
+    const student = results[0];
+    return await signIn(student.email, password);
+  } catch (err) {
+    console.error("signInWithMatric error:", err);
+    return { error: "Network error. Please check your connection and try again." };
+  }
+};
 
   // ── signOut ───────────────────────────────────────────
   const signOut = async () => {

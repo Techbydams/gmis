@@ -386,7 +386,7 @@ export default function StudentSocial() {
     if (!db) return;
     const { data } = await db
       .from("social_posts")
-      .select("id, student_id, content, image_url, created_at, students(first_name, last_name)")
+      .select("id, student_id, content, image_url, created_at, students_profiles(first_name, last_name)")
       .order("created_at", { ascending: false })
       .limit(40);
 

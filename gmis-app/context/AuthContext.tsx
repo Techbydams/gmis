@@ -231,11 +231,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!tenant || !slug) return { error: "School portal not found." };
 
     try {
+      const normalizedMatric = matric.trim().toUpperCase();
+      console.log(`[GMIS] signInWithMatric: looking up "${normalizedMatric}" in tenant "${slug}"`);
+      
       const { data: student, error: lookupError } = await client
         .from("students")
-        .select("email")
-        .eq("matric_number", matric.trim().toUpperCase())
+        .select("email, matric_number")
+        .eq("matric_number", normalizedMatric)
         .maybeSingle();
+
+      console.log(`[GMIS] signInWithMatric lookup result:`, { 
+        found: !!student, 
+        hasEmail: !!student?.email,
+        error: lookupError?.message,
+        student 
+      });
 
       if (lookupError)
         return { error: "Could not verify matric number. Please try again." };

@@ -56,7 +56,7 @@ export default function FindSchool() {
   const { setTenantFromOrg } = useTenant();
   const { colors, isDark }   = useTheme();
   const GMIS_LOGO            = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
-  const { isMobile, pagePadding } = useResponsive();
+  const { isMobile, pagePadding, width: windowWidth } = useResponsive();
 
   const [query,       setQuery]       = useState("");
   const [results,     setResults]     = useState<Organization[]>([]);
@@ -238,7 +238,7 @@ export default function FindSchool() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.inner}>
+          <View style={[styles.inner, { maxWidth: Math.min(460, windowWidth - pagePadding * 2) }]}>
 
             {/* Logo + title — entrance animation */}
             <Animated.View
@@ -421,7 +421,6 @@ const styles = StyleSheet.create({
   },
   inner: {
     width:     "100%",
-    maxWidth:  460,
     alignSelf: "center",
   },
   logoBox: {

@@ -53,7 +53,7 @@ export default function SchoolLogin() {
   const { tenant, slug }             = useTenant();
   const { colors, isDark }           = useTheme();
   const GMIS_LOGO                    = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
-  const { pagePadding }              = useResponsive();
+  const { pagePadding, width: windowWidth } = useResponsive();
 
   const { showToast } = useToast();
 
@@ -130,14 +130,17 @@ export default function SchoolLogin() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg.primary }} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView style={layout.fill} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView
+        style={layout.fill}
+        behavior={Platform.OS === "ios" ? "padding" : Platform.OS === "android" ? "height" : undefined}
+      >
 
         <ScrollView
           contentContainerStyle={[styles.scroll, { paddingHorizontal: pagePadding }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.inner}>
+          <View style={[styles.inner, { maxWidth: Math.min(440, windowWidth - pagePadding * 2) }]}>
 
             {/* School banner — entrance animation */}
             <Animated.View
@@ -371,7 +374,6 @@ const styles = StyleSheet.create({
   },
   inner: {
     width:     "100%",
-    maxWidth:  440,
     alignSelf: "center",
   },
   schoolBanner: {

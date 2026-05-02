@@ -23,8 +23,12 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { supabase, getTenantClient, clearTenantClientCache } from "@/lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase, getTenantClient } from "@/lib/supabase";
 import { cache } from "@/lib/cache";
+
+const ROLE_CACHE_KEY = (uid: string) => `gmis:role:${uid}`;
+const ROLE_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 import { useTenant } from "@/context/TenantContext";
 import type { AuthUser } from "@/types";
 
@@ -87,6 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // ── Fast path: cached role (skips 4 DB queries on startup) ──
+    try {
+      const raw = await AsyncStorage.getItem(ROLE_CACHE_KEY(uid));
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached.uid === uid && Date.now() - cached.ts < ROLE_CACHE_TTL) {
+          if (myCount !== resolveCounterRef.current) return;
+          setUser({ id: uid, email, role: cached.role, org_slug: cached.org_slug });
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {}
+
     try {
       if (!tenantDb) return;
 
@@ -121,39 +139,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const studentData = studentRes.data  as any;
       const parentData  = parentRes.data   as any[];
 
+      let resolvedRole: AuthUser["role"];
       if (adminData) {
-        setUser({
-          id:       uid,
-          email,
-          // super_admin maps to 'admin' role
-          role:     (adminData.role === "super_admin" ? "admin" : adminData.role) as AuthUser["role"],
-          org_slug: slug || undefined,
-        });
+        resolvedRole = (adminData.role === "super_admin" ? "admin" : adminData.role) as AuthUser["role"];
       } else if (lecData) {
-        setUser({ id: uid, email, role: "lecturer", org_slug: slug || undefined });
+        resolvedRole = "lecturer";
       } else if (studentData) {
-        setUser({ id: uid, email, role: "student", org_slug: slug || undefined });
+        resolvedRole = "student";
       } else if (parentData && parentData.length > 0) {
-        setUser({ id: uid, email, role: "parent", org_slug: slug || undefined });
+        resolvedRole = "parent";
       } else {
-        // Fallback to metadata role (set at signup)
-        const metaRole = (metadata?.role as string) || "student";
-        setUser({
-          id: uid, email,
-          role: metaRole as AuthUser["role"],
-          org_slug: slug || undefined,
-        });
+        resolvedRole = ((metadata?.role as string) || "student") as AuthUser["role"];
       }
+
+      setUser({ id: uid, email, role: resolvedRole, org_slug: slug || undefined });
+      // Save resolved role to AsyncStorage — used on next startup to skip DB queries
+      AsyncStorage.setItem(ROLE_CACHE_KEY(uid), JSON.stringify({
+        uid, role: resolvedRole, org_slug: slug || undefined, ts: Date.now(),
+      })).catch(() => {});
     } catch (err) {
       console.error("Role resolution error:", err);
       if (myCount !== resolveCounterRef.current) return;
       // Fallback to metadata
-      const metaRole = (metadata?.role as string) || "student";
-      setUser({
-        id: uid, email,
-        role: metaRole as AuthUser["role"],
-        org_slug: slug || undefined,
-      });
+      const metaRole = ((metadata?.role as string) || "student") as AuthUser["role"];
+      setUser({ id: uid, email, role: metaRole, org_slug: slug || undefined });
+      AsyncStorage.setItem(ROLE_CACHE_KEY(uid), JSON.stringify({
+        uid, role: metaRole, org_slug: slug || undefined, ts: Date.now(),
+      })).catch(() => {});
     } finally {
       if (myCount === resolveCounterRef.current) setLoading(false);
     }
@@ -260,13 +272,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── signOut ───────────────────────────────────────────
   const signOut = async () => {
+    const currentUid = user?.id;
     try {
       await client.auth.signOut();
     } catch (err) {
       console.error("Sign out error:", err);
     } finally {
       setUser(null);
-      clearTenantClientCache();
+      if (currentUid) AsyncStorage.removeItem(ROLE_CACHE_KEY(currentUid)).catch(() => {});
+      // NOTE: Do NOT call clearTenantClientCache() here.
+      // AuthContext.client is a useMemo reference tied to [isMainPlatform, tenant, slug].
+      // If the cache is cleared, the next getTenantClient() call (e.g. in dashboard) creates
+      // a NEW client instance with no session — while signIn() still writes to the OLD memo
+      // reference. This causes all post-login DB queries to run unauthenticated (RLS blocks → 0).
+      // auth.signOut() already invalidates the session on the current client; the cache entry
+      // can remain in place so the next login reuses the same instance.
       cache.flush(); // clear all cached screen data on logout
     }
   };

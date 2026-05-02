@@ -189,18 +189,7 @@ export default function StudentSignup() {
     const db = getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
 
     try {
-      const { data: existingMatric } = await db
-        .from("students").select("id")
-        .eq("matric_number", form.matric_number.trim().toUpperCase())
-        .maybeSingle();
-      if (existingMatric) { setErrors({ matric_number: "This student number is already registered." }); setStep(1); return; }
-
-      const { data: existingEmail } = await db
-        .from("students").select("id")
-        .eq("email", form.email.trim().toLowerCase())
-        .maybeSingle();
-      if (existingEmail) { setErrors({ email: "This email is already registered." }); setStep(1); return; }
-
+      // ── Auth sign-up first ────────────────────────────────
       const { data: authData, error: authError } = await db.auth.signUp({
         email:    form.email.trim().toLowerCase(),
         password: form.password,
@@ -216,26 +205,47 @@ export default function StudentSignup() {
         return;
       }
 
-      const { error: insertError } = await db.from("students").insert({
-        supabase_uid:    authData.user?.id || null,
-        matric_number:   form.matric_number.trim().toUpperCase(),
-        email:           form.email.trim().toLowerCase(),
-        email_verified:  false,
-        first_name:      form.first_name.trim(),
-        last_name:       form.last_name.trim(),
-        gender:          form.gender,
-        date_of_birth:   form.date_of_birth || null,
-        phone:           form.phone.trim() || null,
-        department_id:   form.department_id || null,
-        level:           form.level,
-        current_session: "2024/2025",
-        status:          "pending",
-        gpa: 0, cgpa: 0,
-        id_card_printed: false, id_card_paid: false,
-        parent_email:    form.parent_email.trim() || null,
-      } as any);
+      if (!authData.user?.id) {
+        showToast("This email already has an account. Please sign in.");
+        return;
+      }
 
-      if (insertError) { showToast("Registration failed. Please try again."); return; }
+      // ── Insert student record via SECURITY DEFINER RPC ────
+      // Direct INSERT would fail because the user isn't signed in
+      // yet (email confirmation pending) so auth.uid() = null.
+      const { data: rpcResult, error: rpcError } = await db.rpc("register_student", {
+        p_supabase_uid:    authData.user.id,
+        p_matric_number:   form.matric_number.trim().toUpperCase(),
+        p_email:           form.email.trim().toLowerCase(),
+        p_first_name:      form.first_name.trim(),
+        p_last_name:       form.last_name.trim(),
+        p_gender:          form.gender,
+        p_level:           form.level,
+        p_department_id:   form.department_id || null,
+        p_current_session: "2024/2025",
+        p_date_of_birth:   form.date_of_birth || null,
+        p_phone:           form.phone.trim() || null,
+        p_parent_email:    form.parent_email.trim() || null,
+      });
+
+      if (rpcError) { showToast("Registration failed. Please try again."); return; }
+
+      const result = rpcResult as { success: boolean; error?: string };
+      if (!result?.success) {
+        if (result?.error === "matric_taken") {
+          setErrors({ matric_number: "This student number is already registered." });
+          setStep(1);
+          return;
+        }
+        if (result?.error === "email_taken") {
+          setErrors({ email: "This email is already registered." });
+          setStep(1);
+          return;
+        }
+        showToast("Registration failed. Please try again.");
+        return;
+      }
+
       setStep(3);
     } catch { showToast("Something went wrong. Please try again."); }
     finally { setLoading(false); }

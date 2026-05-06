@@ -1,15 +1,15 @@
-// ============================================================
-// GMIS — Admin Academic Sessions & Semesters
+﻿// ============================================================
+// GMIS â€” Admin Academic Sessions & Semesters
 // Route: /(tenant)/(admin)/sessions
 //
 // Features:
-//   • Create / edit academic sessions (e.g. "2024/2025")
-//   • Create / edit semesters within a session (1st, 2nd, 3rd)
-//   • Open or close each semester for student registration
-//   • Set semester start & end dates (auto-status update via system)
-//   • Auto-advance students to next level when semester is closed
-//   • Send an automated announcement to all students on update
-//   • Detach session → advances all students by one level
+//   â€¢ Create / edit academic sessions (e.g. "2024/2025")
+//   â€¢ Create / edit semesters within a session (1st, 2nd, 3rd)
+//   â€¢ Open or close each semester for student registration
+//   â€¢ Set semester start & end dates (auto-status update via system)
+//   â€¢ Auto-advance students to next level when semester is closed
+//   â€¢ Send an automated announcement to all students on update
+//   â€¢ Detach session â†’ advances all students by one level
 //
 // DB tables (tenant):
 //   academic_sessions  { id, name, start_year, end_year, is_current, created_at }
@@ -17,9 +17,9 @@
 //                        is_open, is_current, created_at }
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
@@ -47,7 +47,7 @@ import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface AcademicSession {
   id: string;
   name: string;
@@ -76,7 +76,7 @@ const LEVEL_MAP: Record<string, string> = {
   "400": "500", "500": "600", "600": "Alumni",
 };
 
-// ── Add/Edit Session Sheet ─────────────────────────────────
+// â”€â”€ Add/Edit Session Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface SessionSheetProps {
   visible:    boolean;
   onClose:    () => void;
@@ -179,7 +179,7 @@ function SessionSheet({ visible, onClose, onSave, editing, colors }: SessionShee
   );
 }
 
-// ── Add/Edit Semester Sheet ────────────────────────────────
+// â”€â”€ Add/Edit Semester Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface SemesterSheetProps {
   visible:    boolean;
   onClose:    () => void;
@@ -293,7 +293,7 @@ function SemesterSheet({ visible, onClose, sessionId, onSave, editing, colors }:
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminSessions() {
   const router            = useRouter();
   const { user, signOut } = useAuth();
@@ -356,7 +356,7 @@ export default function AdminSessions() {
     }
   }, [db]);
 
-  // ── Save session ────────────────────────────────────────
+  // â”€â”€ Save session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const saveSession = async (d: { name: string; start_year: number; end_year: number; is_current: boolean }) => {
     if (!db) throw new Error("No DB");
     if (d.is_current) {
@@ -385,7 +385,7 @@ export default function AdminSessions() {
     await load(true);
   };
 
-  // ── Save semester ───────────────────────────────────────
+  // â”€â”€ Save semester â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const saveSemester = async (d: { session_id: string; name: string; start_date: string; end_date: string; is_open: boolean; is_current: boolean }) => {
     if (!db) throw new Error("No DB");
     if (d.is_current) {
@@ -399,7 +399,7 @@ export default function AdminSessions() {
       const { error } = await db.from("semesters").insert(d as any);
       if (error) throw new Error(error.message);
     }
-    // Sync org_settings — drives course reg, results, fees across the whole app
+    // Sync org_settings â€” drives course reg, results, fees across the whole app
     if (d.is_current) {
       const sess = sessions.find((s) => s.id === d.session_id);
       await syncOrgSettings({
@@ -422,7 +422,7 @@ export default function AdminSessions() {
     await load(true);
   };
 
-  // ── Toggle semester open/close ──────────────────────────
+  // â”€â”€ Toggle semester open/close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const toggleSemesterOpen = async (semester: Semester) => {
     if (!db) return;
     const newState = !semester.is_open;
@@ -446,11 +446,11 @@ export default function AdminSessions() {
     await load(true);
   };
 
-  // ── Auto-advance students ───────────────────────────────
+  // â”€â”€ Auto-advance students â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const advanceStudents = async (session: AcademicSession) => {
     Alert.alert(
       "Advance Students",
-      `This will promote all active students to their next level.\n\n• 100L → 200L, 200L → 300L, etc.\n• Final-year students will be marked as alumni.\n\nThis action cannot be undone. Proceed?`,
+      `This will promote all active students to their next level.\n\nâ€¢ 100L â†’ 200L, 200L â†’ 300L, etc.\nâ€¢ Final-year students will be marked as alumni.\n\nThis action cannot be undone. Proceed?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -496,7 +496,7 @@ export default function AdminSessions() {
     );
   };
 
-  // ── Delete session ──────────────────────────────────────
+  // â”€â”€ Delete session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const deleteSession = (session: AcademicSession) => {
     Alert.alert("Delete Session", `Delete session "${session.name}"? All linked semesters will also be deleted.`, [
       { text: "Cancel", style: "cancel" },
@@ -513,7 +513,7 @@ export default function AdminSessions() {
     ]);
   };
 
-  // ── Sync org_settings ───────────────────────────────────
+  // â”€â”€ Sync org_settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // org_settings drives course registration, results, fees, etc.
   // Must be updated whenever the admin changes current session/semester.
   const syncOrgSettings = async (opts: {
@@ -527,11 +527,11 @@ export default function AdminSessions() {
     if (opts.semester  !== undefined) patch.current_semester  = opts.semester;
     if (opts.registrationOpen !== undefined) patch.registration_open = opts.registrationOpen;
     if (Object.keys(patch).length === 0) return;
-    // org_settings has exactly one row — update without filter
+    // org_settings has exactly one row â€” update without filter
     await db.from("org_settings").update(patch as any).neq("id", "00000000-0000-0000-0000-000000000000");
   };
 
-  // ── Send announcement helper ────────────────────────────
+  // â”€â”€ Send announcement helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sendAnnouncement = async (title: string, message: string, type: string) => {
     if (!db) return;
     await db.from("notifications").insert({ title, message, type, is_read: false, user_id: null } as any);
@@ -553,7 +553,7 @@ export default function AdminSessions() {
       user={adminUser}
       schoolName={tenant?.name || ""}
       pageTitle="Academic Sessions"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}
     >
       <View style={[layout.fill, { backgroundColor: colors.bg.primary }]}>
 
@@ -654,7 +654,7 @@ export default function AdminSessions() {
                               </View>
                               {(sem.start_date || sem.end_date) && (
                                 <Text variant="micro" color="muted">
-                                  {sem.start_date ? formatDate(sem.start_date) : "—"} → {sem.end_date ? formatDate(sem.end_date) : "—"}
+                                  {sem.start_date ? formatDate(sem.start_date) : "â€”"} â†’ {sem.end_date ? formatDate(sem.end_date) : "â€”"}
                                 </Text>
                               )}
                             </View>
@@ -744,7 +744,7 @@ export default function AdminSessions() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   header:       { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing[5], paddingVertical: spacing[4], borderBottomWidth: 1 },
   addBtn:       { flexDirection: "row", alignItems: "center", gap: spacing[2], paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.xl },

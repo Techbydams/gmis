@@ -1,12 +1,12 @@
-// ============================================================
-// GMIS — Lecturer Timetable
+﻿// ============================================================
+// GMIS â€” Lecturer Timetable
 // Route: /(tenant)/(lecturer)/timetable
 // Shows the lecturer's weekly class schedule
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
@@ -62,7 +62,7 @@ export default function LecturerTimetable() {
     if (!lec) { setLoading(false); return; }
     setLecturer(lec);
 
-    // Query directly by lecturer_id — avoids the two-step courses lookup
+    // Query directly by lecturer_id â€” avoids the two-step courses lookup
     const { data } = await db
       .from("timetable")
       .select("id, day_of_week, start_time, end_time, venue, courses(course_code, course_name)")
@@ -86,7 +86,7 @@ export default function LecturerTimetable() {
 
   return (
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Timetable"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}

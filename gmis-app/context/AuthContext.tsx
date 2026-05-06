@@ -173,6 +173,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Session listener ──────────────────────────────────
   useEffect(() => {
+    // Don't start auth resolution until the tenant client is ready.
+    // Without this guard, the effect fires with the platform supabase client
+    // (client = supabase when tenant === null), returns no session → loading=false,
+    // then fires again once tenant resolves → loading=true again. This double-cycle
+    // is the main cause of slow/flashing startup on native.
+    if (!isMainPlatform && !tenant) return;
+
     client.auth
       .getSession()
       .then(({ data: { session } }) => {
@@ -205,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client]);
+  }, [client, isMainPlatform, tenant]);
 
   // ── signIn ────────────────────────────────────────────
   const signIn = async (

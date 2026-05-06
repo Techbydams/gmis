@@ -129,24 +129,40 @@ export default function SchoolLogin() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg.primary }} edges={["top", "bottom"]}>
+    <SafeAreaView
+      style={[
+        { flex: 1, backgroundColor: colors.bg.primary },
+        Platform.OS === "web" && { overflow: "hidden" } as any,
+      ]}
+      edges={["top", "bottom"]}
+    >
       <KeyboardAvoidingView
         style={layout.fill}
         behavior={Platform.OS === "ios" ? "padding" : Platform.OS === "android" ? "height" : undefined}
       >
 
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingHorizontal: pagePadding }]}
+          style={Platform.OS === "web" ? { flex: 1, width: "100%" } as any : undefined}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingHorizontal: pagePadding },
+            Platform.OS === "web" && { minHeight: "100%" } as any,
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.inner, { maxWidth: Math.min(440, windowWidth - pagePadding * 2) }]}>
+          <View style={[
+            styles.inner,
+            { maxWidth: Math.min(440, windowWidth - pagePadding * 2) },
+            Platform.OS === "web" && { width: "100%", boxSizing: "border-box" } as any,
+          ]}>
 
             {/* School banner — entrance animation */}
             <Animated.View
               style={[
                 styles.schoolBanner,
                 { transform: [{ scale: bannerScale }], opacity: bannerOpacity },
+                Platform.OS === "web" && { maxWidth: "100%" } as any,
               ]}
             >
               <View style={styles.schoolLogo}>
@@ -176,9 +192,17 @@ export default function SchoolLogin() {
             </Animated.View>
 
             {/* Login card */}
-            <Card padding="none" style={styles.card}>
-              <Text variant="title" color="primary" align="center" style={{ marginBottom: spacing[1] }}>Welcome back</Text>
-              <Text variant="caption" color="secondary" align="center" style={{ marginBottom: spacing[5] }}>
+            <Card padding="none" variant="elevated" style={[
+              styles.card,
+              { overflow: "hidden", borderColor: colors.border.strong },
+              Platform.OS === "web" && {
+                boxShadow: isDark
+                  ? "0 8px 40px rgba(0,0,0,0.55)"
+                  : "0 4px 24px rgba(45,108,255,0.10)",
+              } as any,
+            ]}>
+              <Text variant="title" color="primary" align="center" style={{ marginBottom: spacing[2] }}>Welcome back</Text>
+              <Text variant="caption" color="secondary" align="center" style={{ marginBottom: spacing[6] }}>
                 Sign in to your {tenant?.name || "school"} portal
               </Text>
 
@@ -275,7 +299,7 @@ export default function SchoolLogin() {
               {/* Remember me */}
               <TouchableOpacity
                 onPress={() => setRemember((v) => !v)}
-                style={[layout.row, { gap: spacing[2], marginBottom: spacing[5] }]}
+                style={[layout.row, { gap: spacing[2], marginBottom: spacing[6] }]}
                 activeOpacity={0.7}
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               >
@@ -320,10 +344,11 @@ export default function SchoolLogin() {
                   </Text>
                 </Text>
               </View>
+
             </Card>
 
             {/* Admin link */}
-            <TouchableOpacity onPress={() => router.push("/admin-login" as any)} style={{ marginTop: spacing[4], alignItems: "center" }} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => router.push("/admin-login" as any)} style={{ alignItems: "center" }} activeOpacity={0.7}>
               <Text style={{ fontSize: fontSize.sm, color: colors.text.muted }}>
                 Administrator?{" "}
                 <Text style={{ fontSize: fontSize.sm, color: colors.text.link }}>Admin portal →</Text>
@@ -342,7 +367,7 @@ export default function SchoolLogin() {
                     window.location.href = "https://gmis.app";
                   }
                 }}
-                style={[{ alignItems: "center", marginTop: spacing[3] }]}
+                style={{ alignItems: "center" }}
                 activeOpacity={0.7}
               >
                 <Text style={{ fontSize: fontSize.sm, color: colors.text.muted }}>
@@ -352,7 +377,7 @@ export default function SchoolLogin() {
             )}
 
             {/* Footer */}
-            <View style={{ alignItems: "center", marginTop: spacing[4], marginBottom: spacing[4], gap: spacing[2] }}>
+            <View style={{ alignItems: "center", gap: spacing[2] }}>
               <Image source={GMIS_LOGO} style={styles.logoFooter} resizeMode="contain" />
               <Text style={{ fontSize: fontSize["2xs"], color: colors.text.muted, textAlign: "center" }}>
                 A product of DAMS Technologies
@@ -368,18 +393,19 @@ export default function SchoolLogin() {
 
 const styles = StyleSheet.create({
   scroll: {
-    flexGrow:       1,
-    justifyContent: "center",   // centres on tall screens
-    paddingVertical: spacing[5],
+    flexGrow:        1,
+    justifyContent:  "center",
+    paddingVertical: spacing[8],
   },
   inner: {
     width:     "100%",
     alignSelf: "center",
+    gap:       spacing[4],
   },
   schoolBanner: {
     flexDirection: "row", alignItems: "center", gap: spacing[3],
     paddingHorizontal: spacing[4], paddingVertical: spacing[3],
-    marginBottom: spacing[3], borderRadius: radius.xl,
+    borderRadius: radius.xl,
     backgroundColor: "#1a3a8f",
   },
   schoolLogo: {
@@ -388,7 +414,7 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden",
   },
   activeDot: { width: spacing[1] + 1, height: spacing[1] + 1, borderRadius: radius.full, backgroundColor: "#4ade80" },
-  card:   { paddingHorizontal: spacing[5], paddingVertical: spacing[5] },
+  card:   { paddingHorizontal: spacing[6], paddingVertical: spacing[6] },
   roleTabs: {
     flexDirection: "row", borderRadius: radius.lg, borderWidth: 1,
     padding: spacing[1], marginBottom: spacing[4], position: "relative",

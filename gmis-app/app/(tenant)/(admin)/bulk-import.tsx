@@ -1,21 +1,21 @@
-// ============================================================
-// GMIS — Admin Bulk Import
+﻿// ============================================================
+// GMIS â€” Admin Bulk Import
 // Route: /(tenant)/(admin)/bulk-import
 //
 // Features:
-//   • Import: Students, Lecturers, Departments, Courses
-//   • Download CSV template per type (shows correct column headers)
-//   • Paste or type CSV data directly (no file picker needed)
-//   • Preview parsed rows before committing
-//   • Batch insert with progress indicator
-//   • Error reporting per row
-//   • Students: force_password_reset = true on import
-//   • Courses: is_general flag for multi-department courses
+//   â€¢ Import: Students, Lecturers, Departments, Courses
+//   â€¢ Download CSV template per type (shows correct column headers)
+//   â€¢ Paste or type CSV data directly (no file picker needed)
+//   â€¢ Preview parsed rows before committing
+//   â€¢ Batch insert with progress indicator
+//   â€¢ Error reporting per row
+//   â€¢ Students: force_password_reset = true on import
+//   â€¢ Courses: is_general flag for multi-department courses
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo } from "react";
 import {
@@ -38,7 +38,7 @@ import { useResponsive }   from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
-// ── Template definitions ───────────────────────────────────
+// â”€â”€ Template definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type ImportType = "students" | "lecturers" | "departments" | "courses";
 
 interface Template {
@@ -62,7 +62,7 @@ const TEMPLATES: Template[] = [
     notes: [
       "department_code must match an existing department code.",
       "level must be 100, 200, 300, 400, 500, or 600.",
-      "Passwords will be set to matric number — student must change on first login.",
+      "Passwords will be set to matric number â€” student must change on first login.",
       "gender: Male | Female | Other (optional).",
     ],
   },
@@ -106,7 +106,7 @@ const TEMPLATES: Template[] = [
   },
 ];
 
-// ── CSV helpers ────────────────────────────────────────────
+// â”€â”€ CSV helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function parseCSV(text: string, columns: string[]): { rows: Record<string, string>[]; errors: string[] } {
   const lines  = text.trim().split("\n").filter((l) => l.trim());
   const errors: string[] = [];
@@ -165,7 +165,7 @@ function buildInsertRow(type: ImportType, row: Record<string, string>, deptMap: 
   }
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminBulkImport() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -187,13 +187,13 @@ export default function AdminBulkImport() {
 
   const template = TEMPLATES.find((t) => t.key === activeType)!;
 
-  // ── Generate CSV template text ──────────────────────────
+  // â”€â”€ Generate CSV template text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const templateText = [
     template.columns.join(","),
     template.exampleRow.join(","),
   ].join("\n");
 
-  // ── Parse CSV ──────────────────────────────────────────
+  // â”€â”€ Parse CSV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleParse = () => {
     if (!csvText.trim()) {
       Alert.alert("Empty", "Paste your CSV data first.");
@@ -204,7 +204,7 @@ export default function AdminBulkImport() {
     setImportResult(null);
   };
 
-  // ── Import ──────────────────────────────────────────────
+  // â”€â”€ Import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleImport = async () => {
     if (!parsed || parsed.rows.length === 0 || !db) return;
 
@@ -262,7 +262,7 @@ export default function AdminBulkImport() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Bulk Import"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4], paddingBottom: spacing[20] }}
@@ -292,7 +292,7 @@ export default function AdminBulkImport() {
         {/* Template card */}
         <Card>
           <View style={layout.rowBetween}>
-            <Text variant="label" weight="bold" color="primary">CSV Template — {template.label}</Text>
+            <Text variant="label" weight="bold" color="primary">CSV Template â€” {template.label}</Text>
             <Badge label="Copy template" variant="blue" size="sm" />
           </View>
 
@@ -388,7 +388,7 @@ export default function AdminBulkImport() {
                     <View key={i} style={[layout.row, { gap: 0, borderTopWidth: 1, borderTopColor: colors.border.subtle }]}>
                       {template.columns.map((col) => (
                         <View key={col} style={[styles.tableCell, { minWidth: 100 }]}>
-                          <Text style={{ fontSize: fontSize.xs, color: colors.text.primary }} numberOfLines={1}>{row[col] || "—"}</Text>
+                          <Text style={{ fontSize: fontSize.xs, color: colors.text.primary }} numberOfLines={1}>{row[col] || "â€”"}</Text>
                         </View>
                       ))}
                     </View>
@@ -449,7 +449,7 @@ export default function AdminBulkImport() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   typeBtn:     { flexDirection: "row", alignItems: "center", gap: spacing[2], paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.xl, borderWidth: 1 },
   templateBox: { padding: spacing[4], borderRadius: radius.lg, borderWidth: 1 },

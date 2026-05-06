@@ -37,12 +37,44 @@ const PHONE_MOCKUP_IMAGE: any = null;
 function usePremiumFonts() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    const id = "gmis-fonts";
-    if (document.getElementById(id)) return;
-    const link = document.createElement("link");
-    link.id   = id; link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700;800&display=swap";
-    document.head.appendChild(link);
+
+    // Google Fonts
+    const fontId = "gmis-fonts";
+    if (!document.getElementById(fontId)) {
+      const link = document.createElement("link");
+      link.id   = fontId; link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700;800&display=swap";
+      document.head.appendChild(link);
+    }
+
+    // Shiny text keyframe animation
+    const cssId = "gmis-shiny-text-css";
+    if (!document.getElementById(cssId)) {
+      const style = document.createElement("style");
+      style.id = cssId;
+      style.textContent = `
+        @keyframes gmis-shiny {
+          0%   { background-position: 200% center; }
+          100% { background-position: -200% center; }
+        }
+        .gmis-shiny-text {
+          background: linear-gradient(
+            120deg,
+            #93c5fd 20%,
+            #e0f2fe 38%,
+            #ffffff 46%,
+            #e0f2fe 54%,
+            #93c5fd 72%
+          );
+          background-size: 250% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: gmis-shiny 4s linear infinite;
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }, []);
 }
 
@@ -750,18 +782,15 @@ export default function LandingPage() {
             </View>
           )}
 
-          {/* CTAs + Theme toggle */}
+          {/* CTAs */}
           <View style={[layout.row, { gap: spacing[2], alignItems: "center" }]}>
-            {/* Theme toggle — always visible */}
             <TouchableOpacity
               onPress={toggleTheme}
               activeOpacity={0.75}
-              style={[S.themeToggle, {
-                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-                borderColor:     isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
-              }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ padding: spacing[2], borderRadius: radius.full }}
             >
-              <Icon name={isDark ? "ui-sun" : "ui-moon"} size="sm" color={isDark ? "#f0c060" : "#4a5568"} />
+              <Icon name={isDark ? "ui-sun" : "ui-moon"} size="sm" color={colors.text.secondary} />
             </TouchableOpacity>
 
             {!isNarrow && (
@@ -798,11 +827,19 @@ export default function LandingPage() {
         <View style={[S.heroInner, isNarrow && { flexDirection:"column", alignItems:"center" }]}>
           {/* Left text */}
           <View style={[S.heroLeft, isNarrow && { alignItems:"center", maxWidth:"100%" as any }]}>
-            {/* Live badge */}
-            <View nativeID="hero-badge" style={S.heroBadge}>
+            {/* Live badge — animated shiny text */}
+            <View nativeID="hero-badge" style={[S.heroBadge, isNarrow && { alignSelf:"center" }]}>
               <View style={S.badgeDot} />
-              <RNText style={{ fontSize:11, color:"#93c5fd", fontWeight:"600", letterSpacing:0.6, fontFamily:'"DM Sans",sans-serif' }}>
-                GRASP Management Information System
+              {/* On web: className drives the CSS shimmer. On native: plain tint. */}
+              <RNText
+                {...(Platform.OS === "web" ? { className: "gmis-shiny-text" } as any : {})}
+                style={{
+                  fontSize:11, fontWeight:"600" as any, letterSpacing:0.6,
+                  fontFamily:'"DM Sans",sans-serif',
+                  color:"#93c5fd",
+                }}
+              >
+                ✨ GRASP Management Information System
               </RNText>
             </View>
 
@@ -1331,11 +1368,12 @@ const S: any = StyleSheet.create(({
   heroRight: { flex:1, alignItems:"flex-end" },
   heroBadge: {
     flexDirection:"row", alignItems:"center", gap:spacing[2],
-    alignSelf:"flex-start",
+    alignSelf:"flex-start",   // overridden to "center" on narrow in JSX
     paddingHorizontal:spacing[4], paddingVertical:spacing[2],
     borderRadius:radius.full,
     backgroundColor:"rgba(45,108,255,0.12)",
     borderWidth:1, borderColor:"rgba(45,108,255,0.28)",
+    maxWidth:"100%" as any,   // never wider than screen on mobile web
   },
   badgeDot: {
     width:7, height:7, borderRadius:99, backgroundColor:"#4ade80",

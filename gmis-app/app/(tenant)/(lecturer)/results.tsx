@@ -1,6 +1,6 @@
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+﻿/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, TextInput, StyleSheet, RefreshControl, Alert } from "react-native";
@@ -176,7 +176,7 @@ export default function LecturerResults() {
 
   return (
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Grade Entry"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -211,10 +211,10 @@ export default function LecturerResults() {
               <Card>
                 <View style={[layout.rowBetween, { marginBottom: spacing[3], flexWrap: "wrap", gap: spacing[2] }]}>
                   <View>
-                    <Text variant="label" weight="bold" color="primary">{selectedCourse?.course_code} — Scores</Text>
+                    <Text variant="label" weight="bold" color="primary">{selectedCourse?.course_code} â€” Scores</Text>
                     {lockedCourses.has(selected!) && (
                       <Text variant="micro" color={submittedCourses.has(selected!) ? "success" : "warning"}>
-                        {submittedCourses.has(selected!) ? "✓ Submitted to admin" : "Locked by admin"}
+                        {submittedCourses.has(selected!) ? "âœ“ Submitted to admin" : "Locked by admin"}
                       </Text>
                     )}
                   </View>
@@ -223,7 +223,7 @@ export default function LecturerResults() {
                       <TouchableOpacity onPress={() => saveScores(false)} disabled={saving || submitting} activeOpacity={0.75}
                         style={[styles.saveBtn, { backgroundColor: saved ? colors.status.successBg : colors.bg.hover, borderWidth: 1, borderColor: saved ? colors.status.successBorder : colors.border.DEFAULT }]}>
                         <Text style={{ color: saved ? colors.status.success : colors.text.secondary, fontWeight: fontWeight.bold, fontSize: fontSize.sm }}>
-                          {saving ? "Saving…" : saved ? "Saved ✓" : "Save Draft"}
+                          {saving ? "Savingâ€¦" : saved ? "Saved âœ“" : "Save Draft"}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => {
@@ -234,7 +234,7 @@ export default function LecturerResults() {
                       }} disabled={saving || submitting} activeOpacity={0.75}
                         style={[styles.saveBtn, { backgroundColor: brand.blue }]}>
                         <Text style={{ color: "#fff", fontWeight: fontWeight.bold, fontSize: fontSize.sm }}>
-                          {submitting ? "Submitting…" : "Submit"}
+                          {submitting ? "Submittingâ€¦" : "Submit"}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -284,7 +284,7 @@ export default function LecturerResults() {
                           maxLength={3}
                         />
                         <Text variant="label" weight="bold" color={total >= 50 ? "success" : "error"} style={styles.scoreCol}>
-                          {(sc.ca || sc.exam) ? total : "—"}
+                          {(sc.ca || sc.exam) ? total : "â€”"}
                         </Text>
                       </View>
                     );

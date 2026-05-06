@@ -1,18 +1,18 @@
-// ============================================================
-// GMIS — Admin News & Announcements
+﻿// ============================================================
+// GMIS â€” Admin News & Announcements
 // Route: /(tenant)/(admin)/news
 // Features:
-//   • Post announcements with title, body, type, image attachment
-//   • PDF attachment support via pick from files
-//   • Filter/view announcements by type
-//   • Delete announcements
-//   • Auto-announcement toggle when session/semester changes
-//   • Uploads images to Supabase Storage bucket "announcements"
+//   â€¢ Post announcements with title, body, type, image attachment
+//   â€¢ PDF attachment support via pick from files
+//   â€¢ Filter/view announcements by type
+//   â€¢ Delete announcements
+//   â€¢ Auto-announcement toggle when session/semester changes
+//   â€¢ Uploads images to Supabase Storage bucket "announcements"
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo, useCallback } from "react";
 import {
@@ -42,7 +42,7 @@ import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout, platformShadow } from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type AnnouncementType = "announcement" | "result" | "payment" | "alert" | "general";
 
 interface Announcement {
@@ -57,11 +57,11 @@ interface Announcement {
 }
 
 const TYPE_OPTIONS: { key: AnnouncementType; label: string; color: string; icon: string }[] = [
-  { key: "announcement", label: "Announcement", color: "#2d6cff", icon: "📢" },
-  { key: "general",      label: "General",      color: "#6b7280", icon: "📋" },
-  { key: "result",       label: "Result",       color: "#10b981", icon: "📊" },
-  { key: "payment",      label: "Payment",      color: "#f0b429", icon: "💳" },
-  { key: "alert",        label: "Alert",        color: "#ef4444", icon: "⚠️" },
+  { key: "announcement", label: "Announcement", color: "#2d6cff", icon: "ðŸ“¢" },
+  { key: "general",      label: "General",      color: "#6b7280", icon: "ðŸ“‹" },
+  { key: "result",       label: "Result",       color: "#10b981", icon: "ðŸ“Š" },
+  { key: "payment",      label: "Payment",      color: "#f0b429", icon: "ðŸ’³" },
+  { key: "alert",        label: "Alert",        color: "#ef4444", icon: "âš ï¸" },
 ];
 
 const TYPE_VARIANT_MAP: Record<AnnouncementType, "blue" | "green" | "amber" | "red" | "gray"> = {
@@ -72,7 +72,7 @@ const TYPE_VARIANT_MAP: Record<AnnouncementType, "blue" | "green" | "amber" | "r
   alert:        "red",
 };
 
-// ── Compose Sheet ──────────────────────────────────────────
+// â”€â”€ Compose Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface PostData {
   title:            string;
   message:          string;
@@ -258,7 +258,7 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
             <Text variant="caption" weight="semibold" color="primary" numberOfLines={1}>{attachmentName || "Attachment"}</Text>
             {posting ? (
               <Text variant="micro" color="muted">
-                {uploadProgress > 0 ? `Uploading… ${uploadProgress}%` : "Uploading…"}
+                {uploadProgress > 0 ? `Uploadingâ€¦ ${uploadProgress}%` : "Uploadingâ€¦"}
               </Text>
             ) : (
               <Text variant="micro" color="muted">{attachmentType === "image" ? "Image" : "PDF Document"}</Text>
@@ -331,7 +331,7 @@ function ComposeSheet({ visible, onClose, onPost, colors }: ComposeSheetProps) {
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminNews() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -365,7 +365,7 @@ export default function AdminNews() {
       if (error) throw error;
       setAnnouncements((data || []) as Announcement[]);
     } catch (err: any) {
-      // Table might not have attachment columns yet — fallback
+      // Table might not have attachment columns yet â€” fallback
       const { data } = await db
         .from("notifications")
         .select("id, title, message, type, is_read, created_at")
@@ -378,7 +378,7 @@ export default function AdminNews() {
     }
   }, [db]);
 
-  // ── Upload attachment to Supabase Storage ───────────────
+  // â”€â”€ Upload attachment to Supabase Storage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const uploadAttachment = async (
     uri: string,
     type: "image" | "pdf",
@@ -472,7 +472,7 @@ export default function AdminNews() {
       user={adminUser}
       schoolName={tenant?.name || ""}
       pageTitle="News & Announcements"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}
     >
       <View style={[layout.fill, { backgroundColor: colors.bg.primary }]}>
 
@@ -569,7 +569,7 @@ export default function AdminNews() {
   );
 }
 
-// ── Announcement Card ──────────────────────────────────────
+// â”€â”€ Announcement Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AnnouncementCard({ item, colors, onDelete }: { item: Announcement; colors: any; onDelete: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const typeOpt = TYPE_OPTIONS.find((t) => t.key === item.type) || TYPE_OPTIONS[0];
@@ -629,7 +629,7 @@ function AnnouncementCard({ item, colors, onDelete }: { item: Announcement; colo
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   topBar:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing[5], paddingVertical: spacing[4], borderBottomWidth: 1 },
   newBtn:      { flexDirection: "row", alignItems: "center", gap: spacing[2], paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.xl },

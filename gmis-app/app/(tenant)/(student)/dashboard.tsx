@@ -1,15 +1,15 @@
-// ============================================================
-// GMIS — Student Dashboard (Schema-verified)
+﻿// ============================================================
+// GMIS â€” Student Dashboard (Schema-verified)
 //
 // FIXES applied against confirmed tenant DB schema:
-//  - students.profile_photo  (not avatar_url — doesn't exist)
+//  - students.profile_photo  (not avatar_url â€” doesn't exist)
 //  - attendance_records.status (varchar) not is_present (bool)
 //  - status === 'present' to count attendance
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
@@ -35,7 +35,7 @@ import { layout } from "@/styles/shared";
 const GMIS_LOGO_LIGHT = require("@/assets/gmis_logo_light.png");
 const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 
-// ── Confirmed students columns ────────────────────────────
+// â”€â”€ Confirmed students columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // id, supabase_uid, matric_number, application_no, email,
 // email_verified, first_name, last_name, other_names,
 // date_of_birth, gender, phone, address, state_of_origin,
@@ -43,7 +43,7 @@ const GMIS_LOGO_DARK  = require("@/assets/gmis_logo_dark.png");
 // entry_session, current_session, gpa, cgpa, status,
 // approved_at, id_card_printed, id_card_paid, parent_email,
 // created_at, updated_at, parent_supabase_uid
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Student {
   id:             string;
@@ -69,12 +69,12 @@ interface Notification {
   is_read: boolean; created_at: string;
 }
 
-// ── Quick action animation types ──────────────────────────
-// "slide"  → card-swipe translation  (Pay school fees)
-// "wiggle" → rotation oscillation    (SUG elections megaphone)
-// "spin"   → 360° clock rotation     (Timetable)
-// "pulse"  → sequential scale depress (GPA calculator buttons)
-// Each animation fires on press only — no continuous loops (no "vampire animations").
+// â”€â”€ Quick action animation types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// "slide"  â†’ card-swipe translation  (Pay school fees)
+// "wiggle" â†’ rotation oscillation    (SUG elections megaphone)
+// "spin"   â†’ 360Â° clock rotation     (Timetable)
+// "pulse"  â†’ sequential scale depress (GPA calculator buttons)
+// Each animation fires on press only â€” no continuous loops (no "vampire animations").
 // When Lottie JSON assets are available, swap <Animated.View> for <LottieView> per tile.
 type AnimType = "slide" | "wiggle" | "spin" | "pulse";
 
@@ -90,7 +90,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { label: "AI assistant",     icon: "nav-ai",        path: "/(tenant)/(student)/ai"        },
 ];
 
-// ── Animated quick-action tile ─────────────────────────────
+// â”€â”€ Animated quick-action tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Each animated tile fires its motion on press and then idles.
 // Non-animated tiles render a plain icon (no wasted CPU).
 function AnimatedActionTile({
@@ -112,7 +112,7 @@ function AnimatedActionTile({
         ]).start();
         break;
       case "wiggle":
-        // Megaphone vibrate: rapid left–right oscillation, decaying
+        // Megaphone vibrate: rapid leftâ€“right oscillation, decaying
         Animated.sequence([
           Animated.timing(anim, { toValue:  1,    duration: 60, easing: Easing.linear, useNativeDriver: true }),
           Animated.timing(anim, { toValue: -1,    duration: 70, easing: Easing.linear, useNativeDriver: true }),
@@ -123,7 +123,7 @@ function AnimatedActionTile({
         ]).start();
         break;
       case "spin":
-        // Clock hands: full 360° turn, ease-in-out
+        // Clock hands: full 360Â° turn, ease-in-out
         Animated.timing(anim, {
           toValue: 1, duration: 420, easing: Easing.inOut(Easing.ease), useNativeDriver: true,
         }).start(() => anim.setValue(0));
@@ -208,7 +208,7 @@ export default function StudentDashboard() {
     setError(null);
 
     try {
-      // Query only confirmed columns — no guessing
+      // Query only confirmed columns â€” no guessing
       const { data: s, error: sErr } = await db
         .from("students")
         .select("id, first_name, last_name, matric_number, level, status, gpa, cgpa, profile_photo, department_id, current_session")
@@ -277,7 +277,7 @@ export default function StudentDashboard() {
 
   const loadNotifications = async (sid: string) => {
     if (!db) return;
-    // notifications.user_id — confirmed from schema
+    // notifications.user_id â€” confirmed from schema
     const { data } = await db
       .from("notifications")
       .select("id, title, message, type, is_read, created_at")
@@ -304,7 +304,7 @@ export default function StudentDashboard() {
       db.from("fee_structure")
         .select("*", { count: "exact", head: true })
         .eq("is_active", true),
-      // attendance_records.status is varchar — 'present' or 'absent'
+      // attendance_records.status is varchar â€” 'present' or 'absent'
       db.from("attendance_records")
         .select("status")
         .eq("student_id", sid),
@@ -338,7 +338,7 @@ export default function StudentDashboard() {
     setUnread(0);
   };
 
-  // ── Status screens ─────────────────────────────────────
+  // â”€â”€ Status screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!loading && student?.status === "pending") {
     return (
       <View style={[layout.fill, layout.centred, { backgroundColor: colors.bg.primary, padding: spacing[6] }]}>
@@ -351,7 +351,7 @@ export default function StudentDashboard() {
           <Text variant="body" weight="bold" color="primary">{tenant?.name}</Text>.
         </Text>
         <TouchableOpacity
-          onPress={async () => { await signOut(); router.replace("/login"); }}
+          onPress={async () => { await signOut(); router.replace("/(tenant)/login"); }}
           style={styles.ghostBtn} activeOpacity={0.7}
         >
           <Text variant="label" color="secondary">Sign out</Text>
@@ -371,7 +371,7 @@ export default function StudentDashboard() {
           Contact the {tenant?.name} admin office for assistance.
         </Text>
         <TouchableOpacity
-          onPress={async () => { await signOut(); router.replace("/login"); }}
+          onPress={async () => { await signOut(); router.replace("/(tenant)/login"); }}
           style={styles.ghostBtn} activeOpacity={0.7}
         >
           <Text variant="label" color="secondary">Sign out</Text>
@@ -437,15 +437,15 @@ export default function StudentDashboard() {
       user={shellUser}
       schoolName={tenant?.name || ""}
       schoolLogoUrl={tenant?.logo_url}
-      onLogout={async () => { await signOut(); router.replace("/login"); }}
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}
     >
-      {/* Native mobile top bar — [avatar] [greeting+info] · · · [QR][bell] */}
+      {/* Native mobile top bar â€” [avatar] [greeting+info] Â· Â· Â· [QR][bell] */}
       <View style={[styles.nativeTopBar, {
         backgroundColor:   colors.bg.card,
         borderBottomColor: colors.border.DEFAULT,
         paddingTop:        insets.top + spacing[2],
       }]}>
-        {/* Avatar — taps to profile page */}
+        {/* Avatar â€” taps to profile page */}
         <TouchableOpacity
           onPress={() => router.push("/(tenant)/(student)/profile" as any)}
           activeOpacity={0.8}
@@ -469,11 +469,11 @@ export default function StudentDashboard() {
           </Text>
           <Text numberOfLines={1} style={{ fontSize: fontSize.xs, color: colors.text.muted, marginTop: 1 }}>
             {[student?.matric_number, deptName || null, student?.level ? `${student.level}L` : null]
-              .filter(Boolean).join(" · ")}
+              .filter(Boolean).join(" Â· ")}
           </Text>
         </View>
 
-        {/* Theme toggle · QR scanner · Notification bell */}
+        {/* Theme toggle Â· QR scanner Â· Notification bell */}
         <View style={[layout.row, { gap: spacing[1] }]}>
           <TouchableOpacity
             onPress={toggleTheme}
@@ -525,7 +525,7 @@ export default function StudentDashboard() {
           />
         }
       >
-        {/* ── Next class hero card ───────────────────────── */}
+        {/* â”€â”€ Next class hero card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <TouchableOpacity
           onPress={() => router.push("/(tenant)/(student)/timetable" as any)}
           activeOpacity={0.85}
@@ -540,13 +540,13 @@ export default function StudentDashboard() {
               {nextClass ? (
                 <>
                   <Text variant="title" color="primary" style={{ marginTop: spacing[1] }} numberOfLines={1}>
-                    {nextClass.courses?.course_code} — {nextClass.courses?.course_name}
+                    {nextClass.courses?.course_code} â€” {nextClass.courses?.course_name}
                   </Text>
                   <View style={[layout.row, { gap: spacing[3], marginTop: spacing[2] }]}>
                     <View style={[layout.row, { gap: spacing[1] }]}>
                       <Icon name="nav-timetable" size="sm" color={brand.blue} />
                       <Text variant="caption" color="link">
-                        {nextClass.start_time?.slice(0, 5)} – {nextClass.end_time?.slice(0, 5)}
+                        {nextClass.start_time?.slice(0, 5)} â€“ {nextClass.end_time?.slice(0, 5)}
                       </Text>
                     </View>
                     {nextClass.venue && (
@@ -570,7 +570,7 @@ export default function StudentDashboard() {
                   <Text variant="caption" color="muted" style={{ marginTop: spacing[1] }}>
                     {new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" })}
                   </Text>
-                  {/* Pill button — plan ahead for tomorrow */}
+                  {/* Pill button â€” plan ahead for tomorrow */}
                   <View style={[styles.timetableBtn, { backgroundColor: brand.blueAlpha10, borderColor: brand.blueAlpha30 }]}>
                     <Icon name="nav-timetable" size="xs" color={brand.blue} />
                     <Text style={{ fontSize: fontSize.xs, color: brand.blue, fontWeight: fontWeight.semibold }}>
@@ -585,7 +585,7 @@ export default function StudentDashboard() {
           </View>
         </TouchableOpacity>
 
-        {/* ── Primary stats — GPA + Attendance ─────────── */}
+        {/* â”€â”€ Primary stats â€” GPA + Attendance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View style={[layout.row, { gap: spacing[3] }]}>
           <StatCard
             icon="academic-gpa"
@@ -597,13 +597,13 @@ export default function StudentDashboard() {
           <StatCard
             icon="nav-attendance"
             label="Attendance"
-            value={stats.attendance > 0 ? `${stats.attendance}%` : "—"}
+            value={stats.attendance > 0 ? `${stats.attendance}%` : "â€”"}
             sub="This semester"
             color={stats.attendance >= 75 ? "success" : stats.attendance >= 50 ? "warning" : "error"}
           />
         </View>
 
-        {/* ── Secondary stats — Courses + Fees ─────────── */}
+        {/* â”€â”€ Secondary stats â€” Courses + Fees â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View style={[layout.row, { gap: spacing[3] }]}>
           <StatCard
             icon="nav-courses"
@@ -615,13 +615,13 @@ export default function StudentDashboard() {
           <StatCard
             icon="nav-payments"
             label="Fees"
-            value={stats.totalFees === 0 ? "—" : `${stats.paidFees}/${stats.totalFees}`}
+            value={stats.totalFees === 0 ? "â€”" : `${stats.paidFees}/${stats.totalFees}`}
             sub={stats.totalFees === 0 ? "No active fees" : "Items paid"}
             color={stats.totalFees === 0 ? "brand" : stats.paidFees === stats.totalFees ? "success" : "warning"}
           />
         </View>
 
-        {/* ── CGPA banner ────────────────────────────────── */}
+        {/* â”€â”€ CGPA banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {(student?.cgpa || 0) > 0 && (
           <TouchableOpacity
             onPress={() => router.push("/(tenant)/(student)/results" as any)}
@@ -636,7 +636,7 @@ export default function StudentDashboard() {
                     <Text variant="label" weight="extrabold" color="brand">
                       {formatGPA(student?.cgpa || 0)}
                     </Text>
-                    {" "}— {getHonourClass(student?.cgpa || 0)}
+                    {" "}â€” {getHonourClass(student?.cgpa || 0)}
                   </Text>
                 </View>
                 <Icon name="ui-forward" size="sm" color={brand.blue} />
@@ -645,7 +645,7 @@ export default function StudentDashboard() {
           </TouchableOpacity>
         )}
 
-        {/* ── Quick actions grid ─────────────────────────── */}
+        {/* â”€â”€ Quick actions grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View>
           <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[3] }}>
             Quick actions
@@ -664,7 +664,7 @@ export default function StudentDashboard() {
           </View>
         </View>
 
-        {/* ── Notifications ──────────────────────────────── */}
+        {/* â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <Card>
           <View style={[layout.rowBetween, { marginBottom: spacing[3] }]}>
             <View style={[layout.row, { gap: spacing[2] }]}>

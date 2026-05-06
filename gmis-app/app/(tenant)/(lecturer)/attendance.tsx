@@ -1,16 +1,16 @@
-// ============================================================
-// GMIS — Lecturer Attendance (Manual + QR Generation)
+﻿// ============================================================
+// GMIS â€” Lecturer Attendance (Manual + QR Generation)
 // Route: /(tenant)/(lecturer)/attendance
 //
-// Tab 1 — Manual: mark attendance for enrolled students
-// Tab 2 — QR Code: generate a time-limited QR for students to scan
+// Tab 1 â€” Manual: mark attendance for enrolled students
+// Tab 2 â€” QR Code: generate a time-limited QR for students to scan
 //          Live attendance list updates in real-time via polling
 //          while QR is active (refreshes every 8s).
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
@@ -88,7 +88,7 @@ export default function LecturerAttendance() {
 
   useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: courses.length > 0 });
 
-  // ── Countdown timer ──────────────────────────────────────
+  // â”€â”€ Countdown timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!activeQR) { clearInterval(timerRef.current); return; }
     const update = () => {
@@ -101,7 +101,7 @@ export default function LecturerAttendance() {
     return () => clearInterval(timerRef.current);
   }, [activeQR]);
 
-  // ── Live polling for QR scans ────────────────────────────
+  // â”€â”€ Live polling for QR scans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const startPolling = (courseId: string, classDate: string) => {
     stopPolling();
     fetchLiveAttendance(courseId, classDate);
@@ -213,7 +213,7 @@ export default function LecturerAttendance() {
     startPolling(qrCourse, today);
   };
 
-  // ── History helpers ──────────────────────────────────────
+  // â”€â”€ History helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadHistory = async (courseId: string) => {
     if (!db) return;
     setHistoryLoading(true);
@@ -276,7 +276,7 @@ export default function LecturerAttendance() {
 
   return (
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Attendance"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -310,7 +310,7 @@ export default function LecturerAttendance() {
           <EmptyState icon="nav-attendance" title="No courses assigned" description="No courses to take attendance for." />
         ) : activeTab === "history" ? (
 
-          /* ══════════ HISTORY TAB ══════════ */
+          /* â•â•â•â•â•â•â•â•â•â• HISTORY TAB â•â•â•â•â•â•â•â•â•â• */
           <>
             <Text variant="label" weight="semibold" color="muted">Select course to view history</Text>
             <View style={[layout.row, { gap: spacing[2], flexWrap: "wrap" }]}>
@@ -341,7 +341,7 @@ export default function LecturerAttendance() {
                           <View>
                             <Text variant="label" weight="bold" color="primary">{fmtDate(session.date)}</Text>
                             <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
-                              {session.present.length} present · {session.absent} absent · {pct}%
+                              {session.present.length} present Â· {session.absent} absent Â· {pct}%
                             </Text>
                           </View>
                           <View style={[layout.row, { gap: spacing[2], alignItems: "center" }]}>
@@ -383,7 +383,7 @@ export default function LecturerAttendance() {
 
         ) : activeTab === "manual" ? (
 
-          /* ══════════ MANUAL TAB ══════════ */
+          /* â•â•â•â•â•â•â•â•â•â• MANUAL TAB â•â•â•â•â•â•â•â•â•â• */
           <>
             <Text variant="label" weight="semibold" color="muted">Select course</Text>
             <View style={[layout.row, { gap: spacing[2], flexWrap: "wrap" }]}>
@@ -402,7 +402,7 @@ export default function LecturerAttendance() {
                   <TouchableOpacity onPress={saveAttendance} disabled={saving} activeOpacity={0.75}
                     style={[styles.saveBtn, { backgroundColor: saved ? colors.status.successBg : brand.blue }]}>
                     <Text style={{ color: saved ? colors.status.success : "#fff", fontWeight: fontWeight.bold, fontSize: fontSize.sm }}>
-                      {saving ? "Saving…" : saved ? "Saved ✓" : "Submit"}
+                      {saving ? "Savingâ€¦" : saved ? "Saved âœ“" : "Submit"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -431,7 +431,7 @@ export default function LecturerAttendance() {
 
         ) : (
 
-          /* ══════════ QR TAB ══════════ */
+          /* â•â•â•â•â•â•â•â•â•â• QR TAB â•â•â•â•â•â•â•â•â•â• */
           <>
             <Text variant="label" weight="semibold" color="muted">Select course to generate QR</Text>
             <View style={[layout.row, { gap: spacing[2], flexWrap: "wrap" }]}>
@@ -450,7 +450,7 @@ export default function LecturerAttendance() {
                 {/* QR generation card */}
                 <Card>
                   <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[1] }}>
-                    {selectedCourse?.course_code} — {selectedCourse?.course_name}
+                    {selectedCourse?.course_code} â€” {selectedCourse?.course_name}
                   </Text>
                   <Text variant="micro" color="muted" style={{ marginBottom: spacing[4] }}>
                     QR expires 30 minutes after generation. Students scan with the GMIS app.
@@ -472,10 +472,10 @@ export default function LecturerAttendance() {
                         )}
                       </View>
 
-                      {/* ── Web/Manual Attendance Code ────────────────── */}
+                      {/* â”€â”€ Web/Manual Attendance Code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                       {/* 6-character short code derived from QR ID.
                           Students who cannot scan (web users) enter this code.
-                          Synced with the same QR session → prevents double-marking. */}
+                          Synced with the same QR session â†’ prevents double-marking. */}
                       <View style={[styles.codeBox, { backgroundColor: colors.bg.hover, borderColor: brand.blueAlpha30 }]}>
                         <Text style={{ fontSize: fontSize.xs, color: colors.text.muted, marginBottom: spacing[1], textTransform: "uppercase", letterSpacing: 1 }}>
                           Web / Manual Code
@@ -522,7 +522,7 @@ export default function LecturerAttendance() {
                   )}
                 </Card>
 
-                {/* Live attendance list — shown while QR is active */}
+                {/* Live attendance list â€” shown while QR is active */}
                 {activeQR && (
                   <Card>
                     <View style={[layout.rowBetween, { marginBottom: spacing[3] }]}>
@@ -550,14 +550,14 @@ export default function LecturerAttendance() {
                       } as any]} />
                     </View>
                     <Text variant="micro" color="muted" style={{ marginBottom: spacing[3], marginTop: spacing[1] }}>
-                      {liveTotal > 0 ? `${Math.round((liveAttended.length / liveTotal) * 100)}% scanned` : "Waiting for scans…"} · Updates every 8s
+                      {liveTotal > 0 ? `${Math.round((liveAttended.length / liveTotal) * 100)}% scanned` : "Waiting for scansâ€¦"} Â· Updates every 8s
                     </Text>
 
                     {liveAttended.length === 0 ? (
                       <View style={[layout.centredH, { paddingVertical: spacing[4] }]}>
                         <Icon name="content-qr" size="2xl" color={colors.text.muted} />
                         <Text variant="caption" color="muted" align="center" style={{ marginTop: spacing[2] }}>
-                          Waiting for students to scan…
+                          Waiting for students to scanâ€¦
                         </Text>
                       </View>
                     ) : (

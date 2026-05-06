@@ -1,12 +1,12 @@
-// ============================================================
-// GMIS — Admin Approvals
+﻿// ============================================================
+// GMIS â€” Admin Approvals
 // Route: /(tenant)/(admin)/approvals
 // Tabs: Student Registrations | Course Edit Requests
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
@@ -107,9 +107,9 @@ export default function AdminApprovals() {
         semester:       r.semester,
         created_at:     r.created_at,
         student_name:   r.students ? `${(r.students as any).first_name} ${(r.students as any).last_name}` : "Unknown",
-        matric_number:  r.students ? (r.students as any).matric_number : "—",
-        old_course_code: r.old_course ? (r.old_course as any).course_code : "—",
-        old_course_name: r.old_course ? (r.old_course as any).course_name : "—",
+        matric_number:  r.students ? (r.students as any).matric_number : "â€”",
+        old_course_code: r.old_course ? (r.old_course as any).course_code : "â€”",
+        old_course_name: r.old_course ? (r.old_course as any).course_name : "â€”",
         new_course_code: r.new_course ? (r.new_course as any).course_code : undefined,
         new_course_name: r.new_course ? (r.new_course as any).course_name : undefined,
       })));
@@ -119,7 +119,7 @@ export default function AdminApprovals() {
     setRefreshing(false);
   };
 
-  // ── Student approval actions ─────────────────────────────
+  // â”€â”€ Student approval actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const approveStudent = async (id: string) => {
     if (!db) return;
     setActing(id);
@@ -138,7 +138,7 @@ export default function AdminApprovals() {
     setActing(null);
   };
 
-  // ── Course edit request actions ──────────────────────────
+  // â”€â”€ Course edit request actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const approveEditRequest = async (req: CourseEditRequest) => {
     if (!db) return;
     setActing(req.id);
@@ -148,7 +148,7 @@ export default function AdminApprovals() {
         .update({ status: "approved", reviewed_at: new Date().toISOString() } as any)
         .eq("id", req.id);
       if (error) throw error;
-      // If drop — remove the actual registration
+      // If drop â€” remove the actual registration
       if (req.request_type === "drop" || req.request_type === "add") {
         // For drop: remove semester_registration by old_course_id + student
         // We'll look up by student + course from the request
@@ -188,7 +188,7 @@ export default function AdminApprovals() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Approvals"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -254,8 +254,8 @@ export default function AdminApprovals() {
                     </View>
                     <View style={layout.fill}>
                       <Text variant="label" weight="bold" color="primary">{s.first_name} {s.last_name}</Text>
-                      <Text variant="caption" color="muted">{s.matric_number} · {s.email}</Text>
-                      {s.dept_name ? <Text variant="micro" color="muted">{s.dept_name} · {s.level} Level</Text> : null}
+                      <Text variant="caption" color="muted">{s.matric_number} Â· {s.email}</Text>
+                      {s.dept_name ? <Text variant="micro" color="muted">{s.dept_name} Â· {s.level} Level</Text> : null}
                       <Text variant="micro" color="muted">Registered {new Date(s.created_at).toLocaleDateString("en-NG")}</Text>
                     </View>
                   </View>
@@ -309,7 +309,7 @@ export default function AdminApprovals() {
                     <Icon name="nav-courses" size="xs" color={colors.text.muted} />
                     <View style={layout.fill}>
                       <Text variant="micro" color="muted">Current course</Text>
-                      <Text variant="caption" weight="semibold" color="primary">{req.old_course_code} — {req.old_course_name}</Text>
+                      <Text variant="caption" weight="semibold" color="primary">{req.old_course_code} â€” {req.old_course_name}</Text>
                     </View>
                   </View>
                   {req.new_course_code && (
@@ -317,7 +317,7 @@ export default function AdminApprovals() {
                       <Icon name="ui-forward" size="xs" color={colors.status.success} />
                       <View style={layout.fill}>
                         <Text variant="micro" color="muted">Swap to</Text>
-                        <Text variant="caption" weight="semibold" color="success">{req.new_course_code} — {req.new_course_name}</Text>
+                        <Text variant="caption" weight="semibold" color="success">{req.new_course_code} â€” {req.new_course_name}</Text>
                       </View>
                     </View>
                   )}
@@ -332,7 +332,7 @@ export default function AdminApprovals() {
 
                 <View style={[layout.row, { gap: spacing[2], marginTop: spacing[3] }]}>
                   <Text variant="micro" color="muted" style={layout.fill}>
-                    {req.session}{req.semester ? ` · ${req.semester}` : ""} · {new Date(req.created_at).toLocaleDateString("en-NG")}
+                    {req.session}{req.semester ? ` Â· ${req.semester}` : ""} Â· {new Date(req.created_at).toLocaleDateString("en-NG")}
                   </Text>
                 </View>
 

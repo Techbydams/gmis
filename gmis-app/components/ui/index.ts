@@ -22,6 +22,8 @@ export { Icon }        from "./Icon";
 export { SelectModal } from "./SelectModal";
 export { ToastProvider, useToast } from "./Toast";
 export { BottomSheet }            from "./BottomSheet";
+export { BorderBeam }             from "./BorderBeam";
+export { AnimatedThemeToggler }   from "./AnimatedThemeToggler";
 export type { ToastConfig, ToastVariant } from "./Toast";
 export {
   Skeleton,

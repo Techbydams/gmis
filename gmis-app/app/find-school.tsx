@@ -225,7 +225,10 @@ export default function FindSchool() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.bg.primary }}
+      style={[
+        { flex: 1, backgroundColor: colors.bg.primary },
+        Platform.OS === "web" && { overflow: "hidden" } as any,
+      ]}
       edges={["top", "bottom"]}
     >
       <KeyboardAvoidingView
@@ -234,11 +237,20 @@ export default function FindSchool() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingHorizontal: pagePadding }]}
+          style={Platform.OS === "web" ? { flex: 1, width: "100%" } as any : undefined}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingHorizontal: pagePadding },
+            Platform.OS === "web" && { minHeight: "100%" } as any,
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.inner, { maxWidth: Math.min(460, windowWidth - pagePadding * 2) }]}>
+          <View style={[
+            styles.inner,
+            { maxWidth: Math.min(460, windowWidth - pagePadding * 2) },
+            Platform.OS === "web" && { width: "100%", boxSizing: "border-box" } as any,
+          ]}>
 
             {/* Logo + title — entrance animation */}
             <Animated.View

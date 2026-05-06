@@ -1,19 +1,19 @@
-// ============================================================
-// GMIS — Admin Grading System Configuration
+﻿// ============================================================
+// GMIS â€” Admin Grading System Configuration
 // Route: /(tenant)/(admin)/grading
 //
 // Features:
-//   • Define custom grade ranges per school (A: 70-100, B: 60-69…)
-//   • Set letter grade, score range, grade point
-//   • Live preview: enter score → see auto-computed grade
-//   • Default Nigerian 5-point system pre-loaded
-//   • Save to grading_system table in tenant DB
-//   • Edit / delete / reorder grades
+//   â€¢ Define custom grade ranges per school (A: 70-100, B: 60-69â€¦)
+//   â€¢ Set letter grade, score range, grade point
+//   â€¢ Live preview: enter score â†’ see auto-computed grade
+//   â€¢ Default Nigerian 5-point system pre-loaded
+//   â€¢ Save to grading_system table in tenant DB
+//   â€¢ Edit / delete / reorder grades
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
@@ -37,7 +37,7 @@ import { useResponsive }   from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface GradingRule {
   id?: string;
   grade: string;
@@ -47,7 +47,7 @@ interface GradingRule {
   remark: string;
 }
 
-// ── Default Nigerian grading system ───────────────────────
+// â”€â”€ Default Nigerian grading system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const NIGERIAN_DEFAULT: Omit<GradingRule, "id">[] = [
   { grade: "A",  min_score: 70, max_score: 100, grade_point: 5.0, remark: "Excellent" },
   { grade: "B",  min_score: 60, max_score: 69,  grade_point: 4.0, remark: "Very Good" },
@@ -61,7 +61,7 @@ const GRADE_COLORS: Record<string, string> = {
   A: "#10b981", B: "#2d6cff", C: "#f0b429", D: "#f97316", E: "#f59e0b", F: "#ef4444",
 };
 
-// ── Add/Edit Grade Sheet ───────────────────────────────────
+// â”€â”€ Add/Edit Grade Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function GradeSheet({ visible, onClose, editing, onSave, colors }: {
   visible: boolean; onClose: () => void; editing: GradingRule | null;
   onSave: (rule: Omit<GradingRule, "id">) => Promise<void>; colors: any;
@@ -87,7 +87,7 @@ function GradeSheet({ visible, onClose, editing, onSave, colors }: {
     const gp  = parseFloat(gradePoint);
     if (!grade.trim()) { Alert.alert("Required", "Grade letter is required."); return; }
     if (isNaN(min) || isNaN(max) || min > max) { Alert.alert("Invalid range", "Min score must be less than max score."); return; }
-    if (isNaN(gp) || gp < 0 || gp > 5) { Alert.alert("Invalid grade point", "Grade point must be 0–5."); return; }
+    if (isNaN(gp) || gp < 0 || gp > 5) { Alert.alert("Invalid grade point", "Grade point must be 0â€“5."); return; }
     setSaving(true);
     try {
       await onSave({ grade: grade.trim().toUpperCase(), min_score: min, max_score: max, grade_point: gp, remark: remark.trim() });
@@ -120,7 +120,7 @@ function GradeSheet({ visible, onClose, editing, onSave, colors }: {
         <View style={{ flex: 1 }}><F label="MIN SCORE" value={minScore}   onChangeText={setMinScore}   placeholder="70" keyboard="decimal-pad" /></View>
         <View style={{ flex: 1 }}><F label="MAX SCORE" value={maxScore}   onChangeText={setMaxScore}   placeholder="100" keyboard="decimal-pad" /></View>
       </View>
-      <F label="GRADE POINT (0.0 – 5.0)"    value={gradePoint} onChangeText={setGradePoint} placeholder="5.0" keyboard="decimal-pad" />
+      <F label="GRADE POINT (0.0 â€“ 5.0)"    value={gradePoint} onChangeText={setGradePoint} placeholder="5.0" keyboard="decimal-pad" />
       <F label="REMARK (e.g. Excellent)"    value={remark}     onChangeText={setRemark}     placeholder="Excellent" />
       <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.75} style={[styles.saveBtn, { backgroundColor: brand.blue, marginTop: spacing[2] }]}>
         {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: fontWeight.bold, fontSize: fontSize.md }}>{editing ? "Update Grade" : "Add Grade"}</Text>}
@@ -129,7 +129,7 @@ function GradeSheet({ visible, onClose, editing, onSave, colors }: {
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminGrading() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -216,7 +216,7 @@ export default function AdminGrading() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Grading System"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4], paddingBottom: spacing[20] }}
@@ -291,7 +291,7 @@ export default function AdminGrading() {
                   </View>
                 </View>
                 <Text style={[styles.colRange, { color: colors.text.primary, fontSize: fontSize.sm, fontWeight: fontWeight.medium }]}>
-                  {rule.min_score} – {rule.max_score}
+                  {rule.min_score} â€“ {rule.max_score}
                 </Text>
                 <Text style={[styles.colPoint, { color: brand.blue, fontSize: fontSize.sm, fontWeight: fontWeight.bold }]}>
                   {rule.grade_point.toFixed(1)}
@@ -347,7 +347,7 @@ export default function AdminGrading() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   addBtn:       { flexDirection: "row", alignItems: "center", gap: spacing[2], paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.xl },
   infoBanner:   { flexDirection: "row", alignItems: "flex-start", gap: spacing[3], padding: spacing[4], borderRadius: radius.xl, borderWidth: 1 },

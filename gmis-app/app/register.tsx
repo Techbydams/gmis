@@ -16,11 +16,12 @@
    GMIS · A product of DAMS Technologies · gmis.app
    · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   View, ScrollView, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, TextInput,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import { supabase }        from "@/lib/supabase";
 import { isValidEmail, isValidPassword } from "@/lib/helpers";
@@ -195,18 +196,19 @@ function DocUpload({
   error?: string;
 }) {
   const { colors } = useTheme();
-  const fileInputRef = useRef<HTMLInputElement>(null as any);
 
-  const handlePress = () => {
-    if (Platform.OS === "web" && fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleChange = (e: any) => {
-    const f: File = e.target?.files?.[0];
-    if (!f) return;
-    onFile({ name: f.name, size: f.size, webFile: f });
+  const handlePress = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ["application/pdf", "image/jpeg", "image/png"],
+      copyToCacheDirectory: false,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+    onFile({
+      name: asset.name,
+      size: asset.size ?? 0,
+      webFile: asset.file as File,
+    });
   };
 
   const sizeStr = file ? (file.size > 1024 * 1024
@@ -219,17 +221,6 @@ function DocUpload({
         {label} <Text style={{ color: colors.status.error }}>*</Text>
       </Text>
       <Text style={{ fontSize: fontSize.xs, color: colors.text.muted, marginBottom: spacing[2] }}>{hint}</Text>
-
-      {/* Hidden web file input */}
-      {Platform.OS === "web" && (
-        <input
-          ref={fileInputRef as any}
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
-          style={{ display: "none" } as any}
-          onChange={handleChange}
-        />
-      )}
 
       <TouchableOpacity
         onPress={handlePress}
@@ -358,10 +349,10 @@ export default function RegisterPage() {
   const next = () => { if (validate(step)) setStep((s) => s + 1); };
   const back = () => setStep((s) => Math.max(1, s - 1));
 
-  const uploadDoc = async (doc: DocFile, path: string): Promise<string | null> => {
-    if (!doc.webFile) return null;
+  const uploadDoc = async (doc: DocFile, path: string): Promise<string> => {
+    if (!doc.webFile) throw new Error("No file selected for " + path);
     const { data, error } = await supabase.storage.from("org-documents").upload(path, doc.webFile, { upsert: true });
-    if (error) return null;
+    if (error) throw new Error(`Upload failed (${path}): ${error.message}`);
     const { data: urlData } = supabase.storage.from("org-documents").getPublicUrl(data.path);
     return urlData.publicUrl;
   };
@@ -380,8 +371,6 @@ export default function RegisterPage() {
         uploadDoc(docs.nuc!,        `${slugFolder}/nuc.${ext(docs.nuc!)}`),
         uploadDoc(docs.letterhead!, `${slugFolder}/letterhead.${ext(docs.letterhead!)}`),
       ]);
-
-      if (!cacUrl || !nucUrl || !lhUrl) throw new Error("Document upload failed. Please try again.");
 
       const { error: orgErr } = await supabase.from("organizations").insert({
         id:             orgId,
@@ -403,11 +392,13 @@ export default function RegisterPage() {
 
       if (orgErr) throw new Error(orgErr.message);
 
-      await supabase.from("organization_documents").insert([
+      const { error: docsErr } = await supabase.from("organization_documents").insert([
         { org_id: orgId, document_type: "cac",        file_url: cacUrl,  file_name: docs.cac!.name },
         { org_id: orgId, document_type: "nuc",        file_url: nucUrl,  file_name: docs.nuc!.name },
         { org_id: orgId, document_type: "letterhead", file_url: lhUrl,   file_name: docs.letterhead!.name },
       ] as any);
+
+      if (docsErr) throw new Error(`Documents saved but failed to record: ${docsErr.message}`);
 
       setDone(true);
     } catch (err: any) {
@@ -464,12 +455,12 @@ export default function RegisterPage() {
         <Text style={{ fontSize: fontSize["2xl"], fontWeight: fontWeight.black, color: colors.text.primary, marginBottom: spacing[1], textAlign: "center" }}>
           Register your institution
         </Text>
-        <Text style={{ fontSize: fontSize.sm, color: colors.text.muted, marginBottom: spacing[7], textAlign: "center" }}>
+        <Text style={{ fontSize: fontSize.sm, color: colors.text.muted, marginBottom: spacing[6], textAlign: "center" }}>
           Reviewed by DAMS Technologies · Approval within 48 hours
         </Text>
 
         {/* Progress indicator */}
-        <View style={[styles.progressRow, { marginBottom: spacing[7] }]}>
+        <View style={[styles.progressRow, { marginBottom: spacing[6] }]}>
           {STEPS.map((s, i) => {
             const n       = i + 1;
             const done_   = n < step;
@@ -663,7 +654,7 @@ export default function RegisterPage() {
 
 const styles = StyleSheet.create({
   logoBox: {
-    width: spacing[14], height: spacing[14],
+    width: 56, height: 56,
     borderRadius: radius["2xl"],
     alignItems: "center", justifyContent: "center",
   },

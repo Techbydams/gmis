@@ -1,6 +1,6 @@
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+﻿/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, Switch, Image, Alert, ActivityIndicator, TextInput } from "react-native";
@@ -116,14 +116,14 @@ export default function AdminSettings() {
     {
       title: "Account",
       items: [
-        { label: "Sign out", description: "Sign out of admin portal", icon: "auth-logout" as const, danger: true, onPress: async () => { await signOut(); router.replace("/login"); } },
+        { label: "Sign out", description: "Sign out of admin portal", icon: "auth-logout" as const, danger: true, onPress: async () => { await signOut(); router.replace("/(tenant)/login"); } },
       ],
     },
   ];
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Settings"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -166,9 +166,9 @@ export default function AdminSettings() {
         <Card>
           <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[3] }}>School Information</Text>
           {[
-            { label: "School name",  value: tenant?.name || "—" },
-            { label: "Slug",         value: slug || "—" },
-            { label: "Supabase URL", value: tenant?.supabase_url?.substring(0, 40) + "..." || "—" },
+            { label: "School name",  value: tenant?.name || "â€”" },
+            { label: "Slug",         value: slug || "â€”" },
+            { label: "Supabase URL", value: tenant?.supabase_url?.substring(0, 40) + "..." || "â€”" },
           ].map((row, i) => (
             <View key={row.label} style={[layout.rowBetween, { paddingVertical: spacing[3], borderBottomWidth: i < 2 ? 1 : 0, borderBottomColor: colors.border.subtle }]}>
               <Text variant="caption" color="muted">{row.label}</Text>
@@ -208,7 +208,7 @@ export default function AdminSettings() {
             secureTextEntry={false}
           />
           <Text variant="micro" color="muted" style={{ marginBottom: spacing[3] }}>
-            Get your public key from paystack.com → Settings → API Keys. Never enter your secret key here.
+            Get your public key from paystack.com â†’ Settings â†’ API Keys. Never enter your secret key here.
           </Text>
           <TouchableOpacity
             onPress={savePaystackKey}

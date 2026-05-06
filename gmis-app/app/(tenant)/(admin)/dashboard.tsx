@@ -1,13 +1,13 @@
-// ============================================================
-// GMIS — Organisation Admin Dashboard
+﻿// ============================================================
+// GMIS â€” Organisation Admin Dashboard
 // Route: /(tenant)/(admin)/dashboard
 // Real data: admin_users, students, lecturers, courses,
 //            semester_registrations, results, fee_structure
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
     return getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!);
   }, [tenant, slug]);
 
-  // Load once on first focus — prevents reload on every navigation
+  // Load once on first focus â€” prevents reload on every navigation
   useAutoLoad(() => { if (db && user) load(); }, [db, user], { hasData: !!adminUser });
 
   const load = async (isRefresh = false) => {
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
 
   return (
     <AppShell role="admin" user={shellUser} schoolName={tenant?.name || ""}
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       {/* Native top bar */}
       <View style={[styles.topBar, { backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
         <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
@@ -168,9 +168,9 @@ export default function AdminDashboard() {
         <Text variant="heading" color="primary">
           Welcome, {adminUser?.full_name?.split(" ")[0] || "Admin"}
         </Text>
-        <Text variant="caption" color="muted">{tenant?.name} · Admin Portal</Text>
+        <Text variant="caption" color="muted">{tenant?.name} Â· Admin Portal</Text>
 
-        {/* Stats — 2×2 grid */}
+        {/* Stats â€” 2Ã—2 grid */}
         <View style={[layout.row, { gap: spacing[3] }]}>
           <StatCard icon="user-student"   label="Active students"  value={String(stats.students)}  color="brand"   style={{ flex: 1 }} />
           <StatCard icon="status-pending" label="Pending approval" value={String(stats.pending)}   color={stats.pending > 0 ? "warning" : "success"} style={{ flex: 1 }} />
@@ -189,14 +189,14 @@ export default function AdminDashboard() {
                 <Badge label={String(pendingList.length)} variant="amber" size="sm" />
               </View>
               <TouchableOpacity onPress={() => router.push("/(tenant)/(admin)/approvals" as any)} activeOpacity={0.7}>
-                <Text variant="caption" color="link">View all →</Text>
+                <Text variant="caption" color="link">View all â†’</Text>
               </TouchableOpacity>
             </View>
             {pendingList.map((s, i) => (
               <View key={s.id} style={[layout.rowBetween, { paddingVertical: spacing[3], borderBottomWidth: i < pendingList.length - 1 ? 1 : 0, borderBottomColor: colors.border.subtle }]}>
                 <View style={layout.fill}>
                   <Text variant="label" weight="semibold" color="primary">{s.first_name} {s.last_name}</Text>
-                  <Text variant="micro" color="muted">{s.matric_number} · {s.email}</Text>
+                  <Text variant="micro" color="muted">{s.matric_number} Â· {s.email}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => approveStudent(s.id)}
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
         </View>
 
         <Text variant="micro" color="muted" align="center" style={{ marginBottom: spacing[4] }}>
-          GMIS Admin · A product of DAMS Technologies
+          GMIS Admin Â· A product of DAMS Technologies
         </Text>
       </ScrollView>
     </AppShell>

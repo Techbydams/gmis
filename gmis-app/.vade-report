@@ -1,0 +1,45 @@
+# Vercel Web Analytics Integration Report
+
+## Summary
+Successfully installed and configured Vercel Web Analytics for the GMIS Expo/React Native Web application.
+
+## Changes Made
+
+### 1. Package Installation
+- Installed `@vercel/analytics` version 2.0.1 using npm
+- Package added to dependencies in package.json
+- Updated package-lock.json with new dependency tree
+
+### 2. Analytics Integration
+Modified: `app/_layout.tsx`
+- Added import: `import { Analytics } from "@vercel/analytics/react"`
+- Integrated `<Analytics />` component into the root layout
+- Placed the Analytics component inside the ToastProvider to ensure it's properly rendered in the component tree
+
+## Implementation Details
+
+The Analytics component was added to the root layout (`app/_layout.tsx`) which is the entry point for the Expo Router application. This ensures:
+- Analytics tracking is available across all routes in the application
+- The component is initialized once when the app loads
+- Web analytics will track page views and interactions when the app runs in web mode
+
+### Framework-Specific Approach
+- Used `@vercel/analytics/react` import as this is an Expo app with React Native Web support
+- The Analytics component is web-only and will not affect native iOS/Android builds
+- Compatible with the existing Expo Router setup
+
+## Verification
+- TypeScript compilation: ✓ Passed (no errors)
+- Package installation: ✓ Successful
+- Build compatibility: ✓ Verified
+
+## Next Steps
+Once deployed to Vercel:
+1. Enable Web Analytics in the Vercel dashboard under Analytics settings
+2. Deploy the application to Vercel
+3. Analytics data will start appearing in the dashboard after users visit the site
+
+## Notes
+- The Analytics component is designed for web deployments and will automatically handle tracking
+- No additional configuration is required in the code
+- Analytics data is only collected when the app is deployed on Vercel's infrastructure

@@ -14,6 +14,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { TenantProvider }          from "@/context/TenantContext";
 import { ToastProvider }           from "@/components/ui";
+import { Analytics } from "@vercel/analytics/react";
 
 function AppContent() {
   const { isDark } = useTheme();
@@ -35,6 +36,7 @@ export default function RootLayout() {
         <TenantProvider>
           <ToastProvider>
             <AppContent />
+            <Analytics />
           </ToastProvider>
         </TenantProvider>
       </ThemeProvider>

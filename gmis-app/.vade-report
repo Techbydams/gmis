@@ -1,0 +1,66 @@
+# Vercel Web Analytics Installation Report
+
+## Summary
+Successfully installed and configured Vercel Web Analytics for the GMIS Expo/React Native application with web support.
+
+## Changes Made
+
+### 1. Package Installation
+- **Installed**: `@vercel/analytics` version 2.0.1
+- **Package Manager**: npm
+- **Location**: Added to dependencies in `package.json`
+
+### 2. Configuration Changes
+**File Modified**: `app/_layout.tsx`
+
+Added Vercel Analytics integration to the root layout:
+- Imported `Analytics` component from `@vercel/analytics/react`
+- Imported `Platform` from `react-native` for platform detection
+- Added `<Analytics />` component conditionally for web platform only using `{Platform.OS === 'web' && <Analytics />}`
+
+### 3. Implementation Details
+
+**Why Platform-Specific?**
+This is an Expo/React Native application that supports multiple platforms (iOS, Android, and Web). Vercel Analytics is designed for web applications only, so the component is conditionally rendered only when the app runs on the web platform.
+
+**Placement**
+The Analytics component was added inside the `ToastProvider` in the root layout, ensuring it's available across all web routes while maintaining the existing provider structure.
+
+**Framework Context**
+- Project Type: Expo Router (file-based routing)
+- Web Build: Uses `expo export -p web` (configured in vercel.json)
+- Existing Providers: SafeAreaProvider, ThemeProvider, TenantProvider, ToastProvider
+- Analytics is properly scoped to web platform only
+
+## Documentation Reference
+Implementation follows the latest Vercel Analytics quickstart guide from:
+https://vercel.com/docs/analytics/quickstart
+
+The React/Create React App pattern was adapted for this Expo Router application with platform-specific rendering.
+
+## Next Steps for User
+1. **Enable Analytics in Vercel Dashboard**
+   - Go to your Vercel project dashboard
+   - Navigate to the Analytics tab
+   - Click "Enable" to activate Web Analytics
+
+2. **Deploy to Vercel**
+   - Run `vercel deploy` or push to your connected git branch
+   - Vercel will automatically build and deploy with Analytics enabled
+
+3. **Verify Installation**
+   - After deployment, visit your web app
+   - Open browser DevTools > Network tab
+   - Look for requests to `/_vercel/insights/*` or `/<unique-path>/view`
+   - Check Vercel dashboard for analytics data after user visits accumulate
+
+## Files Modified
+- `app/_layout.tsx` - Added Analytics component with platform check
+- `package.json` - Added @vercel/analytics dependency
+- `package-lock.json` - Updated with new package and dependencies (977 packages added)
+
+## Testing Notes
+- TypeScript compilation check shows pre-existing error unrelated to Analytics
+- Web export build initiated successfully with Analytics integration
+- Changes follow existing code patterns and maintain provider structure
+- Platform check ensures Analytics only runs on web, not on native mobile platforms

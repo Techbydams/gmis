@@ -27,7 +27,9 @@ import { supabase, getTenantClient } from "@/lib/supabase";
 import { getTenantSlug } from "@/lib/helpers";
 import type { TenantInfo, Organization } from "@/types";
 
-const STORED_SLUG_KEY = "gmis:org_slug";
+const STORED_SLUG_KEY  = "gmis:org_slug";
+const STORED_ORG_KEY   = (slug: string) => `gmis:org_cache:${slug}`;
+const ORG_CACHE_TTL    = 60 * 60 * 1000; // 1 hour
 
 interface TenantContextType {
   tenant:          TenantInfo | null;
@@ -109,13 +111,35 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
 
+    // ── Fast path: use cached org if fresh ──────────────
     try {
-      // Query the safe view — never exposes supabase_service_key
+      const raw = await AsyncStorage.getItem(STORED_ORG_KEY(s));
+      if (raw) {
+        const cached = JSON.parse(raw) as Organization & { _ts: number };
+        if (cached._ts && Date.now() - cached._ts < ORG_CACHE_TTL) {
+          await setTenantFromOrg(cached);
+          setLoading(false);
+          // Refresh cache in background — no await
+          supabase
+            .from("org_public")
+            .select("id, name, slug, logo_url, supabase_url, supabase_anon_key, status")
+            .eq("slug", s.toLowerCase().trim())
+            .maybeSingle()
+            .then(({ data: fresh }) => {
+              if (fresh) AsyncStorage.setItem(STORED_ORG_KEY(s), JSON.stringify({ ...fresh, _ts: Date.now() })).catch(() => {});
+            });
+          return;
+        }
+      }
+    } catch {}
+
+    // ── Slow path: DB query ──────────────────────────────
+    try {
       const { data: org, error: orgError } = await supabase
         .from("org_public")
         .select("id, name, slug, logo_url, supabase_url, supabase_anon_key, status")
         .eq("slug", s.toLowerCase().trim())
-        .maybeSingle();  // maybeSingle won't throw on no results
+        .maybeSingle();
 
       if (orgError) {
         console.error("TenantContext loadTenant error:", orgError);
@@ -131,6 +155,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       }
 
       await setTenantFromOrg(org as Organization);
+      // Save to cache
+      AsyncStorage.setItem(STORED_ORG_KEY(s), JSON.stringify({ ...org, _ts: Date.now() })).catch(() => {});
     } catch (err) {
       console.error("TenantContext exception:", err);
       setError("Failed to load school information. Please try again.");

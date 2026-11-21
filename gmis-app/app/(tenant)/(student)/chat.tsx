@@ -51,6 +51,7 @@ interface Message {
   message: string;
   created_at: string;
   course_id: string | null;
+  sender_name?: string;
 }
 
 interface Course {
@@ -162,8 +163,10 @@ export default function Chat() {
   const [loading,      setLoading]      = useState(true);
   const [sending,      setSending]      = useState(false);
   const [topBarHeight, setTopBarHeight] = useState(0);
-  const flatRef     = useRef<FlatList>(null);
-  const studentIdRef = useRef<string | null>(null);
+  const flatRef       = useRef<FlatList>(null);
+  const studentIdRef  = useRef<string | null>(null);
+  // sender_id → full name cache, used for realtime inserts that arrive without joins
+  const senderNames   = useRef<Record<string, string>>({});
 
   const db = useMemo(() =>
     tenant ? getTenantClient(tenant.supabase_url, tenant.supabase_anon_key, slug!) : null,
@@ -219,13 +222,20 @@ export default function Chat() {
     }
 
     const { data } = await db.from("chat_messages")
-      .select("*")
+      .select("id, sender_id, message, created_at, course_id, students(first_name, last_name)")
       .eq("course_id", courseId)
       .order("created_at", { ascending: true })
       .limit(100);
     if (data) {
-      setMessages(data as Message[]);
-      cache.set(msgKey, data);
+      const mapped: Message[] = (data as any[]).map((m) => {
+        const name = m.students
+          ? `${m.students.first_name} ${m.students.last_name}`
+          : "Student";
+        senderNames.current[m.sender_id] = name;
+        return { id: m.id, sender_id: m.sender_id, message: m.message, created_at: m.created_at, course_id: m.course_id, sender_name: name };
+      });
+      setMessages(mapped);
+      cache.set(msgKey, mapped);
       setTimeout(() => flatRef.current?.scrollToEnd({ animated: false }), 80);
     }
   };
@@ -235,11 +245,14 @@ export default function Chat() {
   useRealtimeTable(db, "chat_messages", {
     filter: activeCourse ? `course_id=eq.${activeCourse.id}` : undefined,
     onInsert: useCallback((row: Message) => {
-      // Skip if we already have this message (e.g. the optimistic copy we added on send)
+      // Attach sender name from cache (realtime rows don't include joins)
+      const enriched: Message = {
+        ...row,
+        sender_name: senderNames.current[row.sender_id] ?? "Student",
+      };
       setMessages((prev) => {
-        if (prev.some((m) => m.id === row.id)) return prev;
-        const updated = [...prev, row];
-        // Update cache too so background reload is consistent
+        if (prev.some((m) => m.id === enriched.id)) return prev;
+        const updated = [...prev, enriched];
         if (activeCourse && slug) {
           cache.set(`chat:msgs:${slug}:${activeCourse.id}`, updated);
         }
@@ -255,11 +268,12 @@ export default function Chat() {
 
     // Optimistic: show message immediately before DB confirms
     const optimistic: Message = {
-      id:         `opt-${Date.now()}`,
-      sender_id:  studentIdRef.current,
-      course_id:  activeCourse.id,
-      message:    text,
-      created_at: new Date().toISOString(),
+      id:          `opt-${Date.now()}`,
+      sender_id:   studentIdRef.current,
+      course_id:   activeCourse.id,
+      message:     text,
+      created_at:  new Date().toISOString(),
+      sender_name: senderNames.current[studentIdRef.current] ?? "Me",
     };
     setMessages((prev) => [...prev, optimistic]);
     setNewMsg("");

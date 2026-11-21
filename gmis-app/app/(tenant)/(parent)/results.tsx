@@ -64,7 +64,7 @@ export default function ParentResults() {
       .from("results")
       .select("id, score, grade, grade_point, semester, session, courses(course_code, course_name, credit_units)")
       .eq("student_id", ward)
-      .eq("is_published", true)
+      .eq("published", true)
       .order("session", { ascending: false })
       .order("semester");
 

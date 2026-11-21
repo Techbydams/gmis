@@ -1,6 +1,6 @@
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+﻿/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo, useCallback } from "react";
 import { View, ScrollView, TextInput, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
@@ -84,14 +84,14 @@ export default function LecturerStudents() {
 
   return (
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""} pageTitle="My Students"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <View style={[layout.fill, { backgroundColor: colors.bg.primary }]}>
         <View style={[styles.searchWrap, { backgroundColor: colors.bg.card, borderBottomColor: colors.border.DEFAULT }]}>
           <View style={[styles.searchBar, { backgroundColor: colors.bg.input, borderColor: colors.border.DEFAULT }]}>
             <Icon name="ui-search" size="md" color={colors.text.muted} />
             <TextInput
               style={{ flex: 1, fontSize: fontSize.md, color: colors.text.primary }}
-              placeholder="Search students…"
+              placeholder="Search studentsâ€¦"
               placeholderTextColor={colors.text.muted}
               value={search}
               onChangeText={setSearch}
@@ -120,7 +120,7 @@ export default function LecturerStudents() {
                     </View>
                     <View style={layout.fill}>
                       <Text variant="label" weight="semibold" color="primary">{s.first_name} {s.last_name}</Text>
-                      <Text variant="micro" color="muted">{s.matric_number} · {s.level} Level</Text>
+                      <Text variant="micro" color="muted">{s.matric_number} Â· {s.level} Level</Text>
                     </View>
                   </View>
                 ))

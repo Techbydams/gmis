@@ -41,7 +41,7 @@ import { registerForPushNotifications } from "@/lib/notifications";
 
 // ── Constants ──────────────────────────────────────────────
 // Pages inside /(tenant)/ that don't require auth
-const PUBLIC_SEGMENTS = new Set(["login", "admin-login", "signup", "setup"]);
+const PUBLIC_SEGMENTS = new Set(["login", "admin-login", "signup", "setup", "forgot-password"]);
 
 // Where each role goes after login
 const ROLE_DASHBOARDS: Record<string, string> = {

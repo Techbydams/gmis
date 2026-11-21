@@ -1,12 +1,12 @@
-// ============================================================
-// GMIS — Lecturer Course Detail
+﻿// ============================================================
+// GMIS â€” Lecturer Course Detail
 // Route: /(tenant)/(lecturer)/course-detail?id=<course_id>
 // Shows enrolled students + quick links for this course
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
@@ -64,7 +64,7 @@ export default function CourseDetail() {
 
   return (
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Course Detail"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -84,7 +84,7 @@ export default function CourseDetail() {
                 </View>
                 <View style={layout.fill}>
                   <Text variant="subtitle" weight="bold" color="primary">{course.course_name}</Text>
-                  <Text variant="caption" color="muted">{course.level} Level · {course.semester} · {course.credit_units} units</Text>
+                  <Text variant="caption" color="muted">{course.level} Level Â· {course.semester} Â· {course.credit_units} units</Text>
                 </View>
               </View>
               {course.description && (

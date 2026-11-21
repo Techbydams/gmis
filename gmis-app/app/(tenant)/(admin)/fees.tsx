@@ -1,12 +1,12 @@
-// ============================================================
-// GMIS — Admin Fee Structure Management
+﻿// ============================================================
+// GMIS â€” Admin Fee Structure Management
 // Route: /(tenant)/(admin)/fees
-// Uses: fee_structure (fee_type_id FK → fee_types), student_payments
+// Uses: fee_structure (fee_type_id FK â†’ fee_types), student_payments
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
@@ -34,7 +34,7 @@ import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout } from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface FeeType  { id: string; name: string; description: string | null; }
 interface FeeItem  {
@@ -83,7 +83,7 @@ const SEMESTER_OPTIONS = [
   { key: "third",  label: "Third"  },
 ];
 
-// ── Fee Form Sheet ─────────────────────────────────────────
+// â”€â”€ Fee Form Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface FeeSheetProps {
   visible:   boolean;
@@ -140,7 +140,7 @@ function FeeSheet({ visible, onClose, onSave, initial, feeTypes, colors, editMod
         />
 
         {/* Amount */}
-        <Text variant="caption" weight="semibold" color="muted" style={[s.fieldLabel, { marginTop: spacing[4] }]}>AMOUNT (₦)</Text>
+        <Text variant="caption" weight="semibold" color="muted" style={[s.fieldLabel, { marginTop: spacing[4] }]}>AMOUNT (â‚¦)</Text>
         <TextInput
           style={[s.input, { backgroundColor: colors.bg.input, color: colors.text.primary, borderColor: colors.border.DEFAULT }]}
           placeholder="e.g. 75000"
@@ -257,7 +257,7 @@ function FeeSheet({ visible, onClose, onSave, initial, feeTypes, colors, editMod
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function AdminFees() {
   const router            = useRouter();
@@ -321,7 +321,7 @@ export default function AdminFees() {
     } finally { setLoading(false); setRefreshing(false); }
   }, [db]);
 
-  // ── CRUD ────────────────────────────────────────────────
+  // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handleSave = async (formData: FeeFormData) => {
     if (!db) throw new Error("No DB");
@@ -377,7 +377,7 @@ export default function AdminFees() {
     ]);
   };
 
-  // ── Derived stats ──────────────────────────────────────
+  // â”€â”€ Derived stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const activeFeeCount  = fees.filter((f) => f.is_active).length;
   const pendingCount    = payments.filter((p) => p.status === "pending").length;
   const totalCollected  = payments.filter((p) => p.status === "success").reduce((s, p) => s + (p.amount || 0), 0);
@@ -413,14 +413,14 @@ export default function AdminFees() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Fee Structure"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <View style={[layout.fill, { backgroundColor: colors.bg.primary }]}>
 
         {/* Top bar */}
         <View style={[s.topBar, { backgroundColor: colors.bg.card, borderBottomColor: colors.border.DEFAULT }]}>
           <View>
             <Text variant="heading" color="primary">Fee Structure</Text>
-            <Text variant="caption" color="muted">{fees.length} fee item{fees.length !== 1 ? "s" : ""} · {currentSession}</Text>
+            <Text variant="caption" color="muted">{fees.length} fee item{fees.length !== 1 ? "s" : ""} Â· {currentSession}</Text>
           </View>
           <TouchableOpacity onPress={() => { setEditTarget(null); setSheetOpen(true); }} activeOpacity={0.75}
             style={[s.addBtn, { backgroundColor: brand.blue }]}>
@@ -483,8 +483,8 @@ export default function AdminFees() {
                         </View>
                         <Text variant="micro" color="muted">
                           {fee.level ? `${fee.level}L` : "All levels"}
-                          {fee.session  ? ` · ${fee.session}`  : ""}
-                          {fee.semester ? ` · ${fee.semester.charAt(0).toUpperCase() + fee.semester.slice(1)} Sem` : ""}
+                          {fee.session  ? ` Â· ${fee.session}`  : ""}
+                          {fee.semester ? ` Â· ${fee.semester.charAt(0).toUpperCase() + fee.semester.slice(1)} Sem` : ""}
                         </Text>
                         {fee.description ? <Text variant="micro" color="muted" numberOfLines={1}>{fee.description}</Text> : null}
                       </View>

@@ -1,6 +1,6 @@
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+﻿/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useRef } from "react";
 import {
@@ -33,7 +33,7 @@ export default function AIAssistant() {
   const { colors }        = useTheme();
 
   const [messages, setMessages] = useState<Message[]>([
-    { id: "0", role: "assistant", content: `Hello! I'm your GMIS AI Assistant. Ask me anything about ${tenant?.name || "your institution"} — results, payments, clearance, or any academic question.` },
+    { id: "0", role: "assistant", content: `Hello! I'm your GMIS AI Assistant. Ask me anything about ${tenant?.name || "your institution"} â€” results, payments, clearance, or any academic question.` },
   ]);
   const [input,   setInput]   = useState("");
   const [sending, setSending] = useState(false);
@@ -67,7 +67,7 @@ export default function AIAssistant() {
       user={shellUser}
       schoolName={tenant?.name || ""}
       pageTitle="AI Assistant"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}
     >
       <KeyboardAvoidingView
         style={layout.fill}
@@ -138,7 +138,7 @@ export default function AIAssistant() {
         <View style={[styles.inputRow, { backgroundColor: colors.bg.card, borderTopColor: colors.border.DEFAULT }]}>
           <TextInput
             style={[styles.input, { backgroundColor: colors.bg.input, color: colors.text.primary, borderColor: colors.border.DEFAULT }]}
-            placeholder="Ask anything…"
+            placeholder="Ask anythingâ€¦"
             placeholderTextColor={colors.text.muted}
             value={input}
             onChangeText={setInput}

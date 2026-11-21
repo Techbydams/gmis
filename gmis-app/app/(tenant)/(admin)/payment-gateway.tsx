@@ -1,20 +1,20 @@
-// ============================================================
-// GMIS — Admin Payment Gateway Settings
+﻿// ============================================================
+// GMIS â€” Admin Payment Gateway Settings
 // Route: /(tenant)/(admin)/payment-gateway
 //
 // Features:
-//   • Support multiple gateways: Paystack, Flutterwave, Remita,
+//   â€¢ Support multiple gateways: Paystack, Flutterwave, Remita,
 //     Interswitch, Squad, and custom
-//   • Per-gateway: public key, secret key, webhook secret, mode
-//   • Enable / disable each gateway
-//   • Assign a default gateway for all fees
-//   • Per-fee gateway override (from fees page)
-//   • Instructions link per gateway
+//   â€¢ Per-gateway: public key, secret key, webhook secret, mode
+//   â€¢ Enable / disable each gateway
+//   â€¢ Assign a default gateway for all fees
+//   â€¢ Per-fee gateway override (from fees page)
+//   â€¢ Instructions link per gateway
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
@@ -38,7 +38,7 @@ import { useResponsive }   from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
-// ── Gateway catalogue ──────────────────────────────────────
+// â”€â”€ Gateway catalogue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const GATEWAY_CATALOGUE = [
   {
     key: "paystack",
@@ -46,8 +46,8 @@ const GATEWAY_CATALOGUE = [
     description: "Most popular in Nigeria. Supports cards, bank transfer, USSD.",
     color: "#00C3F7",
     fields: [
-      { key: "public_key",    label: "Public Key",    placeholder: "pk_live_…",  secret: false },
-      { key: "secret_key",    label: "Secret Key",    placeholder: "sk_live_…",  secret: true  },
+      { key: "public_key",    label: "Public Key",    placeholder: "pk_live_â€¦",  secret: false },
+      { key: "secret_key",    label: "Secret Key",    placeholder: "sk_live_â€¦",  secret: true  },
       { key: "webhook_secret", label: "Webhook Secret", placeholder: "Optional", secret: true  },
     ],
   },
@@ -57,9 +57,9 @@ const GATEWAY_CATALOGUE = [
     description: "Pan-African gateway. Supports mobile money, cards, USSD.",
     color: "#F5A623",
     fields: [
-      { key: "public_key",    label: "Public Key",    placeholder: "FLWPUBK-…", secret: false },
-      { key: "secret_key",    label: "Secret Key",    placeholder: "FLWSECK-…", secret: true  },
-      { key: "encryption_key", label: "Encryption Key", placeholder: "…",      secret: true  },
+      { key: "public_key",    label: "Public Key",    placeholder: "FLWPUBK-â€¦", secret: false },
+      { key: "secret_key",    label: "Secret Key",    placeholder: "FLWSECK-â€¦", secret: true  },
+      { key: "encryption_key", label: "Encryption Key", placeholder: "â€¦",      secret: true  },
     ],
   },
   {
@@ -68,9 +68,9 @@ const GATEWAY_CATALOGUE = [
     description: "Government-approved. Used widely in public universities.",
     color: "#003E91",
     fields: [
-      { key: "merchant_id",  label: "Merchant ID",   placeholder: "…",          secret: false },
-      { key: "service_type_id", label: "Service Type ID", placeholder: "…",     secret: false },
-      { key: "api_key",      label: "API Key",        placeholder: "…",          secret: true  },
+      { key: "merchant_id",  label: "Merchant ID",   placeholder: "â€¦",          secret: false },
+      { key: "service_type_id", label: "Service Type ID", placeholder: "â€¦",     secret: false },
+      { key: "api_key",      label: "API Key",        placeholder: "â€¦",          secret: true  },
     ],
   },
   {
@@ -79,9 +79,9 @@ const GATEWAY_CATALOGUE = [
     description: "QuickTeller / Webpay for Nigerian institutions.",
     color: "#E31837",
     fields: [
-      { key: "merchant_code", label: "Merchant Code", placeholder: "…", secret: false },
-      { key: "pay_item_id",   label: "Pay Item ID",   placeholder: "…", secret: false },
-      { key: "mac_key",       label: "MAC Key",       placeholder: "…", secret: true  },
+      { key: "merchant_code", label: "Merchant Code", placeholder: "â€¦", secret: false },
+      { key: "pay_item_id",   label: "Pay Item ID",   placeholder: "â€¦", secret: false },
+      { key: "mac_key",       label: "MAC Key",       placeholder: "â€¦", secret: true  },
     ],
   },
   {
@@ -90,8 +90,8 @@ const GATEWAY_CATALOGUE = [
     description: "GTBank's payment gateway with instant settlement.",
     color: "#F68B1E",
     fields: [
-      { key: "public_key",  label: "Public Key",  placeholder: "sandbox_pk_…", secret: false },
-      { key: "secret_key",  label: "Secret Key",  placeholder: "sandbox_sk_…", secret: true  },
+      { key: "public_key",  label: "Public Key",  placeholder: "sandbox_pk_â€¦", secret: false },
+      { key: "secret_key",  label: "Secret Key",  placeholder: "sandbox_sk_â€¦", secret: true  },
     ],
   },
   {
@@ -101,8 +101,8 @@ const GATEWAY_CATALOGUE = [
     color: "#6b7280",
     fields: [
       { key: "gateway_name", label: "Gateway Name", placeholder: "e.g. MyPay",  secret: false },
-      { key: "api_key",      label: "API Key",       placeholder: "…",          secret: true  },
-      { key: "base_url",     label: "API Base URL",  placeholder: "https://…",  secret: false },
+      { key: "api_key",      label: "API Key",       placeholder: "â€¦",          secret: true  },
+      { key: "base_url",     label: "API Base URL",  placeholder: "https://â€¦",  secret: false },
     ],
   },
 ] as const;
@@ -118,7 +118,7 @@ interface GatewayConfig {
   credentials: Record<string, string>;
 }
 
-// ── Gateway Config Sheet ───────────────────────────────────
+// â”€â”€ Gateway Config Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function GatewaySheet({ visible, onClose, gatewayKey, config, onSave, colors }: {
   visible: boolean; onClose: () => void; gatewayKey: GatewayKey;
   config: GatewayConfig | null; onSave: (data: Partial<GatewayConfig>) => Promise<void>; colors: any;
@@ -223,7 +223,7 @@ function GatewaySheet({ visible, onClose, gatewayKey, config, onSave, colors }: 
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminPaymentGateway() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -305,7 +305,7 @@ export default function AdminPaymentGateway() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Payment Gateways"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4], paddingBottom: spacing[20] }}
@@ -402,7 +402,7 @@ export default function AdminPaymentGateway() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   infoBanner:  { flexDirection: "row", alignItems: "flex-start", gap: spacing[3], padding: spacing[4], borderRadius: radius.xl, borderWidth: 1 },
   gatewayIcon: { width: 44, height: 44, borderRadius: radius.lg, alignItems: "center", justifyContent: "center" },

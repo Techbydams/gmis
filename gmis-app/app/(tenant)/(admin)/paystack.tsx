@@ -1,6 +1,6 @@
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+﻿/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
@@ -69,7 +69,7 @@ export default function AdminPaystack() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Paystack Gateway"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -103,7 +103,7 @@ export default function AdminPaystack() {
                           {student ? `${student.first_name} ${student.last_name}` : "Unknown student"}
                         </Text>
                         <Text variant="micro" color="muted">
-                          {student?.matric_number ? `${student.matric_number} · ` : ""}{p.reference}
+                          {student?.matric_number ? `${student.matric_number} Â· ` : ""}{p.reference}
                         </Text>
                         <Text variant="micro" color="muted">{timeAgo(p.created_at)}</Text>
                       </View>

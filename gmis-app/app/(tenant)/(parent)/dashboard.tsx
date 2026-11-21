@@ -1,14 +1,14 @@
-// ============================================================
-// GMIS — Parent Portal Dashboard
+﻿// ============================================================
+// GMIS â€” Parent Portal Dashboard
 // Route: /(tenant)/(parent)/dashboard
 // Parent sees all wards linked to their supabase_uid
 // (students.parent_supabase_uid = auth user's id)
 // Tables: students, results, student_payments, attendance_records
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
@@ -143,7 +143,7 @@ export default function ParentDashboard() {
 
   return (
     <AppShell role="parent" user={shellUser} schoolName={tenant?.name || ""} pageTitle="Parent Portal" showLogo
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -151,9 +151,9 @@ export default function ParentDashboard() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} tintColor={brand.blue} />}
       >
         <Text variant="heading" color="primary">Parent Dashboard</Text>
-        <Text variant="caption" color="muted">{tenant?.name} · {wards.length} ward{wards.length > 1 ? "s" : ""} linked</Text>
+        <Text variant="caption" color="muted">{tenant?.name} Â· {wards.length} ward{wards.length > 1 ? "s" : ""} linked</Text>
 
-        {/* Ward selector — if multiple wards */}
+        {/* Ward selector â€” if multiple wards */}
         {wards.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={[layout.row, { gap: spacing[3] }]}>
@@ -192,7 +192,7 @@ export default function ParentDashboard() {
                 <View style={layout.fill}>
                   <Text variant="subtitle" weight="bold" color="primary">{activeWard.first_name} {activeWard.last_name}</Text>
                   <Text variant="caption" color="muted">{activeWard.matric_number}</Text>
-                  {activeWard.dept_name && <Text variant="caption" color="muted">{activeWard.dept_name} · {activeWard.level} Level</Text>}
+                  {activeWard.dept_name && <Text variant="caption" color="muted">{activeWard.dept_name} Â· {activeWard.level} Level</Text>}
                   <Badge
                     label={activeWard.status.charAt(0).toUpperCase() + activeWard.status.slice(1)}
                     variant={activeWard.status === "active" ? "green" : "amber"}
@@ -215,14 +215,14 @@ export default function ParentDashboard() {
               <Card style={[layout.fill, { alignItems: "center", padding: spacing[4] }]}>
                 <Text variant="micro" color="muted" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Fees</Text>
                 <Text style={{ fontSize: fontSize["2xl"], fontWeight: fontWeight.black, color: ws?.paid === ws?.total && (ws?.total ?? 0) > 0 ? colors.status.success : colors.status.warning, marginTop: spacing[1] }}>
-                  {ws ? `${ws.paid}/${ws.total}` : "—"}
+                  {ws ? `${ws.paid}/${ws.total}` : "â€”"}
                 </Text>
                 <Text variant="micro" color="muted">Items paid</Text>
               </Card>
               <Card style={[layout.fill, { alignItems: "center", padding: spacing[4] }]}>
                 <Text variant="micro" color="muted" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Attendance</Text>
                 <Text style={{ fontSize: fontSize["2xl"], fontWeight: fontWeight.black, color: (ws?.attendance ?? 0) >= 75 ? colors.status.success : colors.status.warning, marginTop: spacing[1] }}>
-                  {ws?.attendance ? `${ws.attendance}%` : "—"}
+                  {ws?.attendance ? `${ws.attendance}%` : "â€”"}
                 </Text>
                 <Text variant="micro" color="muted">This semester</Text>
               </Card>

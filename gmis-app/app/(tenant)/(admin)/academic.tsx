@@ -278,88 +278,6 @@ export default function AdminAcademicSetup() {
     );
   }
 
-  // ── Form card component ───────────────────────────────
-  const FormCard = ({ title, onSave, onCancel }: { title: string; onSave: () => void; onCancel: () => void }) => (
-    <Card variant="brand" style={{ marginBottom: spacing[4] }}>
-      <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[4] }}>{title}</Text>
-
-      {/* ── Faculty form ── */}
-      {tab === "faculties" && (
-        <>
-          <FormInput label="Faculty name *" value={form.name || ""} onChange={(v) => setF("name", v)} placeholder="e.g. Faculty of Science and Technology" colors={colors} />
-          <FormInput label="Faculty code *" value={form.code || ""} onChange={(v) => setF("code", v.toUpperCase())} placeholder="e.g. FST" colors={colors} />
-        </>
-      )}
-
-      {/* ── Department form ── */}
-      {tab === "departments" && (
-        <>
-          <FormInput label="Department name *" value={form.name || ""} onChange={(v) => setF("name", v)} placeholder="e.g. Computer Science" colors={colors} />
-          <FormInput label="Department code *" value={form.code || ""} onChange={(v) => setF("code", v.toUpperCase())} placeholder="e.g. CSC" colors={colors} />
-          <SelectModal label="Faculty *" placeholder="Select faculty" value={form.faculty_id || ""} options={facultyOptions} onChange={(v) => setF("faculty_id", v)} />
-        </>
-      )}
-
-      {/* ── Course form ── */}
-      {tab === "courses" && (
-        <>
-          <FormInput label="Course code *" value={form.course_code || ""} onChange={(v) => setF("course_code", v.toUpperCase())} placeholder="e.g. CSC301" colors={colors} />
-          <FormInput label="Course name *" value={form.course_name || ""} onChange={(v) => setF("course_name", v)} placeholder="e.g. Data Structures and Algorithms" colors={colors} />
-          <View style={[layout.row, { gap: spacing[3] }]}>
-            <View style={layout.fill}><SelectModal label="Level *" placeholder="Select" value={form.level || "100"} options={levelOptions} onChange={(v) => setF("level", v)} /></View>
-            <View style={layout.fill}><SelectModal label="Semester" placeholder="Select" value={form.semester || "first"} options={semOptions} onChange={(v) => setF("semester", v)} /></View>
-            <View style={layout.fill}><SelectModal label="Units" placeholder="Select" value={form.credit_units || "3"} options={unitOptions} onChange={(v) => setF("credit_units", v)} /></View>
-          </View>
-          {/* General course toggle — hides department selector when enabled */}
-          <TouchableOpacity onPress={() => { setF("is_general", !form.is_general); if (!form.is_general) setF("department_id", null); }} style={[layout.row, { gap: spacing[2], marginBottom: spacing[3] }]} activeOpacity={0.7}>
-            <View style={[{ width: spacing[5], height: spacing[5], borderRadius: radius.sm, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: form.is_general ? brand.gold : colors.border.strong, backgroundColor: form.is_general ? brand.gold : "transparent" }]}>
-              {form.is_general && <Icon name="ui-check" size="xs" color="#fff" />}
-            </View>
-            <View>
-              <Text variant="caption" color="secondary">General course (shared across all departments)</Text>
-              <Text variant="micro" color="muted">No department required — visible to all students</Text>
-            </View>
-          </TouchableOpacity>
-          {!form.is_general && (
-            <SelectModal label="Department *" placeholder="Select department" value={form.department_id || ""} options={deptOptions} onChange={(v) => setF("department_id", v)} />
-          )}
-          <SelectModal label="Assign lecturer" placeholder="Unassigned" value={form.lecturer_id || ""} options={lecturerOptions} onChange={(v) => setF("lecturer_id", v)} />
-          <TouchableOpacity onPress={() => setF("is_elective", !form.is_elective)} style={[layout.row, { gap: spacing[2], marginBottom: spacing[4] }]} activeOpacity={0.7}>
-            <View style={[{ width: spacing[5], height: spacing[5], borderRadius: radius.sm, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: form.is_elective ? brand.blue : colors.border.strong, backgroundColor: form.is_elective ? brand.blue : "transparent" }]}>
-              {form.is_elective && <Icon name="ui-check" size="xs" color="#fff" />}
-            </View>
-            <Text variant="caption" color="secondary">Elective course</Text>
-          </TouchableOpacity>
-        </>
-      )}
-
-      {/* ── Lecturer form ── */}
-      {tab === "lecturers" && (
-        <>
-          <FormInput label="Full name *"     value={form.full_name || ""}    onChange={(v) => setF("full_name", v)}    placeholder="Dr. Adebayo Okon"         colors={colors} />
-          <FormInput label="Email address *" value={form.email || ""}         onChange={(v) => setF("email", v)}         placeholder="lecturer@school.edu.ng"   keyboardType="email-address" autoCapitalize="none" colors={colors} />
-          <FormInput label="Staff ID"        value={form.staff_id || ""}      onChange={(v) => setF("staff_id", v)}      placeholder="e.g. STAFF/2019/001"      colors={colors} />
-          <SelectModal label="Department" placeholder="Select department" value={form.department_id || ""} options={[{ label: "No department", value: "" }, ...deptOptions]} onChange={(v) => setF("department_id", v)} />
-          {!editId && (
-            <Card variant="info">
-              <View style={[layout.row, { gap: spacing[2] }]}>
-                <Icon name="status-info" size="sm" color={colors.status.info} />
-                <Text style={{ flex: 1, fontSize: fontSize.xs, color: colors.status.info, lineHeight: 18 }}>
-                  The lecturer will activate their account via the setup page using their email address.
-                </Text>
-              </View>
-            </Card>
-          )}
-        </>
-      )}
-
-      <View style={[layout.row, { gap: spacing[3], marginTop: spacing[2] }]}>
-        <Button label={saving ? "Saving..." : editId ? `Update` : `Create`} variant="primary" size="md" loading={saving} onPress={onSave} />
-        <Button label="Cancel" variant="secondary" size="md" onPress={onCancel} />
-      </View>
-    </Card>
-  );
-
   const saveMap: Record<Tab, () => void> = { faculties: saveFaculty, departments: saveDept, courses: saveCourse, lecturers: saveLecturer };
 
   return (
@@ -419,11 +337,82 @@ export default function AdminAcademicSetup() {
 
         {/* Form */}
         {showForm && (
-          <FormCard
-            title={editId ? `Edit ${tab.slice(0, -1)}` : `Add ${tab.slice(0, -1)}`}
-            onSave={saveMap[tab]}
-            onCancel={() => { setShowForm(false); setEditId(null); }}
-          />
+          <Card variant="brand" style={{ marginBottom: spacing[4] }}>
+            <Text variant="label" weight="bold" color="primary" style={{ marginBottom: spacing[4] }}>
+              {editId ? `Edit ${tab.slice(0, -1)}` : `Add ${tab.slice(0, -1)}`}
+            </Text>
+
+            {tab === "faculties" && (
+              <>
+                <FormInput label="Faculty name *" value={form.name || ""} onChange={(v) => setF("name", v)} placeholder="e.g. Faculty of Science and Technology" colors={colors} />
+                <FormInput label="Faculty code *" value={form.code || ""} onChange={(v) => setF("code", v.toUpperCase())} placeholder="e.g. FST" colors={colors} />
+              </>
+            )}
+
+            {tab === "departments" && (
+              <>
+                <FormInput label="Department name *" value={form.name || ""} onChange={(v) => setF("name", v)} placeholder="e.g. Computer Science" colors={colors} />
+                <FormInput label="Department code *" value={form.code || ""} onChange={(v) => setF("code", v.toUpperCase())} placeholder="e.g. CSC" colors={colors} />
+                <SelectModal label="Faculty *" placeholder="Select faculty" value={form.faculty_id || ""} options={facultyOptions} onChange={(v) => setF("faculty_id", v)} />
+              </>
+            )}
+
+            {tab === "courses" && (
+              <>
+                <FormInput label="Course code *" value={form.course_code || ""} onChange={(v) => setF("course_code", v.toUpperCase())} placeholder="e.g. CSC301" colors={colors} />
+                <FormInput label="Course name *" value={form.course_name || ""} onChange={(v) => setF("course_name", v)} placeholder="e.g. Data Structures and Algorithms" colors={colors} />
+                <View style={[layout.row, { gap: spacing[3] }]}>
+                  <View style={layout.fill}><SelectModal label="Level *" placeholder="Select" value={form.level || "100"} options={levelOptions} onChange={(v) => setF("level", v)} /></View>
+                  <View style={layout.fill}><SelectModal label="Semester" placeholder="Select" value={form.semester || "first"} options={semOptions} onChange={(v) => setF("semester", v)} /></View>
+                  <View style={layout.fill}><SelectModal label="Units" placeholder="Select" value={form.credit_units || "3"} options={unitOptions} onChange={(v) => setF("credit_units", v)} /></View>
+                </View>
+                {/* General course toggle — hides department selector when enabled */}
+                <TouchableOpacity onPress={() => { setF("is_general", !form.is_general); if (!form.is_general) setF("department_id", null); }} style={[layout.row, { gap: spacing[2], marginBottom: spacing[3] }]} activeOpacity={0.7}>
+                  <View style={[{ width: spacing[5], height: spacing[5], borderRadius: radius.sm, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: form.is_general ? brand.gold : colors.border.strong, backgroundColor: form.is_general ? brand.gold : "transparent" }]}>
+                    {form.is_general && <Icon name="ui-check" size="xs" color="#fff" />}
+                  </View>
+                  <View>
+                    <Text variant="caption" color="secondary">General course (shared across all departments)</Text>
+                    <Text variant="micro" color="muted">No department required — visible to all students</Text>
+                  </View>
+                </TouchableOpacity>
+                {!form.is_general && (
+                  <SelectModal label="Department *" placeholder="Select department" value={form.department_id || ""} options={deptOptions} onChange={(v) => setF("department_id", v)} />
+                )}
+                <SelectModal label="Assign lecturer" placeholder="Unassigned" value={form.lecturer_id || ""} options={lecturerOptions} onChange={(v) => setF("lecturer_id", v)} />
+                <TouchableOpacity onPress={() => setF("is_elective", !form.is_elective)} style={[layout.row, { gap: spacing[2], marginBottom: spacing[4] }]} activeOpacity={0.7}>
+                  <View style={[{ width: spacing[5], height: spacing[5], borderRadius: radius.sm, borderWidth: 2, alignItems: "center", justifyContent: "center", borderColor: form.is_elective ? brand.blue : colors.border.strong, backgroundColor: form.is_elective ? brand.blue : "transparent" }]}>
+                    {form.is_elective && <Icon name="ui-check" size="xs" color="#fff" />}
+                  </View>
+                  <Text variant="caption" color="secondary">Elective course</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {tab === "lecturers" && (
+              <>
+                <FormInput label="Full name *"     value={form.full_name || ""}  onChange={(v) => setF("full_name", v)}  placeholder="Dr. Adebayo Okon"       colors={colors} />
+                <FormInput label="Email address *" value={form.email || ""}       onChange={(v) => setF("email", v)}       placeholder="lecturer@school.edu.ng" keyboardType="email-address" autoCapitalize="none" colors={colors} />
+                <FormInput label="Staff ID"        value={form.staff_id || ""}    onChange={(v) => setF("staff_id", v)}    placeholder="e.g. STAFF/2019/001"    colors={colors} />
+                <SelectModal label="Department" placeholder="Select department" value={form.department_id || ""} options={[{ label: "No department", value: "" }, ...deptOptions]} onChange={(v) => setF("department_id", v)} />
+                {!editId && (
+                  <Card variant="info">
+                    <View style={[layout.row, { gap: spacing[2] }]}>
+                      <Icon name="status-info" size="sm" color={colors.status.info} />
+                      <Text style={{ flex: 1, fontSize: fontSize.xs, color: colors.status.info, lineHeight: 18 }}>
+                        The lecturer will activate their account via the setup page using their email address.
+                      </Text>
+                    </View>
+                  </Card>
+                )}
+              </>
+            )}
+
+            <View style={[layout.row, { gap: spacing[3], marginTop: spacing[2] }]}>
+              <Button label={saving ? "Saving..." : editId ? `Update` : `Create`} variant="primary" size="md" loading={saving} onPress={saveMap[tab]} />
+              <Button label="Cancel" variant="secondary" size="md" onPress={() => { setShowForm(false); setEditId(null); }} />
+            </View>
+          </Card>
         )}
 
         {/* Course filters */}

@@ -1,19 +1,19 @@
-// ============================================================
-// GMIS — Admin Students List
+﻿// ============================================================
+// GMIS â€” Admin Students List
 // Route: /(tenant)/(admin)/students
 //
 // Features:
-//   • Search by name, matric, email
-//   • Filter by status and level
-//   • Tap any student → full detail & edit page
-//   • Add single student (force password reset on first login)
-//   • Bulk import button → bulk-import screen
-//   • Show profile picture if available
+//   â€¢ Search by name, matric, email
+//   â€¢ Filter by status and level
+//   â€¢ Tap any student â†’ full detail & edit page
+//   â€¢ Add single student (force password reset on first login)
+//   â€¢ Bulk import button â†’ bulk-import screen
+//   â€¢ Show profile picture if available
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo, useCallback } from "react";
 import {
@@ -39,7 +39,7 @@ import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface Student {
   id: string; first_name: string; last_name: string;
   matric_number: string; email: string; level: string; status: string;
@@ -49,7 +49,7 @@ interface Student {
 
 type StatusFilter = "all" | "active" | "pending" | "suspended";
 
-// ── Add Student Sheet ──────────────────────────────────────
+// â”€â”€ Add Student Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AddStudentSheet({ visible, onClose, depts, onSave, colors }: {
   visible: boolean; onClose: () => void;
   depts: { id: string; name: string }[];
@@ -165,7 +165,7 @@ function AddStudentSheet({ visible, onClose, depts, onSave, colors }: {
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminStudents() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -241,7 +241,7 @@ export default function AdminStudents() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Students"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <View style={[layout.fill, { backgroundColor: colors.bg.primary }]}>
 
         {/* Search + action bar */}
@@ -328,7 +328,7 @@ export default function AdminStudents() {
                   )}
                   <View style={layout.fill}>
                     <Text variant="label" weight="semibold" color="primary">{s.first_name} {s.last_name}</Text>
-                    <Text variant="micro" color="muted">{s.matric_number} · {s.dept_name || "No dept"} · {s.level}L</Text>
+                    <Text variant="micro" color="muted">{s.matric_number} Â· {s.dept_name || "No dept"} Â· {s.level}L</Text>
                   </View>
                   <View style={[layout.row, { gap: spacing[2] }]}>
                     <Badge
@@ -360,7 +360,7 @@ export default function AdminStudents() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   searchWrap:     { flexDirection: "row", alignItems: "center", gap: spacing[3], padding: spacing[4], borderBottomWidth: 1 },
   searchBar:      { flexDirection: "row", alignItems: "center", gap: spacing[3], paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.xl, borderWidth: 1, flex: 1 },

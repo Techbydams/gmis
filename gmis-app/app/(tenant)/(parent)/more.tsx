@@ -1,11 +1,11 @@
-// ============================================================
-// GMIS — Parent More Menu
+﻿// ============================================================
+// GMIS â€” Parent More Menu
 // Route: /(tenant)/(parent)/more
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { View, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
@@ -39,7 +39,7 @@ export default function ParentMore() {
       user={shellUser}
       schoolName={tenant?.name || ""}
       pageTitle="More"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}
     >
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
@@ -65,7 +65,7 @@ export default function ParentMore() {
         ))}
 
         <TouchableOpacity
-          onPress={async () => { await signOut(); router.replace("/login"); }}
+          onPress={async () => { await signOut(); router.replace("/(tenant)/login"); }}
           activeOpacity={0.75}
           style={[styles.row, { backgroundColor: colors.status.errorBg, borderColor: colors.status.errorBorder, marginTop: spacing[4] }]}
         >

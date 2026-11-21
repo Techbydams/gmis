@@ -1,0 +1,35 @@
+name: Keep Supabase Alive
+
+# Runs every 15 minutes to prevent the free-tier project from auto-pausing.
+# Can also be triggered manually from the Actions tab.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping keep-alive endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Ping Supabase keep-alive function
+        run: |
+          RESPONSE=$(curl --silent --show-error --fail \
+            --max-time 30 \
+            --write-out "\n%{http_code}" \
+            "${{ secrets.SUPABASE_KEEPALIVE_URL }}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Expected HTTP 200, got $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "Supabase project is alive."

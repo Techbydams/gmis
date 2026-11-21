@@ -255,23 +255,11 @@ export function Sidebar({ items, user, schoolName, schoolLogoUrl, onLogout }: Si
         {/* Theme toggle */}
         <TouchableOpacity
           onPress={toggleTheme}
-          style={[
-            styles.footerBtn,
-            layout.row,
-            { backgroundColor: colors.bg.hover },
-          ]}
+          style={[styles.footerBtn, layout.row, { backgroundColor: colors.bg.hover }]}
           activeOpacity={0.7}
         >
-          <Icon
-            name={isDark ? "ui-sun" : "ui-moon"}
-            size="md"
-            color={colors.text.secondary}
-          />
-          <Text
-            variant="caption"
-            color="secondary"
-            style={{ marginLeft: spacing[2] }}
-          >
+          <Icon name={isDark ? "ui-sun" : "ui-moon"} size="md" color={colors.text.secondary} />
+          <Text variant="caption" color="secondary" style={{ marginLeft: spacing[2] }}>
             {isDark ? "Light mode" : "Dark mode"}
           </Text>
         </TouchableOpacity>

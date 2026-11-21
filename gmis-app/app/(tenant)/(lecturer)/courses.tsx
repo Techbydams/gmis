@@ -1,6 +1,6 @@
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+﻿/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from "react-native";
@@ -67,7 +67,7 @@ export default function LecturerCourses() {
 
   return (
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""} pageTitle="My Courses"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
         contentContainerStyle={{ padding: pagePadding, gap: spacing[4] }}
@@ -96,7 +96,7 @@ export default function LecturerCourses() {
                   </View>
                   <View style={layout.fill}>
                     <Text variant="label" weight="semibold" color="primary">{c.course_name}</Text>
-                    <Text variant="micro" color="muted">{c.level} Level · {c.semester} Semester · {c.credit_units} units</Text>
+                    <Text variant="micro" color="muted">{c.level} Level Â· {c.semester} Semester Â· {c.credit_units} units</Text>
                   </View>
                   <Badge label={c.is_active ? "Active" : "Inactive"} variant={c.is_active ? "green" : "gray"} size="sm" />
                 </TouchableOpacity>

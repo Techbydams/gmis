@@ -1,18 +1,18 @@
-// ============================================================
-// GMIS — Admin ID Card Management
+﻿// ============================================================
+// GMIS â€” Admin ID Card Management
 // Route: /(tenant)/(admin)/idcards
 //
 // Features:
-//   • Student list with search (name / matric)
-//   • Per-student bottom sheet: ID photo capture/upload,
+//   â€¢ Student list with search (name / matric)
+//   â€¢ Per-student bottom sheet: ID photo capture/upload,
 //     card preview (template-aware), mark printed, fee status
-//   • School card template management (upload JSON / sample)
-//   • Stats bar: Total, Photos captured, Printed, Unpaid
+//   â€¢ School card template management (upload JSON / sample)
+//   â€¢ Stats bar: Total, Photos captured, Printed, Unpaid
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
@@ -51,7 +51,7 @@ import { useResponsive }   from "@/lib/responsive";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface Student {
   id:                  string;
   first_name:          string;
@@ -82,7 +82,7 @@ interface CardTemplate {
   fields:     CardTemplateField[];
 }
 
-// ── Sample template JSON ───────────────────────────────────
+// â”€â”€ Sample template JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SAMPLE_TEMPLATE: CardTemplate = {
   width:      320,
   height:     200,
@@ -97,7 +97,7 @@ const SAMPLE_TEMPLATE: CardTemplate = {
   ],
 };
 
-// ── Helpers ────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function resolveFieldValue(
   key: string,
   student: Student,
@@ -113,7 +113,7 @@ function resolveFieldValue(
   }
 }
 
-// ── ID Card Preview Component ──────────────────────────────
+// â”€â”€ ID Card Preview Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function IDCardPreview({
   student,
   template,
@@ -200,7 +200,7 @@ function IDCardPreview({
   );
 }
 
-// ── Student Detail Bottom Sheet ────────────────────────────
+// â”€â”€ Student Detail Bottom Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface StudentSheetProps {
   visible:    boolean;
   student:    Student | null;
@@ -222,7 +222,7 @@ function StudentSheet({
 
   if (!student) return null;
 
-  // ── Photo capture / pick ─────────────────────────────────
+  // â”€â”€ Photo capture / pick â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const capturePhoto = async (fromCamera: boolean) => {
     let result: ImagePicker.ImagePickerResult;
     try {
@@ -297,7 +297,7 @@ function StudentSheet({
     }
   };
 
-  // ── Mark printed ─────────────────────────────────────────
+  // â”€â”€ Mark printed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const markPrinted = async () => {
     if (!db || !student || student.id_card_printed) return;
     setMarking(true);
@@ -340,7 +340,7 @@ function StudentSheet({
           <View>
             <Text variant="subtitle" weight="bold" color="primary">{fullName}</Text>
             <Text variant="caption" color="muted">{student.matric_number}</Text>
-            <Text variant="micro"   color="muted">{student.level} Level · {student.department}</Text>
+            <Text variant="micro"   color="muted">{student.level} Level Â· {student.department}</Text>
           </View>
         </View>
         <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={styles.iconBtn}>
@@ -465,7 +465,7 @@ function StudentSheet({
           />
           {!template && (
             <Text variant="micro" color="muted" style={{ marginTop: spacing[2], textAlign: "center" }}>
-              Using default layout — upload a JSON template to customise
+              Using default layout â€” upload a JSON template to customise
             </Text>
           )}
         </View>
@@ -475,7 +475,7 @@ function StudentSheet({
   );
 }
 
-// ── Template Management Card ───────────────────────────────
+// â”€â”€ Template Management Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface TemplateCardProps {
   template:       CardTemplate | null;
   loading:        boolean;
@@ -500,7 +500,7 @@ function TemplateManagementCard({ template, loading, colors, onUpload, onShowSam
 
       <Text variant="body" color="secondary" style={{ marginBottom: spacing[4] }}>
         {template
-          ? `Custom JSON template active (${template.fields.length} fields, ${template.width}×${template.height})`
+          ? `Custom JSON template active (${template.fields.length} fields, ${template.width}Ã—${template.height})`
           : "Using the built-in default card layout. Upload a JSON template to use your school's branding."}
       </Text>
 
@@ -525,7 +525,7 @@ function TemplateManagementCard({ template, loading, colors, onUpload, onShowSam
   );
 }
 
-// ── Sample Template Modal ──────────────────────────────────
+// â”€â”€ Sample Template Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SampleTemplateModal({ visible, onClose, colors }: { visible: boolean; onClose: () => void; colors: any }) {
   const json = JSON.stringify(SAMPLE_TEMPLATE, null, 2);
   return (
@@ -557,7 +557,7 @@ function SampleTemplateModal({ visible, onClose, colors }: { visible: boolean; o
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminIDCards() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -583,7 +583,7 @@ export default function AdminIDCards() {
 
   useEffect(() => { if (db) { load(); loadTemplate(); } }, [db]);
 
-  // ── Load students with fee status ──────────────────────────
+  // â”€â”€ Load students with fee status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const load = useCallback(async (isRefresh = false) => {
     if (!db) return;
     if (!isRefresh) setLoading(true);
@@ -599,7 +599,7 @@ export default function AdminIDCards() {
       const studentList: any[] = studs || [];
 
       // 2. Load successful ID card payments in bulk
-      // fee_structure where fee_type = 'id_card' → join student_payments
+      // fee_structure where fee_type = 'id_card' â†’ join student_payments
       let paidIds = new Set<string>();
       try {
         const { data: fees } = await db
@@ -617,7 +617,7 @@ export default function AdminIDCards() {
           (payments || []).forEach((p: any) => paidIds.add(p.student_id));
         }
       } catch {
-        // fee_structure or student_payments table might not exist yet — graceful fallback
+        // fee_structure or student_payments table might not exist yet â€” graceful fallback
       }
 
       const merged: Student[] = studentList.map((s) => ({
@@ -629,7 +629,7 @@ export default function AdminIDCards() {
       // Sync id_card_paid flag back to DB if it differs (fire-and-forget)
       merged.forEach((s) => {
         const paid = paidIds.has(s.id);
-        // Only update if column exists and differs — best-effort
+        // Only update if column exists and differs â€” best-effort
         db.from("students").update({ id_card_paid: paid } as any).eq("id", s.id).then(() => {});
       });
 
@@ -642,7 +642,7 @@ export default function AdminIDCards() {
     }
   }, [db]);
 
-  // ── Load card template from org_settings ──────────────────
+  // â”€â”€ Load card template from org_settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const loadTemplate = useCallback(async () => {
     if (!db) return;
     try {
@@ -660,7 +660,7 @@ export default function AdminIDCards() {
     }
   }, [db]);
 
-  // ── Upload template JSON ───────────────────────────────────
+  // â”€â”€ Upload template JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleUploadTemplate = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -705,7 +705,7 @@ export default function AdminIDCards() {
     }
   };
 
-  // ── Filtered student list ──────────────────────────────────
+  // â”€â”€ Filtered student list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return students;
@@ -716,7 +716,7 @@ export default function AdminIDCards() {
     );
   }, [students, search]);
 
-  // ── Stats ──────────────────────────────────────────────────
+  // â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const stats = useMemo(() => {
     const total   = students.length;
     const photos  = students.filter((s) => !!s.id_card_photo_url).length;
@@ -747,7 +747,7 @@ export default function AdminIDCards() {
       user={adminUser}
       schoolName={tenant?.name || ""}
       pageTitle="ID Cards"
-      onLogout={async () => { await signOut(); router.replace("/login" as any); }}
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login" as any); }}
     >
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
@@ -866,7 +866,7 @@ export default function AdminIDCards() {
                           {fullName}
                         </Text>
                         <Text variant="micro" color="muted">
-                          {student.matric_number} · {student.level} Level
+                          {student.matric_number} Â· {student.level} Level
                         </Text>
                       </View>
 
@@ -921,7 +921,7 @@ export default function AdminIDCards() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   iconBtn: {
     padding: spacing[2],

@@ -56,7 +56,7 @@ export default function FindSchool() {
   const { setTenantFromOrg } = useTenant();
   const { colors, isDark }   = useTheme();
   const GMIS_LOGO            = isDark ? GMIS_LOGO_DARK : GMIS_LOGO_LIGHT;
-  const { isMobile, pagePadding } = useResponsive();
+  const { isMobile, pagePadding, width: windowWidth } = useResponsive();
 
   const [query,       setQuery]       = useState("");
   const [results,     setResults]     = useState<Organization[]>([]);
@@ -225,7 +225,10 @@ export default function FindSchool() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.bg.primary }}
+      style={[
+        { flex: 1, backgroundColor: colors.bg.primary },
+        Platform.OS === "web" && { overflow: "hidden" } as any,
+      ]}
       edges={["top", "bottom"]}
     >
       <KeyboardAvoidingView
@@ -234,11 +237,20 @@ export default function FindSchool() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingHorizontal: pagePadding }]}
+          style={Platform.OS === "web" ? { flex: 1, width: "100%" } as any : undefined}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingHorizontal: pagePadding },
+            Platform.OS === "web" && { minHeight: "100%" } as any,
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.inner}>
+          <View style={[
+            styles.inner,
+            { maxWidth: Math.min(460, windowWidth - pagePadding * 2) },
+            Platform.OS === "web" && { width: "100%", boxSizing: "border-box" } as any,
+          ]}>
 
             {/* Logo + title — entrance animation */}
             <Animated.View
@@ -421,7 +433,6 @@ const styles = StyleSheet.create({
   },
   inner: {
     width:     "100%",
-    maxWidth:  460,
     alignSelf: "center",
   },
   logoBox: {

@@ -1,22 +1,22 @@
-// ============================================================
-// GMIS — Admin Results Management
+﻿// ============================================================
+// GMIS â€” Admin Results Management
 // Route: /(tenant)/(admin)/results
 //
 // Features:
-//   • Filter by session, semester, department, level, course, student
-//   • Sessions loaded from academic_sessions table
-//   • Departments loaded from departments table
-//   • Server-side filtering by session, semester, dept, level
-//   • Publish / unpublish results per course
-//   • Lock / unlock course results (after lecturer submission)
-//   • Admin can edit, add, or delete individual result entries
-//   • View results in table: name, matric, CA, exam, total, grade
-//   • Search by course code or name
+//   â€¢ Filter by session, semester, department, level, course, student
+//   â€¢ Sessions loaded from academic_sessions table
+//   â€¢ Departments loaded from departments table
+//   â€¢ Server-side filtering by session, semester, dept, level
+//   â€¢ Publish / unpublish results per course
+//   â€¢ Lock / unlock course results (after lecturer submission)
+//   â€¢ Admin can edit, add, or delete individual result entries
+//   â€¢ View results in table: name, matric, CA, exam, total, grade
+//   â€¢ Search by course code or name
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
@@ -43,7 +43,7 @@ import { useAutoLoad }     from "@/lib/useAutoLoad";
 import { brand, spacing, radius, fontSize, fontWeight } from "@/theme/tokens";
 import { layout }          from "@/styles/shared";
 
-// ── Types ──────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface CourseResult {
   id: string;
   course_code: string;
@@ -98,10 +98,10 @@ function filterLabel(filters: FilterState): string {
   if (filters.session)  parts.push(filters.session);
   if (filters.semester) parts.push(filters.semester.replace("_semester", " Semester"));
   if (filters.level)    parts.push(`${filters.level}L`);
-  return parts.length > 0 ? parts.join(" · ") : "";
+  return parts.length > 0 ? parts.join(" Â· ") : "";
 }
 
-// ── Edit Result Sheet ──────────────────────────────────────
+// â”€â”€ Edit Result Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function EditResultSheet({ visible, onClose, entry, onSave, colors, grading }: {
   visible: boolean; onClose: () => void; entry: ResultEntry | null;
   onSave: (id: string, patch: { ca_score: number | null; exam_score: number | null; score: number; grade: string }) => Promise<void>;
@@ -129,12 +129,12 @@ function EditResultSheet({ visible, onClose, entry, onSave, colors, grading }: {
     : hasCA   ? parsedCa
     : entry?.score ?? 0;
 
-  const computedGrade = grading.length > 0 ? computeGrade(total, grading) : entry?.grade || "—";
+  const computedGrade = grading.length > 0 ? computeGrade(total, grading) : entry?.grade || "â€”";
 
   const handleSave = async () => {
-    if (hasCA   && (parsedCa   < 0 || parsedCa   > 100)) { Alert.alert("Invalid", "CA score must be 0–100."); return; }
-    if (hasExam && (parsedExam < 0 || parsedExam > 100)) { Alert.alert("Invalid", "Exam score must be 0–100."); return; }
-    if (total < 0 || total > 100) { Alert.alert("Invalid", "Total score must be 0–100."); return; }
+    if (hasCA   && (parsedCa   < 0 || parsedCa   > 100)) { Alert.alert("Invalid", "CA score must be 0â€“100."); return; }
+    if (hasExam && (parsedExam < 0 || parsedExam > 100)) { Alert.alert("Invalid", "Exam score must be 0â€“100."); return; }
+    if (total < 0 || total > 100) { Alert.alert("Invalid", "Total score must be 0â€“100."); return; }
     if (!entry) return;
     setSaving(true);
     try {
@@ -167,18 +167,18 @@ function EditResultSheet({ visible, onClose, entry, onSave, colors, grading }: {
 
       <View style={[layout.row, { gap: spacing[3], marginBottom: spacing[3] }]}>
         <View style={layout.fill}>
-          <Text variant="caption" weight="semibold" color="muted" style={{ marginBottom: spacing[2] }}>CA SCORE (0–40)</Text>
+          <Text variant="caption" weight="semibold" color="muted" style={{ marginBottom: spacing[2] }}>CA SCORE (0â€“40)</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.bg.input, color: colors.text.primary, borderColor: colors.border.DEFAULT, fontSize: fontSize.xl, textAlign: "center", fontWeight: fontWeight.bold }]}
-            value={caScore} onChangeText={setCaScore} keyboardType="decimal-pad" placeholder="—"
+            value={caScore} onChangeText={setCaScore} keyboardType="decimal-pad" placeholder="â€”"
             placeholderTextColor={colors.text.muted} maxLength={5}
           />
         </View>
         <View style={layout.fill}>
-          <Text variant="caption" weight="semibold" color="muted" style={{ marginBottom: spacing[2] }}>EXAM SCORE (0–60)</Text>
+          <Text variant="caption" weight="semibold" color="muted" style={{ marginBottom: spacing[2] }}>EXAM SCORE (0â€“60)</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.bg.input, color: colors.text.primary, borderColor: colors.border.DEFAULT, fontSize: fontSize.xl, textAlign: "center", fontWeight: fontWeight.bold }]}
-            value={examScore} onChangeText={setExamScore} keyboardType="decimal-pad" placeholder="—"
+            value={examScore} onChangeText={setExamScore} keyboardType="decimal-pad" placeholder="â€”"
             placeholderTextColor={colors.text.muted} maxLength={5}
           />
         </View>
@@ -188,7 +188,7 @@ function EditResultSheet({ visible, onClose, entry, onSave, colors, grading }: {
         <View style={layout.row}>
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text variant="caption" color="muted">Total</Text>
-            <Text style={{ fontSize: 28, fontWeight: fontWeight.black, color: brand.blue }}>{isNaN(total) ? "—" : total.toFixed(1)}</Text>
+            <Text style={{ fontSize: 28, fontWeight: fontWeight.black, color: brand.blue }}>{isNaN(total) ? "â€”" : total.toFixed(1)}</Text>
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border.DEFAULT }]} />
           <View style={{ flex: 1, alignItems: "center" }}>
@@ -208,7 +208,7 @@ function EditResultSheet({ visible, onClose, entry, onSave, colors, grading }: {
   );
 }
 
-// ── Course Results Sheet ───────────────────────────────────
+// â”€â”€ Course Results Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CourseResultsSheet({ visible, onClose, course, db, grading, onRefresh, colors, showToast }: {
   visible: boolean; onClose: () => void; course: CourseResult | null;
   db: any; grading: GradingRule[]; onRefresh: () => void; colors: any; showToast: (c: any) => void;
@@ -247,7 +247,7 @@ function CourseResultsSheet({ visible, onClose, course, db, grading, onRefresh, 
         student_name: stuMap[r.student_id]
           ? `${stuMap[r.student_id].first_name} ${stuMap[r.student_id].last_name}`
           : "Unknown",
-        matric_number: stuMap[r.student_id]?.matric_number || "—",
+        matric_number: stuMap[r.student_id]?.matric_number || "â€”",
         ca_score:      r.ca_score   ?? null,
         exam_score:    r.exam_score ?? null,
         score:         r.score,
@@ -345,12 +345,12 @@ function CourseResultsSheet({ visible, onClose, course, db, grading, onRefresh, 
 
               {/* CA */}
               <Text style={[styles.colCA, { color: colors.text.secondary, fontSize: fontSize.xs, textAlign: "center" }]}>
-                {entry.ca_score !== null && entry.ca_score !== undefined ? String(entry.ca_score) : "—"}
+                {entry.ca_score !== null && entry.ca_score !== undefined ? String(entry.ca_score) : "â€”"}
               </Text>
 
               {/* Exam */}
               <Text style={[styles.colExam, { color: colors.text.secondary, fontSize: fontSize.xs, textAlign: "center" }]}>
-                {entry.exam_score !== null && entry.exam_score !== undefined ? String(entry.exam_score) : "—"}
+                {entry.exam_score !== null && entry.exam_score !== undefined ? String(entry.exam_score) : "â€”"}
               </Text>
 
               {/* Total */}
@@ -373,7 +373,7 @@ function CourseResultsSheet({ visible, onClose, course, db, grading, onRefresh, 
                       ? brand.emerald
                       : entry.grade?.startsWith("F") ? "#ef4444" : brand.blue,
                   }}>
-                    {entry.grade || "—"}
+                    {entry.grade || "â€”"}
                   </Text>
                 </View>
               </View>
@@ -410,7 +410,7 @@ function CourseResultsSheet({ visible, onClose, course, db, grading, onRefresh, 
   );
 }
 
-// ── Filter chip ────────────────────────────────────────────
+// â”€â”€ Filter chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function FilterChip({ label, active, onPress, colors }: { label: string; active: boolean; onPress: () => void; colors: any }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.75}
@@ -420,7 +420,7 @@ function FilterChip({ label, active, onPress, colors }: { label: string; active:
   );
 }
 
-// ── Main Screen ────────────────────────────────────────────
+// â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AdminResults() {
   const router             = useRouter();
   const { user, signOut }  = useAuth();
@@ -602,7 +602,7 @@ export default function AdminResults() {
 
   return (
     <AppShell role="admin" user={adminUser} schoolName={tenant?.name || ""} pageTitle="Results Management"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       <View style={[layout.fill, { backgroundColor: colors.bg.primary }]}>
 
         {/* Search bar */}
@@ -624,7 +624,7 @@ export default function AdminResults() {
           </View>
         </View>
 
-        {/* Filter chips — sessions from DB, depts from DB */}
+        {/* Filter chips â€” sessions from DB, depts from DB */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -663,7 +663,7 @@ export default function AdminResults() {
           {/* Active filter indicator */}
           {hasActiveFilters && (
             <View style={[layout.rowBetween, styles.activeFilters, { backgroundColor: brand.blueAlpha10, borderColor: brand.blueAlpha30 }]}>
-              <Text variant="caption" color="primary">Showing {filtered.length} of {courses.length} courses{emptyLabel ? ` · ${emptyLabel}` : ""}</Text>
+              <Text variant="caption" color="primary">Showing {filtered.length} of {courses.length} courses{emptyLabel ? ` Â· ${emptyLabel}` : ""}</Text>
               <TouchableOpacity onPress={() => setFilters({ session: "", semester: "", dept: "", level: "", search: "" })} activeOpacity={0.7}>
                 <Text variant="caption" color="link">Clear all</Text>
               </TouchableOpacity>
@@ -692,7 +692,7 @@ export default function AdminResults() {
                     </View>
                     <Text variant="caption" color="secondary" numberOfLines={1}>{course.course_name}</Text>
                     <Text variant="micro" color="muted" style={{ marginTop: spacing[1] }}>
-                      {course.dept_name} · {course.level}L · {course.semester}{course.session ? ` · ${course.session}` : ""}
+                      {course.dept_name} Â· {course.level}L Â· {course.semester}{course.session ? ` Â· ${course.session}` : ""}
                     </Text>
                   </View>
                   <View style={[styles.countBadge, { backgroundColor: brand.blueAlpha10 }]}>
@@ -775,7 +775,7 @@ export default function AdminResults() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────
+// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   searchWrap:    { padding: spacing[4], borderBottomWidth: 1 },
   searchBar:     { flexDirection: "row", alignItems: "center", gap: spacing[3], paddingHorizontal: spacing[4], paddingVertical: spacing[2], borderRadius: radius.xl, borderWidth: 1 },

@@ -1,11 +1,11 @@
-// ============================================================
-// GMIS — Lecturer More Menu
+﻿// ============================================================
+// GMIS â€” Lecturer More Menu
 // Route: /(tenant)/(lecturer)/more
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, Image, Alert, ActivityIndicator } from "react-native";
@@ -31,6 +31,7 @@ const MORE_ITEMS: { label: string; icon: IconName; href: string; description: st
   { label: "QR Attendance", icon: "nav-attendance", href: "/(tenant)/(lecturer)/attendance", description: "Take attendance manually or by QR"  },
   { label: "Student List",  icon: "nav-students",   href: "/(tenant)/(lecturer)/students",   description: "View enrolled students"             },
   { label: "Timetable",     icon: "nav-timetable",  href: "/(tenant)/(lecturer)/timetable",  description: "View your teaching schedule"        },
+  { label: "Handouts",      icon: "nav-handouts",   href: "/(tenant)/(lecturer)/handouts",   description: "Upload and manage course materials" },
 ];
 
 export default function LecturerMore() {
@@ -100,7 +101,7 @@ export default function LecturerMore() {
       user={shellUser}
       schoolName={tenant?.name || ""}
       pageTitle="More"
-      onLogout={async () => { await signOut(); router.replace("/login"); }}
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}
     >
       <ScrollView
         style={[layout.fill, { backgroundColor: colors.bg.primary }]}
@@ -160,7 +161,7 @@ export default function LecturerMore() {
 
         {/* Logout */}
         <TouchableOpacity
-          onPress={async () => { await signOut(); router.replace("/login"); }}
+          onPress={async () => { await signOut(); router.replace("/(tenant)/login"); }}
           activeOpacity={0.75}
           style={[styles.row, { backgroundColor: colors.status.errorBg, borderColor: colors.status.errorBorder, marginTop: spacing[4] }]}
         >

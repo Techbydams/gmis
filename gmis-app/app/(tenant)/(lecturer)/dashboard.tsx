@@ -1,12 +1,12 @@
-// ============================================================
-// GMIS — Lecturer Dashboard
+﻿// ============================================================
+// GMIS â€” Lecturer Dashboard
 // Route: /(tenant)/(lecturer)/dashboard
 // Tables: lecturers, courses, semester_registrations, results
 // ============================================================
 
-/* · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·
-   GMIS · A product of DAMS Technologies · gmis.app
-   · · · · · · · · · · · · · · · · · · · · · · · · · · · · · */
+/* Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â·
+   GMIS Â· A product of DAMS Technologies Â· gmis.app
+   Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· Â· */
 
 import { useState, useEffect, useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Image } from "react-native";
@@ -65,7 +65,7 @@ export default function LecturerDashboard() {
     if (!isRefresh) setLoading(true);
 
     try {
-      // Get lecturer profile — confirmed columns from schema
+      // Get lecturer profile â€” confirmed columns from schema
       const { data: lec } = await db
         .from("lecturers")
         .select("id, full_name, email, staff_id, department_id, specialization, profile_picture_url")
@@ -123,7 +123,7 @@ export default function LecturerDashboard() {
 
   return (
     <AppShell role="lecturer" user={shellUser} schoolName={tenant?.name || ""}
-      onLogout={async () => { await signOut(); router.replace("/login"); }}>
+      onLogout={async () => { await signOut(); router.replace("/(tenant)/login"); }}>
       {/* Native top bar */}
       <View style={[styles.topBar, { backgroundColor:colors.bg.card, borderBottomColor:colors.border.DEFAULT, paddingTop:insets.top + spacing[2] }]}>
         <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} hitSlop={{top:10,bottom:10,left:10,right:10}}>
@@ -140,7 +140,7 @@ export default function LecturerDashboard() {
             <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.bold, color: colors.text.primary, marginLeft: spacing[2] }} numberOfLines={1}>{tenant?.name}</Text>
           )}
         </View>
-        {/* Lecturer avatar → tap to edit profile */}
+        {/* Lecturer avatar â†’ tap to edit profile */}
         <TouchableOpacity onPress={() => router.push("/(tenant)/(lecturer)/more" as any)} activeOpacity={0.7}>
           {(lecturer as any)?.profile_picture_url ? (
             <Image source={{ uri: (lecturer as any).profile_picture_url }} style={styles.avatarSmall} />
@@ -159,8 +159,8 @@ export default function LecturerDashboard() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} tintColor={brand.blue} />}
       >
-        <Text variant="heading" color="primary">{greeting()}, {firstName} 👋</Text>
-        <Text variant="caption" color="muted">{tenant?.name} · Lecturer Portal</Text>
+        <Text variant="heading" color="primary">{greeting()}, {firstName} ðŸ‘‹</Text>
+        <Text variant="caption" color="muted">{tenant?.name} Â· Lecturer Portal</Text>
 
         {/* Stats */}
         <View style={[layout.rowWrap, { gap: spacing[3] }]}>
@@ -189,7 +189,7 @@ export default function LecturerDashboard() {
                 </View>
                 <View style={layout.fill}>
                   <Text variant="label" weight="semibold" color="primary">{c.course_name}</Text>
-                  <Text variant="micro" color="muted">{c.level} Level · {c.semester} · {c.credit_units} units</Text>
+                  <Text variant="micro" color="muted">{c.level} Level Â· {c.semester} Â· {c.credit_units} units</Text>
                 </View>
                 <Icon name="ui-forward" size="sm" color={colors.text.muted} />
               </TouchableOpacity>
@@ -213,7 +213,7 @@ export default function LecturerDashboard() {
         </View>
 
         <Text variant="micro" color="muted" align="center" style={{ marginBottom: spacing[4] }}>
-          GMIS Lecturer Portal · DAMS Technologies
+          GMIS Lecturer Portal Â· DAMS Technologies
         </Text>
       </ScrollView>
     </AppShell>
